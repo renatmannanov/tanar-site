@@ -1,12 +1,17 @@
-export default function Home() {
+import Hero from '@/components/home/Hero';
+import CategoriesGrid from '@/components/home/CategoriesGrid';
+import FeaturedProducts from '@/components/home/FeaturedProducts';
+import StoryBlock from '@/components/home/StoryBlock';
+import LatestPosts from '@/components/home/LatestPosts';
+
+export default function HomePage() {
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="text-center">
-        <h1 className="font-display text-5xl font-bold tracking-tight text-stone-900">
-          Tanar
-        </h1>
-        <p className="mt-4 text-lg text-stone-500">Coming soon</p>
-      </div>
-    </div>
+    <>
+      <Hero />
+      <CategoriesGrid />
+      <FeaturedProducts />
+      <StoryBlock />
+      <LatestPosts />
+    </>
   );
 }

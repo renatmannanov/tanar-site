@@ -113,4 +113,14 @@ Tailwind-классы, использовать ТОЛЬКО эти оттенк
 - Playwright config moved to port 3001 — port 3000 was occupied by VS Code utility process
 - `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
 - 3/3 Playwright layout tests pass
+
+### Step 4: Home Page — PASS
+- Data stubs created: `src/lib/product.ts` (types + formatPrice), `src/data/products.ts` (empty array), `src/lib/blog.ts` (stub getAllPosts → [])
+- 5 home sections: Hero, CategoriesGrid, FeaturedProducts, StoryBlock, LatestPosts
+- Hero: full-width gradient bg, H1 "Встречаем рассвет на высоте.", two CTA buttons
+- CategoriesGrid: 4 cards with `data-testid="category-card"`, links to `/catalog?category=...`
+- FeaturedProducts/LatestPosts: graceful empty state with "Скоро здесь" placeholders
+- StoryBlock: `id="story"` anchor, brand story text in Russian
+- `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
+- 4/4 Playwright home tests pass
 ---

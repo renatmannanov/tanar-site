@@ -15,7 +15,7 @@
 | 1 | [step_1_scaffold.md](step_1_scaffold.md) | [x] |
 | 2 | [step_2_design_tokens.md](step_2_design_tokens.md) | [x] |
 | 3 | [step_3_layout.md](step_3_layout.md) | [x] |
-| 4 | [step_4_home_page.md](step_4_home_page.md) | [ ] |
+| 4 | [step_4_home_page.md](step_4_home_page.md) | [x] |
 | 5 | [step_5_catalog_list.md](step_5_catalog_list.md) | [ ] |
 | 6 | [step_6_product_page.md](step_6_product_page.md) | [ ] |
 | 7 | [step_7_blog_list.md](step_7_blog_list.md) | [ ] |
