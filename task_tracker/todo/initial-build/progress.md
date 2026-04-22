@@ -132,4 +132,15 @@ Tailwind-классы, использовать ТОЛЬКО эти оттенк
 - Playwright tests scoped to `getByRole('main')` to avoid footer link collisions
 - `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
 - 4/4 Playwright catalog tests pass
+
+### Step 6: Product Page — PASS
+- `src/app/catalog/[slug]/page.tsx` — SSG page with `generateStaticParams`, `generateMetadata`, double `await params`
+- Two-column layout: gallery (1 portrait + 3 square placeholders) on left, details on right
+- Breadcrumb: Каталог / Category / Product name with links
+- Specs rendered as `<dl>` with dividers
+- `AvailabilityButton` — client component (`'use client'`) with alert stub
+- Related products section (hidden when empty)
+- Playwright 404 test passes for nonexistent slug
+- `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
+- 1/1 Playwright product test passes
 ---

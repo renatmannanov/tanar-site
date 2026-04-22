@@ -17,7 +17,7 @@
 | 3 | [step_3_layout.md](step_3_layout.md) | [x] |
 | 4 | [step_4_home_page.md](step_4_home_page.md) | [x] |
 | 5 | [step_5_catalog_list.md](step_5_catalog_list.md) | [x] |
-| 6 | [step_6_product_page.md](step_6_product_page.md) | [ ] |
+| 6 | [step_6_product_page.md](step_6_product_page.md) | [x] |
 | 7 | [step_7_blog_list.md](step_7_blog_list.md) | [ ] |
 | 8 | [step_8_blog_post.md](step_8_blog_post.md) | [ ] |
 | 9 | [step_9_content_seed.md](step_9_content_seed.md) | [ ] |
