@@ -21,7 +21,7 @@
 | 7 | [step_7_blog_list.md](step_7_blog_list.md) | [x] |
 | 8 | [step_8_blog_post.md](step_8_blog_post.md) | [x] |
 | 9 | [step_9_content_seed.md](step_9_content_seed.md) | [x] |
-| 10 | [step_10_polish.md](step_10_polish.md) | [ ] |
+| 10 | [step_10_polish.md](step_10_polish.md) | [x] |
 | 11 | [step_11_verification.md](step_11_verification.md) | [ ] |
 | 12 | [step_12_completion.md](step_12_completion.md) | [ ] |
 

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Logo from './Logo';
+import MobileNav from './MobileNav';
 
 const navLinks = [
   { label: 'Каталог', href: '/catalog' },
@@ -18,7 +19,7 @@ export default function Header() {
         <Logo />
 
         {/* Desktop nav */}
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden items-center gap-8 lg:flex">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -30,27 +31,7 @@ export default function Header() {
           ))}
         </nav>
 
-        {/* Mobile burger — dropdown in step_10 */}
-        <button
-          type="button"
-          aria-label="Открыть меню"
-          className="inline-flex items-center justify-center rounded-md p-2 text-stone-600 hover:bg-stone-100 hover:text-stone-900 md:hidden"
-        >
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-            />
-          </svg>
-        </button>
+        <MobileNav />
       </div>
     </header>
   );

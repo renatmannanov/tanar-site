@@ -174,4 +174,14 @@ Tailwind-классы, использовать ТОЛЬКО эти оттенк
 - Catalog filter tests needed `exact: true` fix — product cards contain category label text which matched filter chip selectors
 - `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
 - 17/17 Playwright tests pass
+
+### Step 10: Polish — PASS
+- `MobileNav.tsx` client component: burger toggles open/close, Esc closes, backdrop click closes, `aria-expanded`/`aria-controls` for a11y
+- Nav breakpoint changed from `md` to `lg` (1024px) — at 768px (tablet) burger is still visible per spec
+- Hover effects already in place: ProductCard/BlogCard (`hover:-translate-y-1`), CategoriesGrid (`hover:scale-[1.02]`)
+- Added `focus-visible` ring to AvailabilityButton and Hero CTA links
+- Favicon: SVG mountain triangle on dark gradient via `src/app/icon.tsx` (no text = no font download warning)
+- Removed `design-test` page (was the renamed `_design` from step 2)
+- `e2e/responsive.spec.ts`: 12 tests across 3 viewports (375/768/1280) — all pass
+- `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
 ---

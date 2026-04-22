@@ -24,13 +24,13 @@ export default function Hero() {
         <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
           <Link
             href="/catalog"
-            className="inline-flex h-12 items-center rounded-md bg-white px-8 text-sm font-semibold text-stone-900 transition-colors hover:bg-stone-100"
+            className="inline-flex h-12 items-center rounded-md bg-white px-8 text-sm font-semibold text-stone-900 transition-colors hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
           >
             Смотреть каталог
           </Link>
           <Link
             href="/#story"
-            className="inline-flex h-12 items-center rounded-md border border-white/30 px-8 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+            className="inline-flex h-12 items-center rounded-md border border-white/30 px-8 text-sm font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
           >
             О бренде
           </Link>
