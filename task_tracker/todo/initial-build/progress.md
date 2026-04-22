@@ -162,4 +162,16 @@ Tailwind-классы, использовать ТОЛЬКО эти оттенк
 - Playwright 404 test for nonexistent slug passes
 - `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
 - 1/1 Playwright blog-post test passes
+
+### Step 9: Content Seed — PASS
+- 21 products across 4 categories (6 jackets, 6 backpacks, 5 accessories, 5 t-shirts)
+- `shell-jacket-khan` is first product in array (required for smoke-test in step_11)
+- 6 blog posts: khan-tengri-ascent, choose-jacket-tian-shan, treks-kazakhstan, tanar-brand-story, kolsai-backpack-test, eco-philosophy
+- `khan-tengri-ascent` has most recent date (2026-04-18) as required
+- `_placeholder.mdx` deleted
+- All gradients from approved OUTDOOR_GRADIENTS list
+- All content in Russian, no lorem ipsum
+- Catalog filter tests needed `exact: true` fix — product cards contain category label text which matched filter chip selectors
+- `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
+- 17/17 Playwright tests pass
 ---

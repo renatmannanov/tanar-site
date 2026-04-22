@@ -10,16 +10,16 @@ test('all filter chips are present', async ({ page }) => {
   await page.goto('/catalog');
   const main = page.getByRole('main');
   for (const label of ['Все', 'Куртки', 'Рюкзаки', 'Аксессуары', 'Футболки']) {
-    await expect(main.getByRole('link', { name: label })).toBeVisible();
+    await expect(main.getByRole('link', { name: label, exact: true })).toBeVisible();
   }
 });
 
 test('clicking "Куртки" chip filters by category', async ({ page }) => {
   await page.goto('/catalog');
   const main = page.getByRole('main');
-  await main.getByRole('link', { name: 'Куртки' }).click();
+  await main.getByRole('link', { name: 'Куртки', exact: true }).click();
   await expect(page).toHaveURL(/category=jackets/);
-  const activeChip = main.getByRole('link', { name: 'Куртки' });
+  const activeChip = main.getByRole('link', { name: 'Куртки', exact: true });
   await expect(activeChip).toHaveClass(/bg-stone-900/);
 });
 
