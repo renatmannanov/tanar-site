@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$PlanFile,
     [int]$MaxIterations = 30,
@@ -18,13 +18,13 @@ if (-not (Test-Path $PlanFile)) {
 $RunId = Get-Date -Format 'yyyyMMdd-HHmmss'
 $LogsDir = Join-Path (Get-Location) 'logs'
 New-Item -ItemType Directory -Force -Path $LogsDir | Out-Null
-$TranscriptPath = Join-Path $LogsDir "ralph-run-$RunId.log"
-$SummaryPath = Join-Path $LogsDir "ralph-summary-$RunId.tsv"
+$TranscriptPath = Join-Path $LogsDir ('ralph-run-' + $RunId + '.log')
+$SummaryPath = Join-Path $LogsDir ('ralph-summary-' + $RunId + '.tsv')
 
 # Full transcript (everything printed to console ends up here)
 Start-Transcript -Path $TranscriptPath -Force | Out-Null
 
-# TSV summary header: one row per iteration, easy to grep / open in Excel
+# TSV summary header: one row per iteration
 "iteration`tstarted_at`tduration_sec`texit_code`tverdict" | Out-File -FilePath $SummaryPath -Encoding utf8
 
 Write-Host "Starting Ralph Loop for tanar-site"
@@ -39,11 +39,13 @@ $prompt = @"
 You are an autonomous execution agent for the tanar-site project.
 Your working directory is the project root (tanar-site).
 
-## Every iteration — start here
+## Every iteration - start here
 
 1. Read CLAUDE.md (project stack, commands, rules)
-2. Read ${PlanFile} — single source of truth, follow it strictly
-3. Read progress.md in the same folder as the plan — check learnings from previous iterations
+2. Read the plan file specified by the runner - single source of truth, follow it strictly
+3. Read progress.md in the same folder as the plan - check learnings from previous iterations
+
+Plan file path: ${PlanFile}
 
 ## Your job
 
@@ -75,10 +77,10 @@ If ANY verification FAILS:
 
 Append one block per iteration:
 
-### Iteration [N] — [Step name] — [PASS/FAIL]
+### Iteration [N] - [Step name] - [PASS/FAIL]
 - What was done
 - Files changed (short list)
-- Verification results (command → exit code)
+- Verification results (command -> exit code)
 - Learnings / gotchas for future iterations (if any)
 ---
 
@@ -92,10 +94,10 @@ Append one block per iteration:
 
 ## End condition
 
-After completing your step, re-read ${PlanFile}:
-- ALL steps [x] → output exactly: <promise>COMPLETE</promise>
-- Steps remain [ ] → just end your response (next iteration continues)
-- Blocked → output exactly: <promise>BLOCKED</promise>
+After completing your step, re-read the plan file:
+- ALL steps [x] -> output exactly: <promise>COMPLETE</promise>
+- Steps remain [ ] -> just end your response (next iteration continues)
+- Blocked -> output exactly: <promise>BLOCKED</promise>
 "@
 
 $finalExitCode = 1
@@ -103,8 +105,9 @@ $finalExitCode = 1
 try {
     for ($i = 1; $i -le $MaxIterations; $i++) {
         $iterStart = Get-Date
+        $timeStr = $iterStart.ToString('HH:mm:ss')
         Write-Host "==========================================="
-        Write-Host "  Iteration $i of $MaxIterations — $($iterStart.ToString('HH:mm:ss'))"
+        Write-Host ("  Iteration " + $i + " of " + $MaxIterations + " - " + $timeStr)
         Write-Host "==========================================="
 
         $result = (& claude --dangerously-skip-permissions -p $prompt 2>&1 | Out-String)
@@ -121,20 +124,21 @@ try {
         elseif ($result -match "<promise>BLOCKED</promise>") { $verdict = 'blocked' }
         elseif ($claudeExit -ne 0) { $verdict = 'claude-error' }
 
-        # Append summary row
-        "$i`t$($iterStart.ToString('yyyy-MM-ddTHH:mm:ss'))`t$duration`t$claudeExit`t$verdict" |
-            Out-File -FilePath $SummaryPath -Encoding utf8 -Append
+        # Append summary row (TSV, build via + to avoid any interpolation traps)
+        $startedAt = $iterStart.ToString('yyyy-MM-ddTHH:mm:ss')
+        $row = $i.ToString() + "`t" + $startedAt + "`t" + $duration.ToString() + "`t" + $claudeExit.ToString() + "`t" + $verdict
+        $row | Out-File -FilePath $SummaryPath -Encoding utf8 -Append
 
-        Write-Host ("  → iter $i done in ${duration}s, exit=$claudeExit, verdict=$verdict")
+        Write-Host ("  iter " + $i + " done in " + $duration + "s, exit=" + $claudeExit + ", verdict=" + $verdict)
         Write-Host ""
 
         if ($claudeExit -ne 0) {
-            Write-Warning "claude exited with code $claudeExit (continuing)"
+            Write-Warning ("claude exited with code " + $claudeExit + " (continuing)")
         }
 
         if ($verdict -eq 'complete') {
             Write-Host "==========================================="
-            Write-Host "  Complete after $i iterations!"
+            Write-Host ("  Complete after " + $i + " iterations!")
             Write-Host "==========================================="
             $finalExitCode = 0
             break
@@ -142,7 +146,7 @@ try {
 
         if ($verdict -eq 'blocked') {
             Write-Host "==========================================="
-            Write-Host "  Ralph is BLOCKED after $i iterations."
+            Write-Host ("  Ralph is BLOCKED after " + $i + " iterations.")
             Write-Host "  Check progress.md for details:"
             Write-Host "    task_tracker/todo/initial-build/progress.md"
             Write-Host "==========================================="
@@ -155,7 +159,7 @@ try {
 
     if ($finalExitCode -eq 1) {
         Write-Host "==========================================="
-        Write-Host "  Reached max iterations ($MaxIterations)"
+        Write-Host ("  Reached max iterations (" + $MaxIterations + ")")
         Write-Host "==========================================="
     }
 }
