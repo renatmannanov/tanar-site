@@ -143,4 +143,14 @@ Tailwind-классы, использовать ТОЛЬКО эти оттенк
 - Playwright 404 test passes for nonexistent slug
 - `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
 - 1/1 Playwright product test passes
+
+### Step 7: Blog List — PASS
+- `src/lib/blog.ts` rewritten from stub to real implementation with `node:fs` + `gray-matter`
+- Exported types: `BlogFrontmatter`, `BlogPost`; functions: `getAllPosts`, `getPostBySlug`, `getAllPostSlugs`, `formatPostDate`
+- Files with `_` prefix filtered out (underscore filter)
+- `src/components/BlogCard.tsx` — server component with `data-testid="blog-card"`, shows gradient placeholder, date, title, excerpt, author
+- `src/app/blog/page.tsx` — hero "Журнал" / "Истории с высоты", grid layout, empty state fallback
+- `content/blog/_placeholder.mdx` created (will be removed in step_9)
+- `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
+- 4/4 Playwright blog-list tests pass
 ---
