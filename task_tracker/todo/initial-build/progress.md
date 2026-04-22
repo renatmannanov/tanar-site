@@ -89,4 +89,12 @@ Tailwind-классы, использовать ТОЛЬКО эти оттенк
 
 ## Learnings
 (заполняется Ralph-ом по ходу итераций)
+
+### Step 1: Scaffold — PASS
+- `create-next-app@15` does not allow running in a dir with existing files — used temp dir + copy workaround
+- Node.js v24 evaluates `-e` as TypeScript by default — regex `!` gets misinterpreted; use script files for verification
+- postcss.config.js must use `module.exports` (CJS) to avoid ESLint `import/no-anonymous-default-export` warning
+- Tailwind config must use ESM import instead of `require()` to avoid `@typescript-eslint/no-require-imports`
+- `npm run build`, `npm run typecheck`, `npm run lint` all exit 0
+- Commit: `268cee1` on `dev` branch
 ---
