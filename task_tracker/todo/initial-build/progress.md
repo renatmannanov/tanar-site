@@ -184,4 +184,12 @@ Tailwind-классы, использовать ТОЛЬКО эти оттенк
 - Removed `design-test` page (was the renamed `_design` from step 2)
 - `e2e/responsive.spec.ts`: 12 tests across 3 viewports (375/768/1280) — all pass
 - `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
+
+### Step 11: Verification — PASS
+- `e2e/smoke.spec.ts` created with 10 tests: 5 page error checks, product count, filter, blog count, metadata titles, navigation
+- Uses fixed slugs: `shell-jacket-khan` and `khan-tengri-ascent`
+- All `data-category` attributes verified on filtered cards
+- 8 total spec files in `e2e/` (layout, home, catalog, product, blog-list, blog-post, responsive, smoke)
+- 39/39 Playwright tests pass (29 existing + 10 new smoke)
+- `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
 ---
