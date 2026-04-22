@@ -1,6 +1,6 @@
 # Initial Build — tanar-site
 
-> Статус: pending
+> Статус: done
 > Дата: 2026-04-22
 > Тип: фича (greenfield — первый билд проекта)
 
@@ -23,22 +23,22 @@
 | 9 | [step_9_content_seed.md](step_9_content_seed.md) | [x] |
 | 10 | [step_10_polish.md](step_10_polish.md) | [x] |
 | 11 | [step_11_verification.md](step_11_verification.md) | [x] |
-| 12 | [step_12_completion.md](step_12_completion.md) | [ ] |
+| 12 | [step_12_completion.md](step_12_completion.md) | [x] |
 
 ## Критерии готовности (весь план)
 
-- [ ] `npm run build` — exit 0
-- [ ] `npm run typecheck` — exit 0
-- [ ] `npm run lint` — exit 0
-- [ ] `npm run test:e2e` — все Playwright smoke-тесты проходят
-- [ ] Все страницы рендерятся без console errors: `/`, `/catalog`, `/catalog/[slug]` (любой продукт), `/blog`, `/blog/[slug]` (любой пост)
-- [ ] Фильтр в `/catalog` по категориям работает
-- [ ] ≥20 продуктов в `src/data/products.ts`
-- [ ] ≥6 постов в `content/blog/*.mdx`
-- [ ] Все плейсшолдеры-картинки — CSS-градиенты (не URL на внешние сервисы, не SVG-файлы), с текст-меткой
-- [ ] Responsive: работает на 375px / 768px / 1280px (проверяется Playwright)
-- [ ] Все шаги в этом PLAN.md помечены [x]
-- [ ] Папка плана перемещена из `todo/` в `done/`
+- [x] `npm run build` — exit 0
+- [x] `npm run typecheck` — exit 0
+- [x] `npm run lint` — exit 0
+- [x] `npm run test:e2e` — все Playwright smoke-тесты проходят
+- [x] Все страницы рендерятся без console errors: `/`, `/catalog`, `/catalog/[slug]` (любой продукт), `/blog`, `/blog/[slug]` (любой пост)
+- [x] Фильтр в `/catalog` по категориям работает
+- [x] ≥20 продуктов в `src/data/products.ts`
+- [x] ≥6 постов в `content/blog/*.mdx`
+- [x] Все плейсшолдеры-картинки — CSS-градиенты (не URL на внешние сервисы, не SVG-файлы), с текст-меткой
+- [x] Responsive: работает на 375px / 768px / 1280px (проверяется Playwright)
+- [x] Все шаги в этом PLAN.md помечены [x]
+- [x] Папка плана перемещена из `todo/` в `done/`
 
 ## Контекст для Ralph
 

@@ -192,4 +192,14 @@ Tailwind-классы, использовать ТОЛЬКО эти оттенк
 - 8 total spec files in `e2e/` (layout, home, catalog, product, blog-list, blog-post, responsive, smoke)
 - 39/39 Playwright tests pass (29 existing + 10 new smoke)
 - `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
+
+### Step 12: Completion — PASS
+- All 11 implementation steps verified [x] in PLAN.md
+- `npm run build` — exit 0 (35 static pages generated)
+- `npm run typecheck` — exit 0
+- `npm run lint` — exit 0
+- `npm run test:e2e` — 39/39 tests pass
+- Cleanup confirmed: `_design/` removed (step 10), `_placeholder.mdx` removed (step 9)
+- PLAN.md status updated to `done`, all criteria checked
+- Plan folder moved from `todo/` to `done/`
 ---
