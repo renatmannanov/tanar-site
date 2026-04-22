@@ -123,4 +123,13 @@ Tailwind-классы, использовать ТОЛЬКО эти оттенк
 - StoryBlock: `id="story"` anchor, brand story text in Russian
 - `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
 - 4/4 Playwright home tests pass
+
+### Step 5: Catalog List — PASS
+- `src/lib/product.ts` appended with helper functions (getProductBySlug, getAllProductSlugs, getRelatedProducts, getProductsByCategory, isValidCategory) — original types preserved
+- `src/components/ProductCard.tsx` — server component, reusable card with Placeholder, category label, name, price, hover lift
+- `src/app/catalog/page.tsx` — server component with `await searchParams` (Next 15), hero block, 5 filter chips (Все + 4 categories), product grid, empty state fallback
+- `FeaturedProducts` updated to use `ProductCard` instead of inline render
+- Playwright tests scoped to `getByRole('main')` to avoid footer link collisions
+- `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
+- 4/4 Playwright catalog tests pass
 ---

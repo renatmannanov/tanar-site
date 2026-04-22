@@ -1,7 +1,6 @@
-import Link from 'next/link';
 import Placeholder from '@/components/Placeholder';
+import ProductCard from '@/components/ProductCard';
 import { products } from '@/data/products';
-import { formatPrice } from '@/lib/product';
 
 export default function FeaturedProducts() {
   const featured = products.slice(0, 4);
@@ -14,13 +13,7 @@ export default function FeaturedProducts() {
       <div className="mt-8 grid grid-cols-2 gap-6 lg:grid-cols-4">
         {featured.length > 0
           ? featured.map((p) => (
-              <Link key={p.slug} href={`/catalog/${p.slug}`} className="group">
-                <Placeholder label={p.name} gradient={p.gradient} aspect="portrait" />
-                <h3 className="mt-3 text-sm font-medium text-stone-900 group-hover:text-stone-600">
-                  {p.name}
-                </h3>
-                <p className="mt-1 text-sm text-stone-500">{formatPrice(p.price)}</p>
-              </Link>
+              <ProductCard key={p.slug} product={p} />
             ))
           : Array.from({ length: 4 }).map((_, i) => (
               <div key={i}>
