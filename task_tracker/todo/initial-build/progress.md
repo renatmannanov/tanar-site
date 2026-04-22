@@ -97,4 +97,20 @@ Tailwind-классы, использовать ТОЛЬКО эти оттенк
 - Tailwind config must use ESM import instead of `require()` to avoid `@typescript-eslint/no-require-imports`
 - `npm run build`, `npm run typecheck`, `npm run lint` all exit 0
 - Commit: `268cee1` on `dev` branch
+
+### Step 2: Design Tokens — PASS
+- Next.js App Router treats `_`-prefixed folders as private (not routed) — used `design-test` instead of `_design`
+- Inter + Playfair_Display fonts with cyrillic subsets
+- 10 outdoor gradients in `src/lib/gradients.ts`
+- Placeholder component is a Server Component with `data-testid="placeholder"`
+- Commit: `457f29c`
+
+### Step 3: Layout — PASS
+- Logo: inline SVG mountain silhouette + "TANAR" text with `font-display`, supports light/dark variant
+- Header: sticky, `bg-stone-50/80 backdrop-blur`, nav links (Каталог, Блог, О бренде, Контакты), mobile burger button (no dropdown yet)
+- Footer: 4-column grid (Каталог, Компания, Поддержка, Связь), copyright bar with "Алматы, Казахстан"
+- Root layout updated: `<Header />` + `<main>` + `<Footer />`, metadata title/description in Russian
+- Playwright config moved to port 3001 — port 3000 was occupied by VS Code utility process
+- `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
+- 3/3 Playwright layout tests pass
 ---

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import "./globals.css";
 
 const inter = Inter({
@@ -13,8 +15,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Tanar — Outdoor бренд Казахстана",
-  description: "Встречающая рассвет",
+  title: "Tanar — Outdoor-бренд из Казахстана",
+  description: "Одежда и снаряжение для гор. Создано в Казахстане.",
 };
 
 export default function RootLayout({
@@ -27,7 +29,9 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${playfair.variable} antialiased bg-stone-50 text-stone-900`}
       >
-        {children}
+        <Header />
+        <main className="min-h-screen">{children}</main>
+        <Footer />
       </body>
     </html>
   );

@@ -7,12 +7,12 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:3001',
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: 'npx next dev --port 3001',
+    url: 'http://localhost:3001',
     reuseExistingServer: true,
     timeout: 120_000,
     stdout: 'ignore',
