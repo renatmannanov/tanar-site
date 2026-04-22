@@ -19,7 +19,7 @@
 | 5 | [step_5_catalog_list.md](step_5_catalog_list.md) | [x] |
 | 6 | [step_6_product_page.md](step_6_product_page.md) | [x] |
 | 7 | [step_7_blog_list.md](step_7_blog_list.md) | [x] |
-| 8 | [step_8_blog_post.md](step_8_blog_post.md) | [ ] |
+| 8 | [step_8_blog_post.md](step_8_blog_post.md) | [x] |
 | 9 | [step_9_content_seed.md](step_9_content_seed.md) | [ ] |
 | 10 | [step_10_polish.md](step_10_polish.md) | [ ] |
 | 11 | [step_11_verification.md](step_11_verification.md) | [ ] |

@@ -153,4 +153,13 @@ Tailwind-классы, использовать ТОЛЬКО эти оттенк
 - `content/blog/_placeholder.mdx` created (will be removed in step_9)
 - `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
 - 4/4 Playwright blog-list tests pass
+
+### Step 8: Blog Post Page — PASS
+- `src/components/mdx-components.tsx` — custom MDX renderers for h1-h3, p, a, ul, ol, li, blockquote, img (→ Placeholder)
+- `src/app/blog/[slug]/page.tsx` — SSG page with `generateStaticParams`, `generateMetadata`, double `await params`
+- Full-width gradient cover, date/author line, title, MDX body, back-to-blog link
+- No `prose` class anywhere — typography fully manual via mdx-components
+- Playwright 404 test for nonexistent slug passes
+- `npm run typecheck`, `npm run lint`, `npm run build` all exit 0
+- 1/1 Playwright blog-post test passes
 ---
