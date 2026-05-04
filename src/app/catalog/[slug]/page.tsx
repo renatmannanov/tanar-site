@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import {
   getProductBySlug,
   getAllProductSlugs,
@@ -55,7 +56,9 @@ export default async function ProductPage({ params }: Props) {
         </ol>
       </nav>
 
-      <ProductDetail product={product} />
+      <Suspense fallback={<div className="min-h-[60vh]" />}>
+        <ProductDetail product={product} />
+      </Suspense>
 
       {/* Related products */}
       {related.length > 0 && (
