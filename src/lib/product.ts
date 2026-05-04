@@ -18,6 +18,8 @@ export type ProductColor = {
   label: string;
   hex: string;
   models: ProductImageModel[];
+  /** If true, also include front/side/back flat (white-background) shots in the gallery. */
+  hasFlatShots?: boolean;
 };
 
 export type Product = {
@@ -35,7 +37,8 @@ export type Product = {
 
 export type GalleryShot = {
   view: ProductImageView;
-  model: ProductImageModel;
+  /** 'flat' = studio shot on white background (no model). */
+  model: ProductImageModel | 'flat';
   src: string;
   alt: string;
 };
@@ -53,17 +56,34 @@ export function getProductGalleryShots(product: Product, color: string): Gallery
   const variant = product.variants?.find(v => v.id === color);
   if (!variant) return [];
   const views: ProductImageView[] = ['front', 'side', 'back'];
+  const viewLabel = (v: ProductImageView) =>
+    v === 'front' ? 'спереди' : v === 'side' ? 'сбоку' : 'сзади';
   const shots: GalleryShot[] = [];
+
+  // Lifestyle (with model, in nature) shots first
   for (const model of variant.models) {
     for (const view of views) {
       shots.push({
         view,
         model,
         src: `/images/products/${product.slug}/${color}/${view}-${model}-full-lg.webp`,
-        alt: `${product.name} — ${variant.label}, ${view === 'front' ? 'спереди' : view === 'side' ? 'сбоку' : 'сзади'}`,
+        alt: `${product.name} — ${variant.label}, ${viewLabel(view)}`,
       });
     }
   }
+
+  // Flat (studio, white background) shots after lifestyle
+  if (variant.hasFlatShots) {
+    for (const view of views) {
+      shots.push({
+        view,
+        model: 'flat',
+        src: `/images/products/${product.slug}/${color}/${view}-flat-full-lg.webp`,
+        alt: `${product.name} — ${variant.label}, студийное фото, ${viewLabel(view)}`,
+      });
+    }
+  }
+
   return shots;
 }
 

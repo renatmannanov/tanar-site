@@ -19,9 +19,9 @@ export const products: Product[] = [
     ],
     gradient: 'from-slate-700 to-emerald-900',
     variants: [
-      { id: 'darkblue', label: 'Тёмно-синий', hex: '#1e3a5f', models: ['girl'] },
+      { id: 'darkblue', label: 'Тёмно-синий', hex: '#1e3a5f', models: ['girl'], hasFlatShots: true },
       { id: 'white', label: 'Белый', hex: '#f5f5f0', models: ['girl'] },
-      { id: 'red', label: 'Красный', hex: '#a8332a', models: ['man'] },
+      { id: 'red', label: 'Красный', hex: '#a8332a', models: ['man'], hasFlatShots: true },
       { id: 'yellow', label: 'Жёлтый', hex: '#d4a73a', models: ['girl'] },
     ],
   },
