@@ -32,10 +32,15 @@ test.describe('smoke', () => {
     });
   }
 
-  test('catalog shows 20+ product cards', async ({ page }) => {
+  test('catalog shows all 10 product cards', async ({ page }) => {
     await page.goto('/catalog');
     const cards = page.getByTestId('product-card');
-    expect(await cards.count()).toBeGreaterThanOrEqual(20);
+    expect(await cards.count()).toBe(10);
+  });
+
+  test('coming-soon products show "Скоро" badge', async ({ page }) => {
+    await page.goto('/catalog/pants-charyn');
+    await expect(page.getByText(/Скоро/i).first()).toBeVisible();
   });
 
   test('catalog filter by jackets', async ({ page }) => {

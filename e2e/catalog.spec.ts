@@ -9,7 +9,7 @@ test('catalog page loads with 200', async ({ page }) => {
 test('all filter chips are present', async ({ page }) => {
   await page.goto('/catalog');
   const main = page.getByRole('main');
-  for (const label of ['Все', 'Куртки', 'Рюкзаки', 'Аксессуары', 'Футболки']) {
+  for (const label of ['Все', 'Куртки', 'Худи', 'Футболки', 'Штаны', 'Шорты']) {
     await expect(main.getByRole('link', { name: label, exact: true })).toBeVisible();
   }
 });
