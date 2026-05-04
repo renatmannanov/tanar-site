@@ -1,6 +1,6 @@
 # Step 3: Sharp pipeline для оптимизации фото
 
-> Статус: pending
+> Статус: done
 
 ## Цель
 

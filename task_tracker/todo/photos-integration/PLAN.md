@@ -36,7 +36,7 @@
 |---|------|--------|
 | 1 | [step_1_assets_copy.md](step_1_assets_copy.md) | [x] |
 | 2 | [step_2_data_model.md](step_2_data_model.md) | [x] |
-| 3 | [step_3_image_pipeline.md](step_3_image_pipeline.md) | [ ] |
+| 3 | [step_3_image_pipeline.md](step_3_image_pipeline.md) | [x] |
 | 4 | [step_4_products_data.md](step_4_products_data.md) | [ ] |
 | 5 | [step_5_logo_header.md](step_5_logo_header.md) | [ ] |
 | 6 | [step_6_catalog_card.md](step_6_catalog_card.md) | [ ] |
