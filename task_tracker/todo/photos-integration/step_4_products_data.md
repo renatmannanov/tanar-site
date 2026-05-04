@@ -1,6 +1,6 @@
 # Step 4: Перепись src/data/products.ts под реальный каталог
 
-> Статус: pending
+> Статус: done
 
 ## Цель
 
