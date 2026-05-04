@@ -41,7 +41,7 @@
 | 5 | [step_5_logo_header.md](step_5_logo_header.md) | [x] |
 | 6 | [step_6_catalog_card.md](step_6_catalog_card.md) | [x] |
 | 6.5 | [step_6_5_e2e_update.md](step_6_5_e2e_update.md) | [x] |
-| 7 | [step_7_product_page.md](step_7_product_page.md) | [ ] |
+| 7 | [step_7_product_page.md](step_7_product_page.md) | [x] |
 | 8 | [step_8_completion.md](step_8_completion.md) | [ ] |
 
 ## Критерии готовности (весь план)
