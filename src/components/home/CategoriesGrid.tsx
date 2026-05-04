@@ -3,9 +3,9 @@ import Placeholder from '@/components/Placeholder';
 
 const categories = [
   { label: 'Куртки', href: '/catalog?category=jackets', gradient: 'from-emerald-800 to-stone-900' },
-  { label: 'Рюкзаки', href: '/catalog?category=backpacks', gradient: 'from-stone-600 to-slate-900' },
-  { label: 'Аксессуары', href: '/catalog?category=accessories', gradient: 'from-amber-800 to-stone-900' },
+  { label: 'Худи', href: '/catalog?category=hoodies', gradient: 'from-stone-600 to-slate-900' },
   { label: 'Футболки', href: '/catalog?category=t-shirts', gradient: 'from-neutral-600 to-emerald-800' },
+  { label: 'Штаны', href: '/catalog?category=pants', gradient: 'from-amber-800 to-stone-900' },
 ] as const;
 
 export default function CategoriesGrid() {

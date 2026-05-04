@@ -47,3 +47,10 @@ test-results
 # Ralph runner artifacts
 /logs
 .backup-location
+
+# Source assets (originals from photographer + brand book PNGs)
+# Optimized webp/png are committed under public/ — these originals are not.
+/assets/
+
+# Scratch — temporary files for image iterations
+/scratch/
