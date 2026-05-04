@@ -1,10 +1,23 @@
-export type ProductCategory = 'jackets' | 'backpacks' | 'accessories' | 't-shirts';
+export type ProductCategory = 'jackets' | 'hoodies' | 't-shirts' | 'pants' | 'shorts';
 
 export const CATEGORY_LABELS: Record<ProductCategory, string> = {
   'jackets': 'Куртки',
-  'backpacks': 'Рюкзаки',
-  'accessories': 'Аксессуары',
+  'hoodies': 'Худи',
   't-shirts': 'Футболки',
+  'pants': 'Штаны',
+  'shorts': 'Шорты',
+};
+
+export const CATEGORY_ORDER: ProductCategory[] = ['jackets', 'hoodies', 't-shirts', 'pants', 'shorts'];
+
+export type ProductImageModel = 'man' | 'girl';
+export type ProductImageView = 'front' | 'side' | 'back';
+
+export type ProductColor = {
+  id: string;
+  label: string;
+  hex: string;
+  models: ProductImageModel[];
 };
 
 export type Product = {
@@ -16,7 +29,43 @@ export type Product = {
   description: string;
   specs: { label: string; value: string }[];
   gradient: string;
+  comingSoon?: boolean;
+  variants?: ProductColor[];
 };
+
+export type GalleryShot = {
+  view: ProductImageView;
+  model: ProductImageModel;
+  src: string;
+  alt: string;
+};
+
+export function getProductCardImage(
+  slug: string,
+  color: string,
+  model: ProductImageModel
+): { md: string; lg: string } {
+  const base = `/images/products/${slug}/${color}/front-${model}-card`;
+  return { md: `${base}-md.webp`, lg: `${base}-lg.webp` };
+}
+
+export function getProductGalleryShots(product: Product, color: string): GalleryShot[] {
+  const variant = product.variants?.find(v => v.id === color);
+  if (!variant) return [];
+  const views: ProductImageView[] = ['front', 'side', 'back'];
+  const shots: GalleryShot[] = [];
+  for (const model of variant.models) {
+    for (const view of views) {
+      shots.push({
+        view,
+        model,
+        src: `/images/products/${product.slug}/${color}/${view}-${model}-full-lg.webp`,
+        alt: `${product.name} — ${variant.label}, ${view === 'front' ? 'спереди' : view === 'side' ? 'сбоку' : 'сзади'}`,
+      });
+    }
+  }
+  return shots;
+}
 
 export function formatPrice(price: number): string {
   return `${price.toLocaleString('ru-RU')} ₸`;
@@ -44,5 +93,5 @@ export function getProductsByCategory(category: ProductCategory | null): Product
 }
 
 export function isValidCategory(value: string | undefined): value is ProductCategory {
-  return value === 'jackets' || value === 'backpacks' || value === 'accessories' || value === 't-shirts';
+  return CATEGORY_ORDER.includes(value as ProductCategory);
 }
