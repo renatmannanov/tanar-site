@@ -10,7 +10,10 @@
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "images": "node scripts/process-images.mjs",
-    "images:check": "tsx scripts/check-images.ts"
+    "images:check": "tsx scripts/check-images.ts",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f"
   },
   "engines": {
     "node": ">=20 <21"

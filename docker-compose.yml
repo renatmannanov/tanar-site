@@ -1,0 +1,46 @@
+# Local Postgres for tanar-site (dev + test).
+# Compose v2 — no `version:` field needed.
+# Passwords here are NOT secrets: these are local-only dev/test databases.
+# Real (prod) credentials live in .env.local / deployment env, never here.
+#
+#   npm run db:up     start both services
+#   npm run db:down   stop
+#   npm run db:logs   follow logs
+services:
+  postgres-dev:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: tanar
+      POSTGRES_PASSWORD: tanar_dev_pw
+      POSTGRES_DB: tanar_dev
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tanar -d tanar_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-test:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: tanar
+      POSTGRES_PASSWORD: tanar_test_pw
+      POSTGRES_DB: tanar_test
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tanar -d tanar_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-dev-data:
+  postgres-test-data:
