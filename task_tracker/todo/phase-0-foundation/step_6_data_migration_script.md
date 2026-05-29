@@ -13,26 +13,24 @@
 
 Добавить:
 ```json
-"db:seed": "tsx -r tsconfig-paths/register src/core/db/seed.ts",
-"db:reset": "tsx -r tsconfig-paths/register src/core/db/reset.ts"
+"db:seed": "tsx --env-file=.env.local -r tsconfig-paths/register src/core/db/seed.ts",
+"db:reset": "tsx --env-file=.env.local -r tsconfig-paths/register src/core/db/reset.ts"
 ```
 
-(`-r tsconfig-paths/register` — чтобы скрипт понимал alias `@/...`; пакет уже в devDependencies.)
+- `--env-file=.env.local` — tsx нативно грузит env ДО импортов (Node 24, tsx 4.21). **Обязательно:** `client.ts` читает `DATABASE_URL` в момент импорта, а `dotenv.config()` внутри скрипта срабатывает слишком поздно. Проверено в шаге 5. НЕ использовать `-r dotenv/config` с .ts-preload — ломает tsx-loader (`resolveSync not implemented`).
+- `-r tsconfig-paths/register` — чтобы скрипт понимал alias `@/...`; пакет уже в devDependencies.
+
+> **Следствие:** dotenv.config() ВНУТРИ seed.ts/reset.ts (как было написано ниже в этом шаге) больше НЕ нужен — env грузит `--env-file`. Guard на `DATABASE_URL` остаётся.
 
 Создать `src/core/db/reset.ts` — `TRUNCATE products, product_variants, skus, media_assets, orders, order_items, inventory_log CASCADE` (для удобства re-seed в dev).
 
-### Загрузка .env.local (обязательно — tsx сам его НЕ грузит)
+### Загрузка .env.local
 
-`next dev` грузит `.env.local` автоматически, но голый `tsx` — нет. Поэтому `seed.ts` и `reset.ts` ОБЯЗАНЫ загрузить env сами, ПЕРВОЙ строкой (до чтения `process.env.DATABASE_URL`):
-```ts
-import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });   // как в drizzle.config.ts
-```
-(`dotenv` уже в devDependencies — поставлен в шаге 2.) Без этой строки guard ниже всегда будет падать с «DATABASE_URL must point to...», потому что переменная не определена.
+Env грузится флагом `--env-file=.env.local` в npm-скрипте (см. выше), ДО любых импортов. Поэтому `dotenv.config()` внутри seed.ts/reset.ts НЕ нужен. (Причина, почему именно флаг, а не `dotenv.config()` в коде: `client.ts` читает `DATABASE_URL` в момент импорта, статические import-цепочки исполняются раньше тела скрипта — проверено в шаге 5.)
 
 ### Защита от запуска против prod БД (обязательно в обоих скриптах)
 
-В начале seed.ts И reset.ts добавить guard ДО любых операций (ПОСЛЕ загрузки dotenv выше):
+В начале seed.ts И reset.ts добавить guard ДО любых операций с БД:
 ```ts
 const url = process.env.DATABASE_URL ?? '';
 if (!/tanar_dev|tanar_test/.test(url)) {
@@ -217,7 +215,7 @@ docker exec -i tanar-site-postgres-dev-1 psql -U tanar -d tanar_dev -c "SELECT C
 ## Критерии готовности
 
 - [ ] `src/core/db/seed.ts` и `src/core/db/reset.ts` созданы
-- [ ] Оба скрипта ПЕРВОЙ строкой грузят `.env.local` через `dotenv.config({ path: '.env.local' })` (tsx сам env не грузит)
+- [ ] npm-скрипты `db:seed`/`db:reset` содержат `tsx --env-file=.env.local -r tsconfig-paths/register ...` (env грузится флагом, не кодом)
 - [ ] Оба скрипта в начале проверяют что `DATABASE_URL` указывает на БД с именем `tanar_dev` или `tanar_test`, иначе throw (защита от случайного запуска против prod)
 - [ ] Оба скрипта в конце явно закрывают соединение (`await queryClient.end()`) — процесс выходит с exit code 0, не зависает
 - [ ] `package.json` имеет `db:seed`, `db:reset`

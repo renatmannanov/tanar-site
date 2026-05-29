@@ -78,4 +78,12 @@
 - **tailwind.config.ts РЕАЛЬНО СУЩЕСТВУЕТ** (v3-конфиг с typography). Утверждение в progress.md выше («нет tailwind.config.ts», строка ~40) и в CLAUDE.md — устаревшее, исправляется в шаге 9.
 - **Обе БД (dev+test) мигрированы:** 7 таблиц + 1 запись в `drizzle.__drizzle_migrations` в каждой.
 
+### Шаг 5 (выполнено, 2026-05-29)
+
+- **КРИТИЧНО для шага 6 — загрузка env в tsx-скриптах:** `client.ts` читает `process.env.DATABASE_URL` **в момент импорта** (top-level). `dotenv.config()` ВНУТРИ скрипта не помогает — статические import-цепочки исполняются ДО тела (ES-семантика). **ФИНАЛЬНОЕ РЕШЕНИЕ: `tsx --env-file=.env.local -r tsconfig-paths/register <file>`** — tsx (4.21) грузит env нативно до импортов, кросс-платформенно, без новых пакетов. ❌ НЕ работает: `-r <preload>.ts` (любой .ts через -r) ломает tsx-loader на Node 24 (`resolveSync not implemented`). ⚠️ Работает, но хуже: `-r dotenv/config` + `DOTENV_CONFIG_PATH=.env.local` (cjs preload ок, но env-переменную на Windows в npm-скрипте без cross-env не задать). Используем `--env-file`.
+- **Репозиторий читает через один JOIN-запрос** (`baseSelect()` = products LEFT JOIN variants LEFT JOIN skus), группировка строк в `Product[]` вручную (`groupRows`), порядок продуктов сохраняется. coming_soon без вариантов → `variants: []`.
+- **`productImagePath` СДЕЛАН ПУБЛИЧНЫМ** (экспорт из images.ts → виден через `@/core/catalog`). В старом lib/product.ts он был приватным. Причина: шаг 6 (seed) импортирует его для генерации media_assets URL. Это сознательное отклонение.
+- **Drizzle типы строк:** `typeof schema.products.$inferSelect` и т.д. Joined-строка имеет ключи по ИМЕНИ ТАБЛИЦЫ: `products`, `product_variants`, `skus` (не camelCase var-имена). Используется в `JoinedRow`.
+- БД пустая → `getAllProducts()` вернул `rows: 0`. Потребители НЕ переключены (это шаг 7), витрина читает старый lib/product, build всё ещё SSG для каталога (станет dynamic в шаге 7).
+
 ---
