@@ -37,7 +37,7 @@
 | 1 | step_1_docker_postgres.md — docker-compose + два сервиса Postgres | [x] |
 | 2 | step_2_drizzle_setup.md — Drizzle + drizzle-kit + клиент + env | [x] |
 | 3 | step_3_db_schema.md — схема (products, variants, skus, orders, order_items, inventory_log, media_assets) + миграция | [x] |
-| 4 | step_4_module_skeleton.md — структура src/core/* + контракты типов + ESLint-границы + tsconfig paths | [ ] |
+| 4 | step_4_module_skeleton.md — структура src/core/* + контракты типов + ESLint-границы + tsconfig paths | [x] |
 | 5 | step_5_catalog_repo.md — `src/core/catalog`: async-репозиторий с теми же сигнатурами что в `lib/product.ts` (плюс async) | [ ] |
 | 6 | step_6_data_migration_script.md — one-off скрипт `npm run db:seed`: products.ts → БД, с конвертацией status/SKU/MediaAsset | [ ] |
 | 7 | step_7_switch_consumers.md — переключение всех потребителей на async через `@/core/catalog` | [ ] |

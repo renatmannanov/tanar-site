@@ -9,12 +9,9 @@ import {
   index,
   unique,
 } from 'drizzle-orm/pg-core';
+import type { Marketplace, ProductImageModel } from '@/core/contracts';
 
-// jsonb types are inlined here because @/core/contracts does not exist yet
-// (it is created in step 4). Step 4 switches these to imports from
-// @/core/contracts. Keep the literals in sync with that module until then.
-type Marketplace = 'ozon' | 'kaspi';
-type ProductImageModel = 'man' | 'girl';
+// Catalog-local shape (not a primitive union → stays here, not in contracts).
 type ProductSpec = { label: string; value: string };
 
 export const products = pgTable(
