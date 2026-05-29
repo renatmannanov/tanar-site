@@ -6,7 +6,11 @@ import { CATEGORY_LABELS, formatPrice, getProductCardImage, getProductGradient, 
 export default function ProductCard({ product }: { product: Product }) {
   const isComingSoon = product.status === 'coming_soon';
   const defaultVariant = product.variants[0];
-  const cardImage = defaultVariant
+  // Only build a card image when the variant actually declares models — at
+  // models: [] (no photos yet) getProductCardImage would emit a
+  // `front-undefined-*.webp` path (404). Without photos we render the gradient.
+  const hasModels = !!defaultVariant && defaultVariant.models.length > 0;
+  const cardImage = hasModels
     ? getProductCardImage(product.slug, defaultVariant.id, defaultVariant.models[0])
     : null;
   const showImage = cardImage && !isComingSoon;

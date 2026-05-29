@@ -47,8 +47,8 @@ export default function ProductDetail({ product }: { product: Product }) {
     <div className="grid grid-cols-1 gap-12 md:grid-cols-2">
       {/* Левая колонка: галерея */}
       <div className="space-y-4">
-        <div className={`relative ${GALLERY_ASPECT} w-full overflow-hidden rounded-lg bg-stone-100`}>
-          {activeShot && (
+        {activeShot ? (
+          <div className={`relative ${GALLERY_ASPECT} w-full overflow-hidden rounded-lg bg-stone-100`}>
             <Image
               src={activeShot.src}
               alt={activeShot.alt}
@@ -57,8 +57,11 @@ export default function ProductDetail({ product }: { product: Product }) {
               sizes="(max-width: 768px) 100vw, 50vw"
               priority
             />
-          )}
-        </div>
+          </div>
+        ) : (
+          // No photos yet (real catalog ships on gradients until plan C).
+          <Placeholder label={product.name} gradient={getProductGradient(product)} aspect="portrait" className="w-full" />
+        )}
         {shots.length > 1 && (
           <div className="flex gap-3 overflow-x-auto md:grid md:grid-cols-6 md:gap-3 md:overflow-visible">
             {shots.map((shot, i) => (

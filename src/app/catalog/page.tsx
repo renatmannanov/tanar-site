@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Каталог — Tanar',
-  description: 'Куртки, худи, футболки, штаны и шорты Tanar.',
+  description: 'Куртки, брюки, шорты, футболки и поло Tanar.',
 };
 
 type Props = { searchParams: Promise<{ category?: string }> };
