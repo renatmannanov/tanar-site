@@ -22,6 +22,14 @@ export type ProductColor = {
   hasFlatShots?: boolean;
 };
 
+/** External marketplace where the product can be purchased. */
+export type Marketplace = 'ozon' | 'kaspi';
+
+export const MARKETPLACE_LABELS: Record<Marketplace, string> = {
+  ozon: 'Ozon',
+  kaspi: 'Kaspi',
+};
+
 export type Product = {
   slug: string;
   name: string;
@@ -33,6 +41,8 @@ export type Product = {
   gradient: string;
   comingSoon?: boolean;
   variants?: ProductColor[];
+  /** Links to the product on external marketplaces. */
+  marketplaces?: Partial<Record<Marketplace, string>>;
 };
 
 export type GalleryShot = {

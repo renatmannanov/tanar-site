@@ -24,6 +24,11 @@ export const products: Product[] = [
       { id: 'red', label: 'Красный', hex: '#a8332a', models: ['man'], hasFlatShots: true },
       { id: 'yellow', label: 'Жёлтый', hex: '#d4a73a', models: ['girl'] },
     ],
+    // TODO: заменить на реальные ссылки от заказчицы
+    marketplaces: {
+      ozon: 'https://www.ozon.ru/',
+      kaspi: 'https://kaspi.kz/shop/',
+    },
   },
   {
     slug: 'light-jacket-tengri',

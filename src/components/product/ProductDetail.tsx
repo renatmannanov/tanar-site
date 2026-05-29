@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import AvailabilityButton from '@/components/AvailabilityButton';
+import MarketplaceLinks from '@/components/product/MarketplaceLinks';
 import Placeholder from '@/components/Placeholder';
 import { formatPrice, getProductGalleryShots, type Product } from '@/lib/product';
 
@@ -130,6 +131,7 @@ export default function ProductDetail({ product }: { product: Product }) {
 
         <div className="mt-8">
           <AvailabilityButton />
+          {product.marketplaces && <MarketplaceLinks marketplaces={product.marketplaces} />}
           <p className="mt-3 text-center text-xs text-stone-400">
             Доставка по Казахстану. Возврат 30 дней.
           </p>
