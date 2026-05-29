@@ -1,6 +1,6 @@
 # Phase 0 — Foundation
 
-> Статус: pending
+> Статус: done (2026-05-29)
 > Дата: 2026-05-23
 > Тип: фундаментальный рефакторинг (новый стек данных)
 
@@ -44,7 +44,7 @@
 | 7 | step_7_switch_consumers.md — переключение всех потребителей на async через `@/core/catalog` | [x] |
 | 8 | step_8_cleanup.md — удалить `src/data/products.ts`, `src/lib/product.ts`, ESLint-правило про data/products | [x] |
 | 9 | step_9_update_claude_md.md — обновить CLAUDE.md проекта (новые правила) | [x] |
-| 10 | step_10_completion.md — завершение плана | [ ] |
+| 10 | step_10_completion.md — завершение плана | [x] |
 
 ## Критерии готовности
 
