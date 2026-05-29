@@ -43,7 +43,7 @@
 | 4 | step_4_media_contract.md — заготовка контракта core/media (типы, пустые порты) | [x] |
 | 5 | step_5_import_script.md — импорт-скрипт из catalog-snapshot.json через createProduct; удалить seed-data | [x] |
 | 6 | step_6_storefront_consumers.md — витрина: gradient-fallback при пустых models (крит!) + catalog metadata | [x] |
-| 7 | step_7_e2e.md — переписать e2e под боевой каталог (чипы, slugs, счётчики) | [ ] |
+| 7 | step_7_e2e.md — переписать e2e под боевой каталог (чипы, slugs, счётчики) | [x] |
 | 8 | step_8_completion.md — завершение плана | [ ] |
 
 ## Критерии готовности
