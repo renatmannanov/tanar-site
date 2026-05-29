@@ -39,7 +39,7 @@
 |---|------|--------|
 | 1 | step_1_schema_fields.md — схема Drizzle: products.label/care, skus.article/ru_size + миграция | [x] |
 | 2 | step_2_categories.md — новые категории в contracts + catalog/categories + типы Product/Sku + Footer/CategoriesGrid | [x] |
-| 3 | step_3_crud_contract.md — полный write-контракт repository (create/update/delete, zod, транзакции) | [ ] |
+| 3 | step_3_crud_contract.md — полный write-контракт repository (create/update/delete, zod, транзакции) | [x] |
 | 4 | step_4_media_contract.md — заготовка контракта core/media (типы, пустые порты) | [ ] |
 | 5 | step_5_import_script.md — импорт-скрипт из catalog-snapshot.json через createProduct; удалить seed-data | [ ] |
 | 6 | step_6_storefront_consumers.md — витрина: gradient-fallback при пустых models (крит!) + catalog metadata | [ ] |
