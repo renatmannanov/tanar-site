@@ -30,6 +30,10 @@ export const products = pgTable(
     currency: text('currency').notNull().default('KZT'),
     description: text('description').notNull(),
     specs: jsonb('specs').$type<ProductSpec[]>().notNull().default([]),
+    // short tech badge from the garment label, e.g. { badge: 'GORE-TEX®', sub: 'Куртка Gore-Tex' }
+    label: jsonb('label').$type<{ badge: string; sub: string }>(),
+    // garment care instructions (free text)
+    care: text('care'),
     gradient: text('gradient'),
     marketplaces: jsonb('marketplaces')
       .$type<Partial<Record<Marketplace, string>>>()
@@ -75,6 +79,10 @@ export const skus = pgTable(
       .notNull()
       .references(() => productVariants.id, { onDelete: 'cascade' }),
     size: text('size').notNull(),
+    // internal TANAR article (e.g. TANAR-001), unique per physical SKU
+    article: text('article'),
+    // Russian size notation (e.g. 46) alongside the letter `size`
+    ruSize: text('ru_size'),
     priceOverride: integer('price_override'),
     barcode: text('barcode'),
     stockQty: integer('stock_qty').notNull().default(0),
