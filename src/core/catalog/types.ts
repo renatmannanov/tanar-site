@@ -9,6 +9,10 @@ import type {
 export type Sku = {
   id: string;
   size: string;
+  /** Internal TANAR article (e.g. TANAR-001). */
+  article?: string;
+  /** Russian size notation (e.g. 46) alongside the letter `size`. */
+  ruSize?: string;
   priceOverride?: number;
   stockQty: number;
   reservedQty: number;
@@ -33,6 +37,10 @@ export type Product = {
   currency: 'KZT';
   description: string;
   specs: { label: string; value: string }[];
+  /** Short tech badge from the garment label (NOT imported from db/schema — module boundary). */
+  label?: { badge: string; sub: string };
+  /** Garment care instructions (free text). */
+  care?: string;
   gradient?: string;
   /** Always an array (may be empty for coming_soon products). */
   variants: ProductColor[];

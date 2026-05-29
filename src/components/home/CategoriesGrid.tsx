@@ -7,9 +7,9 @@ import { CATEGORY_LABELS, type ProductCategory } from '@/core/catalog';
 // are purely decorative here and unrelated to OUTDOOR_GRADIENTS.
 const homeCategories: { id: ProductCategory; gradient: string }[] = [
   { id: 'jackets', gradient: 'from-emerald-800 to-stone-900' },
-  { id: 'hoodies', gradient: 'from-stone-600 to-slate-900' },
-  { id: 't-shirts', gradient: 'from-neutral-600 to-emerald-800' },
   { id: 'pants', gradient: 'from-amber-800 to-stone-900' },
+  { id: 'tshirts', gradient: 'from-neutral-600 to-emerald-800' },
+  { id: 'polo', gradient: 'from-stone-600 to-slate-900' },
 ];
 
 export default function CategoriesGrid() {

@@ -3,10 +3,10 @@ import type { ProductCategory, Marketplace } from '@/core/contracts';
 /** Single source of truth for product categories (id + display label). */
 export const CATEGORIES: { id: ProductCategory; label: string }[] = [
   { id: 'jackets', label: 'Куртки' },
-  { id: 'hoodies', label: 'Худи' },
-  { id: 't-shirts', label: 'Футболки' },
-  { id: 'pants', label: 'Штаны' },
+  { id: 'pants', label: 'Брюки' },
   { id: 'shorts', label: 'Шорты' },
+  { id: 'tshirts', label: 'Футболки' },
+  { id: 'polo', label: 'Поло' },
 ];
 
 export const CATEGORY_ORDER: ProductCategory[] = CATEGORIES.map((c) => c.id);

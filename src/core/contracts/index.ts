@@ -2,7 +2,7 @@
 // Business types (Product, Sku, Order, ...) live in their own modules and
 // are exported from those modules' index.ts — not here.
 
-export type ProductCategory = 'jackets' | 'hoodies' | 't-shirts' | 'pants' | 'shorts';
+export type ProductCategory = 'jackets' | 'pants' | 'shorts' | 'tshirts' | 'polo';
 export type ProductStatus = 'draft' | 'published' | 'archived' | 'coming_soon';
 export type ProductImageModel = 'man' | 'girl';
 export type ProductImageView = 'front' | 'side' | 'back';
