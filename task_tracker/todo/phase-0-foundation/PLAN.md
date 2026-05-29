@@ -21,6 +21,7 @@
 - **coming_soon товары** — те, у которых в `src/data/products.ts` стоит `comingSoon: true`. У них нет `variants` в данных, поэтому в БД создаём только Product со `status='coming_soon'`, без variants/skus/media_assets. Репозиторий возвращает для них `variants: []` (НЕ undefined — тип обязательный).
 - **MediaAsset:** колонка `scope: 'product' | 'site' | 'blog'`. В Фазе 0 наполняется только `scope='product'`. URL берутся из текущих путей через `getProductCardImage`/`getProductGalleryShots` — сами файлы в `public/` НЕ трогаем.
 - **Async переход:** все функции каталога становятся async. Это касается `getAllProducts`, `getProductBySlug`, `getAllProductSlugs`, `getProductsByCategory`, `getRelatedProducts` + вызывающий код (см. шаг 7).
+- **Client/server split каталога (2026-05-29, шаг 7):** у модуля `core/catalog` ДВА публичных входа. `@/core/catalog` (index.ts) — полный, server-only (включает repository → postgres). `@/core/catalog/client` (client.ts) — client-safe подмножество (types, categories, images, gradient, format), БЕЗ repository. Причина: client-компоненты ('use client') не могут тянуть postgres в бандл. ESLint разрешает оба входа (`!@/core/*/client`). Это паттерн для Фазы 1 (админка с client-формами).
 - **Рендер каталога: dynamic (не SSG).** Решение (2026-05-29): страницы каталога (`/catalog`, `/catalog/[slug]`) переводятся на `export const dynamic = 'force-dynamic'`. Причина: целевая архитектура (Вариант А) — живая площадка с остатками и админкой; статическая генерация несовместима с рантайм-изменением данных (Фаза 1-2). `generateStaticParams` в `/catalog/[slug]` УДАЛЯЕТСЯ (при force-dynamic не нужен). Билд больше НЕ читает БД на этапе сборки. Блог (`/blog/[slug]`) остаётся на `generateStaticParams` — не трогаем. См. шаг 7.
 - **Предусловие БД для build/e2e:** `npm run build`, `npm run test:e2e` и dev-сервер требуют поднятого и наполненного Postgres + наличия `.env.local` с `DATABASE_URL`. При force-dynamic билд сам по себе БД не читает, но рантайм-рендер страниц (включая e2e и `next start`) — читает. Перед `build`/`test:e2e`: `npm run db:up && npm run db:seed`. Прописано как явное предусловие в шагах 6-8.
 - **`src/lib/product.ts`:** удаляется в конце Фазы 0 (НЕ остаётся ре-экспортом). Все импорты переключаются на `@/core/catalog`.
@@ -40,7 +41,7 @@
 | 4 | step_4_module_skeleton.md — структура src/core/* + контракты типов + ESLint-границы + tsconfig paths | [x] |
 | 5 | step_5_catalog_repo.md — `src/core/catalog`: async-репозиторий с теми же сигнатурами что в `lib/product.ts` (плюс async) | [x] |
 | 6 | step_6_data_migration_script.md — one-off скрипт `npm run db:seed`: products.ts → БД, с конвертацией status/SKU/MediaAsset | [x] |
-| 7 | step_7_switch_consumers.md — переключение всех потребителей на async через `@/core/catalog` | [ ] |
+| 7 | step_7_switch_consumers.md — переключение всех потребителей на async через `@/core/catalog` | [x] |
 | 8 | step_8_cleanup.md — удалить `src/data/products.ts`, `src/lib/product.ts`, ESLint-правило про data/products | [ ] |
 | 9 | step_9_update_claude_md.md — обновить CLAUDE.md проекта (новые правила) | [ ] |
 | 10 | step_10_completion.md — завершение плана | [ ] |

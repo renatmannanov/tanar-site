@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
 import AvailabilityButton from '@/components/AvailabilityButton';
 import MarketplaceLinks from '@/components/product/MarketplaceLinks';
 import Placeholder from '@/components/Placeholder';
-import { formatPrice, getProductGalleryShots, getProductGradient, type Product } from '@/lib/product';
+import { formatPrice, getProductGalleryShots, getProductGradient, type Product } from '@/core/catalog/client';
 
 const GALLERY_ASPECT = 'aspect-[2/3]';
 
@@ -15,7 +15,7 @@ export default function ProductDetail({ product }: { product: Product }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const variants = product.variants ?? [];
+  const variants = product.variants;
   const defaultColor = variants[0]?.id ?? '';
   const colorParam = searchParams.get('color');
   const activeColor = variants.find((v) => v.id === colorParam)?.id ?? defaultColor;
@@ -37,7 +37,7 @@ export default function ProductDetail({ product }: { product: Product }) {
     setActiveShotIndex(0);
   }
 
-  if (product.comingSoon) {
+  if (product.status === 'coming_soon') {
     return <ProductDetailComingSoon product={product} />;
   }
 

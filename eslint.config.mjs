@@ -52,8 +52,10 @@ const eslintConfig = [
       "no-restricted-imports": ["error", {
         patterns: [
           {
-            group: ["@/core/*/*"],
-            message: "Импортируй только из публичного API модуля: '@/core/<module>' через его index.ts. Внутри своего модуля используй относительные пути (./).",
+            // '!@/core/*/client' whitelists the client-safe entry (e.g.
+            // @/core/catalog/client) — a second public entry alongside index.ts.
+            group: ["@/core/*/*", "!@/core/*/client"],
+            message: "Импортируй только из публичного API модуля: '@/core/<module>' (или '@/core/<module>/client' для client-компонентов). Внутри своего модуля используй относительные пути (./).",
           },
           {
             group: ["@/marketplace/*/*"],
@@ -72,8 +74,8 @@ const eslintConfig = [
       "no-restricted-imports": ["error", {
         patterns: [
           {
-            group: ["@/core/*/*"],
-            message: "Импортируй только из публичного API модуля: '@/core/<module>'. Внутри своего модуля используй относительные пути (./).",
+            group: ["@/core/*/*", "!@/core/*/client"],
+            message: "Импортируй только из публичного API модуля: '@/core/<module>' (или '@/core/<module>/client'). Внутри своего модуля используй относительные пути (./).",
           },
           {
             group: ["@/marketplace/*", "@/marketplace/**"],

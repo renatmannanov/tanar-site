@@ -1,14 +1,15 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import Placeholder from '@/components/Placeholder';
-import { CATEGORY_LABELS, formatPrice, getProductCardImage, getProductGradient, type Product } from '@/lib/product';
+import { CATEGORY_LABELS, formatPrice, getProductCardImage, getProductGradient, type Product } from '@/core/catalog';
 
 export default function ProductCard({ product }: { product: Product }) {
-  const defaultVariant = product.variants?.[0];
+  const isComingSoon = product.status === 'coming_soon';
+  const defaultVariant = product.variants[0];
   const cardImage = defaultVariant
     ? getProductCardImage(product.slug, defaultVariant.id, defaultVariant.models[0])
     : null;
-  const showImage = cardImage && !product.comingSoon;
+  const showImage = cardImage && !isComingSoon;
 
   return (
     <Link
@@ -31,7 +32,7 @@ export default function ProductCard({ product }: { product: Product }) {
         ) : (
           <Placeholder label={product.name} gradient={getProductGradient(product)} aspect="portrait" />
         )}
-        {product.comingSoon && (
+        {isComingSoon && (
           <span className="absolute right-3 top-3 rounded-full bg-stone-900/80 px-3 py-1 text-xs font-medium uppercase tracking-wider text-stone-100">
             Скоро
           </span>
@@ -46,9 +47,9 @@ export default function ProductCard({ product }: { product: Product }) {
       </h3>
       <div className="mt-1 flex items-center justify-between gap-3">
         <p className="text-sm text-stone-500">
-          {product.comingSoon ? 'Скоро в продаже' : formatPrice(product.price)}
+          {isComingSoon ? 'Скоро в продаже' : formatPrice(product.price)}
         </p>
-        {product.variants && product.variants.length > 1 && (
+        {product.variants.length > 1 && (
           <ColorDots variants={product.variants} />
         )}
       </div>
@@ -56,7 +57,7 @@ export default function ProductCard({ product }: { product: Product }) {
   );
 }
 
-function ColorDots({ variants }: { variants: NonNullable<Product['variants']> }) {
+function ColorDots({ variants }: { variants: Product['variants'] }) {
   return (
     <div className="flex items-center gap-1.5">
       {variants.map((v) => (

@@ -1,4 +1,4 @@
-import { MARKETPLACE_LABELS, type Marketplace } from '@/lib/product';
+import { MARKETPLACE_LABELS, type Marketplace } from '@/core/catalog/client';
 
 const MARKETPLACE_STYLES: Record<Marketplace, string> = {
   ozon: 'border-[#005bff] text-[#005bff] hover:bg-[#005bff] hover:text-white',

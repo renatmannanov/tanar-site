@@ -1,9 +1,10 @@
 import Placeholder from '@/components/Placeholder';
 import ProductCard from '@/components/ProductCard';
-import { getAllProducts } from '@/lib/product';
+import { getAllProducts } from '@/core/catalog';
 
-export default function FeaturedProducts() {
-  const featured = getAllProducts().slice(0, 4);
+export default async function FeaturedProducts() {
+  const all = await getAllProducts();
+  const featured = all.slice(0, 4);
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">

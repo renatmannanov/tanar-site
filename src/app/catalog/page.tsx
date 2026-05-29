@@ -1,10 +1,13 @@
-import { CATEGORY_LABELS, CATEGORY_ORDER, getProductsByCategory, isValidCategory, type ProductCategory } from '@/lib/product';
+import { CATEGORY_LABELS, CATEGORY_ORDER, getProductsByCategory, isValidCategory, type ProductCategory } from '@/core/catalog';
 import ProductCard from '@/components/ProductCard';
 import Link from 'next/link';
 
+// SSG off: catalog reads live data from the DB (Variant A). Rendered per request.
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Каталог — Tanar',
-  description: 'Куртки, рюкзаки, аксессуары и футболки Tanar.',
+  description: 'Куртки, худи, футболки, штаны и шорты Tanar.',
 };
 
 type Props = { searchParams: Promise<{ category?: string }> };
@@ -15,7 +18,7 @@ export default async function CatalogPage({ searchParams }: Props) {
   const params = await searchParams;
   const raw = params.category;
   const active: ProductCategory | null = isValidCategory(raw) ? raw : null;
-  const filtered = getProductsByCategory(active);
+  const filtered = await getProductsByCategory(active);
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">

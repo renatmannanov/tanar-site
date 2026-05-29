@@ -97,4 +97,12 @@
 - **Repository + seed проверены вместе:** `getAllProducts()` вернул 10, coming_soon с пустым `variants: []`, varианты с 1 SKU 'OS'. `getProductBySlug` ок.
 - seed.ts импортирует `productImagePath` из `@/core/catalog` (публичный, сделан в шаге 5) для генерации media URL по той же конвенции.
 
+### Шаг 7 (выполнено, 2026-05-29)
+
+- **ВСЕ 40 e2e зелёные.** Поведение сайта не изменилось. БД up+seeded — предусловие выполнено.
+- **force-dynamic:** `/catalog`, `/catalog/[slug]` И `/` (главная) — все `ƒ (Dynamic)`. `generateStaticParams` в `[slug]` удалён. Блог `/blog/[slug]` остался `● (SSG)` — не тронут.
+- **ОТКЛОНЕНИЕ 1 — главная (`/`) тоже force-dynamic.** План упоминал только каталог, но `FeaturedProducts` (на главной) стал async и читает БД → главную тоже надо было пометить, иначе билд лез бы в Postgres. Добавлено `export const dynamic = 'force-dynamic'` в `src/app/page.tsx`.
+- **ОТКЛОНЕНИЕ 2 (важное, влияет на Фазу 1) — РАЗДЕЛЕНИЕ client/server API каталога.** Client-компонент `ProductDetail` ('use client') импортил чистые функции из `@/core/catalog`, но barrel через `export *` тянул `repository → @/core/db → postgres` в клиентский бандл → build падал `Can't resolve 'tls'/'net'/'crypto'`. **Решение (Вариант 1):** создан второй публичный вход **`src/core/catalog/client.ts`** — реэкспортит ТОЛЬКО client-safe (types, categories, images, gradient, format), БЕЗ repository. ESLint-правило границ дополнено `"!@/core/*/client"` (whitelist client-входа в обоих блоках). **Client-компоненты импортят из `@/core/catalog/client`, server — из `@/core/catalog`.** Переключены на `/client`: `ProductDetail.tsx`, `MarketplaceLinks.tsx` (рендерится внутри ProductDetail). `ProductCard.tsx` остался на server-barrel (рендерится только в server-компонентах). **Для Фазы 1: client-формы админки берут `@/core/catalog/client`.**
+- 7 файлов переключены с `@/lib/product` на `@/core/catalog`(+`/client`). `FeaturedProducts`, `generateMetadata`, `ProductPage` — async+await. `comingSoon` → `status === 'coming_soon'`, `variants` как обязательный массив. Grep `@/lib/product` → только `src/data/products.ts:1` (удалится в шаге 8).
+
 ---

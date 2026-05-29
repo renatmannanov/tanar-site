@@ -3,22 +3,20 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import {
   getProductBySlug,
-  getAllProductSlugs,
   getRelatedProducts,
   CATEGORY_LABELS,
-} from '@/lib/product';
+} from '@/core/catalog';
 import ProductCard from '@/components/ProductCard';
 import ProductDetail from '@/components/product/ProductDetail';
 
-type Props = { params: Promise<{ slug: string }> };
+// SSG off: catalog reads live data from the DB (Variant A). Rendered per request.
+export const dynamic = 'force-dynamic';
 
-export async function generateStaticParams() {
-  return getAllProductSlugs().map((slug) => ({ slug }));
-}
+type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getProductBySlug(slug);
   if (!product) return { title: 'Товар не найден — Tanar' };
   return {
     title: `${product.name} — Tanar`,
@@ -28,9 +26,9 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getProductBySlug(slug);
   if (!product) notFound();
-  const related = getRelatedProducts(product);
+  const related = await getRelatedProducts(product);
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">

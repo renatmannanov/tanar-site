@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Placeholder from '@/components/Placeholder';
-import { CATEGORY_LABELS, type ProductCategory } from '@/lib/product';
+import { CATEGORY_LABELS, type ProductCategory } from '@/core/catalog';
 
 // Home page shows only the first 4 categories (no shorts) with decorative
 // tile gradients. Labels come from the single CATEGORIES source; gradients
