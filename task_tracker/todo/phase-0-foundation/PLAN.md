@@ -42,7 +42,7 @@
 | 5 | step_5_catalog_repo.md — `src/core/catalog`: async-репозиторий с теми же сигнатурами что в `lib/product.ts` (плюс async) | [x] |
 | 6 | step_6_data_migration_script.md — one-off скрипт `npm run db:seed`: products.ts → БД, с конвертацией status/SKU/MediaAsset | [x] |
 | 7 | step_7_switch_consumers.md — переключение всех потребителей на async через `@/core/catalog` | [x] |
-| 8 | step_8_cleanup.md — удалить `src/data/products.ts`, `src/lib/product.ts`, ESLint-правило про data/products | [ ] |
+| 8 | step_8_cleanup.md — удалить `src/data/products.ts`, `src/lib/product.ts`, ESLint-правило про data/products | [x] |
 | 9 | step_9_update_claude_md.md — обновить CLAUDE.md проекта (новые правила) | [ ] |
 | 10 | step_10_completion.md — завершение плана | [ ] |
 

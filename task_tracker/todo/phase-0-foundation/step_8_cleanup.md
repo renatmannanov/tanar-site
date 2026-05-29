@@ -123,7 +123,8 @@ Select-String -Path src\**\*.ts, src\**\*.tsx -Pattern "@/lib/product"      # 0
 - [ ] `src/lib/gradients.ts`, `src/lib/blog.ts` остались
 - [ ] `src/core/db/seed-data.ts` создан со ВСЕМИ товарами из бывшего `src/data/products.ts` (содержимое скопировано как есть) и локальным типом легаси-формата
 - [ ] `eslint.config.mjs`: правила про `@/data/products` и исключения для `lib/product.ts` и `seed.ts` удалены; правила границ модулей из шага 4 остались
-- [ ] Grep `@/data/products` и `@/lib/product` по `src/` — 0 совпадений
+- [ ] Grep `@/data/products` и `@/lib/product` по ВСЕМУ репо (вкл. `scripts/`, не только `src/`) — 0 совпадений
+- [ ] `scripts/check-images.ts` переключён с `@/lib/product` на `../src/core/db/seed-data` (пропущенный планом потребитель вне src/); `npm run images:check` работает
 - [ ] `npm run db:reset && npm run db:seed` отрабатывает; seed.ts печатает `seed OK: {...}` без mismatch (числа сверяются сами с источником seed-data.ts)
 - [ ] `npm run typecheck` + `npm run lint` + `npm run build` + `npm run test:e2e` — всё зелёное
 - [ ] Коммит: `refactor: remove legacy src/data/products.ts and src/lib/product.ts`

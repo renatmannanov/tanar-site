@@ -1,6 +1,36 @@
-import type { Product } from '@/lib/product';
+// Legacy demo catalog — the final resting place of the former
+// src/data/products.ts. Used by seed.ts to re-fill the dev DB with sample
+// products. Self-contained: its own legacy shape, no dependency on the
+// production catalog types (core/catalog). Replaced by the real catalog in a
+// separate plan (see task_tracker/backlog/real-catalog-import.md).
 
-export const products: Product[] = [
+type LegacyCategory = 'jackets' | 'hoodies' | 't-shirts' | 'pants' | 'shorts';
+type LegacyModel = 'man' | 'girl';
+type LegacyMarketplace = 'ozon' | 'kaspi';
+
+type LegacyVariant = {
+  id: string;
+  label: string;
+  hex: string;
+  models: LegacyModel[];
+  hasFlatShots?: boolean;
+};
+
+export type LegacyProduct = {
+  slug: string;
+  name: string;
+  category: LegacyCategory;
+  price: number;
+  currency: 'KZT';
+  description: string;
+  specs: { label: string; value: string }[];
+  gradient?: string;
+  comingSoon?: boolean;
+  variants?: LegacyVariant[];
+  marketplaces?: Partial<Record<LegacyMarketplace, string>>;
+};
+
+export const products: LegacyProduct[] = [
   // ─── Jackets ───────────────────────────────────────────────────
   {
     slug: 'shell-jacket-khan',

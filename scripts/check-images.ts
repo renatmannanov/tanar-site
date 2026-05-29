@@ -2,7 +2,9 @@ import 'tsconfig-paths/register';
 import { promises as fs } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getAllProducts } from '@/lib/product';
+// Checks image files for the demo catalog. Reads the seed fixture directly
+// (not @/core/catalog) so it stays a pure filesystem check with no DB.
+import { products } from '../src/core/db/seed-data';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -16,7 +18,7 @@ async function main() {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  for (const product of getAllProducts()) {
+  for (const product of products) {
     if (!product.variants) continue;
     for (const variant of product.variants) {
       for (const model of variant.models) {

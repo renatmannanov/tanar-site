@@ -1,7 +1,7 @@
 import { eq, sql } from 'drizzle-orm';
 import { db, queryClient } from './client';
 import * as schema from './schema';
-import { products as legacyProducts } from '@/data/products';
+import { products as legacyProducts } from './seed-data';
 import { productImagePath } from '@/core/catalog';
 
 // Guard: never run against anything but the local dev/test databases.

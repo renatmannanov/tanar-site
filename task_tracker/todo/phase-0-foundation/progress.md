@@ -105,4 +105,12 @@
 - **ОТКЛОНЕНИЕ 2 (важное, влияет на Фазу 1) — РАЗДЕЛЕНИЕ client/server API каталога.** Client-компонент `ProductDetail` ('use client') импортил чистые функции из `@/core/catalog`, но barrel через `export *` тянул `repository → @/core/db → postgres` в клиентский бандл → build падал `Can't resolve 'tls'/'net'/'crypto'`. **Решение (Вариант 1):** создан второй публичный вход **`src/core/catalog/client.ts`** — реэкспортит ТОЛЬКО client-safe (types, categories, images, gradient, format), БЕЗ repository. ESLint-правило границ дополнено `"!@/core/*/client"` (whitelist client-входа в обоих блоках). **Client-компоненты импортят из `@/core/catalog/client`, server — из `@/core/catalog`.** Переключены на `/client`: `ProductDetail.tsx`, `MarketplaceLinks.tsx` (рендерится внутри ProductDetail). `ProductCard.tsx` остался на server-barrel (рендерится только в server-компонентах). **Для Фазы 1: client-формы админки берут `@/core/catalog/client`.**
 - 7 файлов переключены с `@/lib/product` на `@/core/catalog`(+`/client`). `FeaturedProducts`, `generateMetadata`, `ProductPage` — async+await. `comingSoon` → `status === 'coming_soon'`, `variants` как обязательный массив. Grep `@/lib/product` → только `src/data/products.ts:1` (удалится в шаге 8).
 
+### Шаг 8 (выполнено, 2026-05-29)
+
+- **ВСЕ 40 e2e зелёные**, build ок, grep `@/data/products`/`@/lib/product` по ВСЕМУ репо = 0.
+- `src/data/products.ts`, папка `src/data/`, `src/lib/product.ts` — удалены. `lib/gradients.ts`, `lib/blog.ts` — сохранены.
+- Данные переехали в `src/core/db/seed-data.ts` с локальным типом `LegacyProduct` (независим от core/catalog). seed.ts импортит `./seed-data`. Re-seed работает (те же 10/5/5/13/13/51).
+- ESLint: три блока про `@/data/products` (запрет + исключения lib/product.ts и seed.ts) удалены. Module boundaries остались.
+- **ПРОПУЩЕННЫЙ ПЛАНОМ ПОТРЕБИТЕЛЬ:** `scripts/check-images.ts` (npm `images:check`) импортил `getAllProducts` из `@/lib/product` — план искал потребителей только в `src/`, а это вне `src/`. Переключён на `import { products } from '../src/core/db/seed-data'` (относительный путь, не нарушает границы, не зависит от БД — это чистая проверка файлов картинок). `images:check` работает. **Урок: grep потребителей делать по всему репо, не только src/.**
+
 ---
