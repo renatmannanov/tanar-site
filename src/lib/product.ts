@@ -1,14 +1,17 @@
 export type ProductCategory = 'jackets' | 'hoodies' | 't-shirts' | 'pants' | 'shorts';
 
-export const CATEGORY_LABELS: Record<ProductCategory, string> = {
-  'jackets': 'Куртки',
-  'hoodies': 'Худи',
-  't-shirts': 'Футболки',
-  'pants': 'Штаны',
-  'shorts': 'Шорты',
-};
+/** Single source of truth for product categories (id + display label). */
+export const CATEGORIES: { id: ProductCategory; label: string }[] = [
+  { id: 'jackets', label: 'Куртки' },
+  { id: 'hoodies', label: 'Худи' },
+  { id: 't-shirts', label: 'Футболки' },
+  { id: 'pants', label: 'Штаны' },
+  { id: 'shorts', label: 'Шорты' },
+];
 
-export const CATEGORY_ORDER: ProductCategory[] = ['jackets', 'hoodies', 't-shirts', 'pants', 'shorts'];
+export const CATEGORY_ORDER: ProductCategory[] = CATEGORIES.map(c => c.id);
+export const CATEGORY_LABELS: Record<ProductCategory, string> =
+  Object.fromEntries(CATEGORIES.map(c => [c.id, c.label])) as Record<ProductCategory, string>;
 
 export type ProductImageModel = 'man' | 'girl';
 export type ProductImageView = 'front' | 'side' | 'back';

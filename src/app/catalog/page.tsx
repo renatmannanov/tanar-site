@@ -1,5 +1,5 @@
 import { products } from '@/data/products';
-import { CATEGORY_LABELS, isValidCategory, type ProductCategory } from '@/lib/product';
+import { CATEGORY_LABELS, CATEGORY_ORDER, isValidCategory, type ProductCategory } from '@/lib/product';
 import ProductCard from '@/components/ProductCard';
 import Link from 'next/link';
 
@@ -10,7 +10,7 @@ export const metadata = {
 
 type Props = { searchParams: Promise<{ category?: string }> };
 
-const categories = Object.keys(CATEGORY_LABELS) as ProductCategory[];
+const categories: ProductCategory[] = CATEGORY_ORDER;
 
 export default async function CatalogPage({ searchParams }: Props) {
   const params = await searchParams;
