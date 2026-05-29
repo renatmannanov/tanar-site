@@ -20,6 +20,20 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  {
+    rules: {
+      "no-restricted-imports": ["error", {
+        paths: [{
+          name: "@/data/products",
+          message: "Импортируй данные товаров только через @/lib/product (будущая точка подмены на БД).",
+        }],
+      }],
+    },
+  },
+  {
+    files: ["src/lib/product.ts"],
+    rules: { "no-restricted-imports": "off" },
+  },
 ];
 
 export default eslintConfig;

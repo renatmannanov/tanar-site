@@ -122,6 +122,10 @@ export function getProductGradient(product: Product): string {
 
 import { products } from '@/data/products';
 
+export function getAllProducts(): Product[] {
+  return products;
+}
+
 export function getProductBySlug(slug: string): Product | undefined {
   return products.find(p => p.slug === slug);
 }

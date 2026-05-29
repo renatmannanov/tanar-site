@@ -2,7 +2,7 @@ import 'tsconfig-paths/register';
 import { promises as fs } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { products } from '@/data/products';
+import { getAllProducts } from '@/lib/product';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
@@ -16,7 +16,7 @@ async function main() {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  for (const product of products) {
+  for (const product of getAllProducts()) {
     if (!product.variants) continue;
     for (const variant of product.variants) {
       for (const model of variant.models) {
