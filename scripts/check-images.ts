@@ -17,7 +17,7 @@ const PRODUCTS_ROOT = resolve(REPO_ROOT, 'public', 'images', 'products');
 const SNAPSHOT_PATH = resolve(
   REPO_ROOT,
   'task_tracker',
-  'todo',
+  'done',
   'real-catalog-import',
   'catalog-snapshot.json',
 );

@@ -77,4 +77,13 @@
 - **self-check импорта** — добавить проверку значений (jacket-sv7-goretex price=80000, article TANAR-001 существует), не только count.
 - **db:up** — предусловие реализации step_1 и step_5 (не только верификации); Docker между Ralph-итерациями может стоять.
 - **Footer/CategoriesGrid** — правятся ЦЕЛИКОМ в step_2 (вместе со сменой типов), step_6 их НЕ трогает (убран двойной источник правды).
+
+### Передача в План B (админка-редактирование) — План A завершён 2026-05-29
+- write-контракт `createProduct/updateProduct/deleteProduct` в `src/core/catalog/repository.ts` готов и обкатан на 109 SKU реального каталога. Вход — `ProductInput` (zod, поле цены — `priceBase`). Экспортируется из `@/core/catalog` (server). В `client.ts` write-методов НЕТ.
+- `updateProduct(slug, input)` сохраняет product.id, заменяет variants/skus ЦЕЛИКОМ (delete+insert в транзакции) — форма админки шлёт товар целиком, без diff/merge.
+- `deleteProduct(slug)` — каскад по FK, throw на неизвестный slug.
+- media — только контракт (`MediaStore` интерфейс + типы `MediaAsset`/`MediaUploadInput` в `src/core/media/index.ts`), реализация (sharp + insert) — План C.
+- В БД боевые 12 товаров / 30 вариантов / 109 SKU. Фото НЕТ → витрина и карточка на градиентах (guard `models.length > 0` в ProductCard; Placeholder в ProductDetail при пустых shots).
+- Источник правды каталога — `task_tracker/done/real-catalog-import/catalog-snapshot.json`. Пути в `seed.ts` и `scripts/check-images.ts` обновлены на `done/`. Реимпорт: `npm run db:seed`.
+- Категории: `jackets|pants|shorts|tshirts|polo` (единый источник — `CATEGORIES` в `categories.ts`).
 ---

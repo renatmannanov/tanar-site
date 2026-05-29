@@ -52,7 +52,7 @@ function loadSnapshot(): Snapshot {
   const here = dirname(fileURLToPath(import.meta.url));
   const path = resolve(
     here,
-    '../../../task_tracker/todo/real-catalog-import/catalog-snapshot.json',
+    '../../../task_tracker/done/real-catalog-import/catalog-snapshot.json',
   );
   return JSON.parse(readFileSync(path, 'utf8')) as Snapshot;
 }

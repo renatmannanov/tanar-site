@@ -1,6 +1,6 @@
 # Real Catalog Import + CRUD Foundation (План A)
 
-> Статус: pending
+> Статус: done (2026-05-29)
 > Дата: 2026-05-29
 > Тип: фича + фундаментальный рефакторинг (write-слой каталога)
 
@@ -44,21 +44,21 @@
 | 5 | step_5_import_script.md — импорт-скрипт из catalog-snapshot.json через createProduct; удалить seed-data | [x] |
 | 6 | step_6_storefront_consumers.md — витрина: gradient-fallback при пустых models (крит!) + catalog metadata | [x] |
 | 7 | step_7_e2e.md — переписать e2e под боевой каталог (чипы, slugs, счётчики) | [x] |
-| 8 | step_8_completion.md — завершение плана | [ ] |
+| 8 | step_8_completion.md — завершение плана | [x] |
 
 ## Критерии готовности
 
-- [ ] `npm run db:migrate` применяет новую миграцию к dev-БД без ошибок
-- [ ] `npm run db:seed` (импорт) печатает `import OK: {...}` с числами products=12, variants=30, skus=109 (вычислены из снапшота, не хардкод)
-- [ ] В БД: `SELECT count(*)` products=12, product_variants=30, skus=109
-- [ ] `npm run typecheck` — без ошибок
-- [ ] `npm run lint` — без ошибок (границы модулей соблюдены)
-- [ ] `npm run build` — проходит
-- [ ] `npm run test:e2e` — все зелёные (переписаны под боевой каталог)
-- [ ] Витрина показывает боевые товары на **градиентах** (Placeholder), без битых `<Image>` / 404 на `*-undefined-*.webp`
-- [ ] `src/core/db/seed-data.ts` отсутствует
-- [ ] Grep `hoodies` и `t-shirts` по `src/` — 0 совпадений
-- [ ] `core/catalog` экспортирует `createProduct`, `updateProduct`, `deleteProduct`
-- [ ] Импорт идемпотентен: повторный `db:seed` даёт те же числа
-- [ ] `public/images/` не изменён (git status чист по этой папке)
-- [ ] Каждый шаг — отдельный коммит
+- [x] `npm run db:migrate` применяет новую миграцию к dev-БД без ошибок
+- [x] `npm run db:seed` (импорт) печатает `import OK: {...}` с числами products=12, variants=30, skus=109 (вычислены из снапшота, не хардкод)
+- [x] В БД: `SELECT count(*)` products=12, product_variants=30, skus=109
+- [x] `npm run typecheck` — без ошибок
+- [x] `npm run lint` — без ошибок (границы модулей соблюдены)
+- [x] `npm run build` — проходит
+- [x] `npm run test:e2e` — все зелёные (переписаны под боевой каталог) — 39 passed
+- [x] Витрина показывает боевые товары на **градиентах** (Placeholder), без битых `<Image>` / 404 на `*-undefined-*.webp`
+- [x] `src/core/db/seed-data.ts` отсутствует
+- [x] Grep `hoodies` и `t-shirts` по `src/` — 0 совпадений
+- [x] `core/catalog` экспортирует `createProduct`, `updateProduct`, `deleteProduct`
+- [x] Импорт идемпотентен: повторный `db:seed` даёт те же числа
+- [x] `public/images/` не изменён (git status чист по этой папке)
+- [x] Каждый шаг — отдельный коммит
