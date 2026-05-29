@@ -30,7 +30,7 @@
 ```
 ## Database (Postgres via Docker)
 
-npm run db:up         # поднять postgres-dev (5432) + postgres-test (5433)
+npm run db:up         # поднять postgres-dev (5442) + postgres-test (5443)
 npm run db:down       # остановить
 npm run db:migrate    # применить миграции drizzle-kit к dev-БД
 npm run db:generate   # сгенерировать SQL после изменения src/core/db/schema.ts

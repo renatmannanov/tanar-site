@@ -12,7 +12,7 @@
 
 - **БД:** Postgres 16, через Docker.
 - **ORM:** Drizzle + drizzle-kit для миграций.
-- **Docker:** один `docker-compose.yml` с двумя сервисами: `postgres-dev` (порт 5432, БД `tanar_dev`), `postgres-test` (порт 5433, БД `tanar_test`). Volumes для персистентности.
+- **Docker:** один `docker-compose.yml` с двумя сервисами: `postgres-dev` (host-порт **5442**, БД `tanar_dev`), `postgres-test` (host-порт **5443**, БД `tanar_test`). Внутри контейнера — 5432. Volumes для персистентности. _(Порты 5442/5443, а не 5432/5433: на хосте уже занят 5432 нативным PostgreSQL — см. progress.md Learnings.)_
 - **Env:** `DATABASE_URL` (dev), `DATABASE_TEST_URL` (test). Шаблон в `.env.example`, реальные значения в `.env.local` (gitignored).
 - **Структура:** `src/core/{catalog,inventory,orders,media,db,contracts}` + `src/marketplace/contract`. Каждый модуль имеет `index.ts` — публичный API. `src/marketplace/{kaspi,ozon,wildberries}` НЕ заводим в Фазе 0 (Фаза 5).
 - **Границы:** ESLint `no-restricted-imports` запрещает (a) импорт внутренностей модуля минуя `index.ts`, (b) импорт `marketplace/*` из `core/*`. Алиасы `@/core/*`, `@/marketplace/*` через `tsconfig.json` paths.
@@ -36,7 +36,7 @@
 |---|------|--------|
 | 1 | step_1_docker_postgres.md — docker-compose + два сервиса Postgres | [x] |
 | 2 | step_2_drizzle_setup.md — Drizzle + drizzle-kit + клиент + env | [x] |
-| 3 | step_3_db_schema.md — схема (products, variants, skus, orders, order_items, inventory_log, media_assets) + миграция | [ ] |
+| 3 | step_3_db_schema.md — схема (products, variants, skus, orders, order_items, inventory_log, media_assets) + миграция | [x] |
 | 4 | step_4_module_skeleton.md — структура src/core/* + контракты типов + ESLint-границы + tsconfig paths | [ ] |
 | 5 | step_5_catalog_repo.md — `src/core/catalog`: async-репозиторий с теми же сигнатурами что в `lib/product.ts` (плюс async) | [ ] |
 | 6 | step_6_data_migration_script.md — one-off скрипт `npm run db:seed`: products.ts → БД, с конвертацией status/SKU/MediaAsset | [ ] |

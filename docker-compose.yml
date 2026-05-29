@@ -10,8 +10,9 @@ services:
   postgres-dev:
     image: postgres:16-alpine
     restart: unless-stopped
+    # Host port 5442 (not 5432): a native PostgreSQL already owns 5432 on this host.
     ports:
-      - "5432:5432"
+      - "5442:5432"
     environment:
       POSTGRES_USER: tanar
       POSTGRES_PASSWORD: tanar_dev_pw
@@ -27,8 +28,9 @@ services:
   postgres-test:
     image: postgres:16-alpine
     restart: unless-stopped
+    # Host port 5443 (paired with dev's 5442; avoids the native PG on 5432).
     ports:
-      - "5433:5432"
+      - "5443:5432"
     environment:
       POSTGRES_USER: tanar
       POSTGRES_PASSWORD: tanar_test_pw

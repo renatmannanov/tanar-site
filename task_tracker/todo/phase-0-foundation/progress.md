@@ -65,5 +65,17 @@
 ```
 
 ## Learnings
-(заполняется в процессе работы)
+
+### Шаги 1-3 (выполнено, 2026-05-29)
+
+- **ПОРТЫ ИЗМЕНЕНЫ: dev=5442, test=5443** (НЕ 5432/5433 как в исходном плане). Причина: на хосте уже запущен **нативный PostgreSQL на 0.0.0.0:5432**, он перехватывал внешние TCP-соединения вместо Docker-контейнера → `28P01 password authentication failed`. Внутри контейнера 5432 (`docker exec`) работало (peer/trust по сокету), снаружи — нет. Решение: host-порты сдвинуты на 5442/5443 (внутри контейнера остаётся 5432). Изменены: docker-compose.yml, .env.example, .env.local. **Все будущие команды и URL используют 5442/5443.** Имена контейнеров: `tanar-site-postgres-dev-1`, `tanar-site-postgres-test-1`.
+- **`drizzle-kit migrate` CLI РАБОТАЕТ** после исправления порта. Раньше «висел» на `applying migrations...` — это был молчаливый ретрай auth-фейла на чужом постгресе, НЕ баг drizzle. Штатный `db:migrate` (CLI) используется как в плане.
+- **dotenv НЕ перезатирает существующие env.** Инлайн `DATABASE_URL=... npx drizzle-kit migrate` имеет приоритет над `.env.local` (dotenv добавляет только отсутствующие). Так применяли миграцию к test-БД.
+- **Node v24.11.1** на машине (package.json engines просит `>=20 <21`) → npm выдаёт EBADENGINE warning, но всё работает. tsx с cjs-выводом НЕ поддерживает top-level await — оборачивать скрипты в `async function main(){...}; main()` (важно для seed.ts/reset.ts в шаге 6!).
+- **pgcrypto:** строка `CREATE EXTENSION IF NOT EXISTS pgcrypto;` + `--> statement-breakpoint` дописана в начало `migrations/0000_same_typhoid_mary.sql` (для `gen_random_uuid()` через `.defaultRandom()`).
+- **client.ts уже экспортирует `queryClient`** (задел для шага 6 — закрытие пула через `.end()`), привязан к схеме: `drizzle(queryClient, { schema })`.
+- **jsonb типизированы через `.$type<>()`** в schema.ts с INLINE-типами (`Marketplace`, `ProductImageModel`, `ProductSpec`) — потому что `@/core/contracts` ещё нет. **Шаг 4 ДОЛЖЕН** переключить их на импорт из `@/core/contracts`.
+- **tailwind.config.ts РЕАЛЬНО СУЩЕСТВУЕТ** (v3-конфиг с typography). Утверждение в progress.md выше («нет tailwind.config.ts», строка ~40) и в CLAUDE.md — устаревшее, исправляется в шаге 9.
+- **Обе БД (dev+test) мигрированы:** 7 таблиц + 1 запись в `drizzle.__drizzle_migrations` в каждой.
+
 ---
