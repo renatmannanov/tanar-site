@@ -43,7 +43,7 @@
 | 6 | step_6_data_migration_script.md — one-off скрипт `npm run db:seed`: products.ts → БД, с конвертацией status/SKU/MediaAsset | [x] |
 | 7 | step_7_switch_consumers.md — переключение всех потребителей на async через `@/core/catalog` | [x] |
 | 8 | step_8_cleanup.md — удалить `src/data/products.ts`, `src/lib/product.ts`, ESLint-правило про data/products | [x] |
-| 9 | step_9_update_claude_md.md — обновить CLAUDE.md проекта (новые правила) | [ ] |
+| 9 | step_9_update_claude_md.md — обновить CLAUDE.md проекта (новые правила) | [x] |
 | 10 | step_10_completion.md — завершение плана | [ ] |
 
 ## Критерии готовности
