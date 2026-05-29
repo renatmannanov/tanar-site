@@ -1,3 +1,5 @@
+import { gradientFromString } from '@/lib/gradients';
+
 export type ProductCategory = 'jackets' | 'hoodies' | 't-shirts' | 'pants' | 'shorts';
 
 /** Single source of truth for product categories (id + display label). */
@@ -41,7 +43,7 @@ export type Product = {
   currency: 'KZT';
   description: string;
   specs: { label: string; value: string }[];
-  gradient: string;
+  gradient?: string;
   comingSoon?: boolean;
   variants?: ProductColor[];
   /** Links to the product on external marketplaces. */
@@ -102,6 +104,11 @@ export function getProductGalleryShots(product: Product, color: string): Gallery
 
 export function formatPrice(price: number): string {
   return `${price.toLocaleString('ru-RU')} ₸`;
+}
+
+/** Presentation gradient for a product: explicit override or derived from slug. */
+export function getProductGradient(product: Product): string {
+  return product.gradient ?? gradientFromString(product.slug);
 }
 
 import { products } from '@/data/products';

@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import Placeholder from '@/components/Placeholder';
-import { CATEGORY_LABELS, formatPrice, getProductCardImage, type Product } from '@/lib/product';
+import { CATEGORY_LABELS, formatPrice, getProductCardImage, getProductGradient, type Product } from '@/lib/product';
 
 export default function ProductCard({ product }: { product: Product }) {
   const defaultVariant = product.variants?.[0];
@@ -29,7 +29,7 @@ export default function ProductCard({ product }: { product: Product }) {
             />
           </div>
         ) : (
-          <Placeholder label={product.name} gradient={product.gradient} aspect="portrait" />
+          <Placeholder label={product.name} gradient={getProductGradient(product)} aspect="portrait" />
         )}
         {product.comingSoon && (
           <span className="absolute right-3 top-3 rounded-full bg-stone-900/80 px-3 py-1 text-xs font-medium uppercase tracking-wider text-stone-100">

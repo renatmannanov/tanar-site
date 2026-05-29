@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
 import AvailabilityButton from '@/components/AvailabilityButton';
 import MarketplaceLinks from '@/components/product/MarketplaceLinks';
 import Placeholder from '@/components/Placeholder';
-import { formatPrice, getProductGalleryShots, type Product } from '@/lib/product';
+import { formatPrice, getProductGalleryShots, getProductGradient, type Product } from '@/lib/product';
 
 const GALLERY_ASPECT = 'aspect-[2/3]';
 
@@ -147,7 +147,7 @@ function ProductDetailComingSoon({ product }: { product: Product }) {
   return (
     <div className="grid grid-cols-1 gap-12 md:grid-cols-2">
       <div className="relative">
-        <Placeholder label={product.name} gradient={product.gradient} aspect="portrait" className="w-full" />
+        <Placeholder label={product.name} gradient={getProductGradient(product)} aspect="portrait" className="w-full" />
         <span className="absolute right-3 top-3 rounded-full bg-stone-900/80 px-3 py-1 text-xs font-medium uppercase tracking-wider text-stone-100">
           Скоро в продаже
         </span>
