@@ -1,8 +1,16 @@
-import { eq, sql } from 'drizzle-orm';
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { sql } from 'drizzle-orm';
 import { db, queryClient } from './client';
 import * as schema from './schema';
-import { products as legacyProducts } from './seed-data';
-import { productImagePath } from '@/core/catalog';
+import { createProduct, getProductBySlug, type ProductInput } from '@/core/catalog';
+
+// Import script for the real TANAR catalog. Reads the verified snapshot and
+// populates the DB THROUGH the catalog write contract (createProduct) — the
+// import is the first consumer that exercises that contract on real data.
+// Keeps the `seed.ts` name so the `db:seed` npm script (a build/e2e
+// precondition) stays unchanged.
 
 // Guard: never run against anything but the local dev/test databases.
 const url = process.env.DATABASE_URL ?? '';
@@ -12,150 +20,124 @@ if (!/tanar_dev|tanar_test/.test(url)) {
   );
 }
 
-type LegacyVariant = {
-  id: string;
-  label: string;
+// --- snapshot shape (only the fields we import into core) -------------------
+type SnapshotSku = {
+  size: string;
+  ruSize?: string;
+  article?: string;
+  stock: number;
+};
+type SnapshotVariant = {
+  colorId: string;
+  colorLabel: string;
   hex: string;
-  models: ('man' | 'girl')[];
-  hasFlatShots?: boolean;
+  skus: SnapshotSku[];
+};
+type SnapshotProduct = {
+  slug: string;
+  category: ProductInput['category'];
+  name: string;
+  label?: { badge: string; sub: string };
+  priceBase: number;
+  description: string;
+  care?: string | null;
+  variants: SnapshotVariant[];
+};
+type Snapshot = {
+  meta: { products: number; variants: number; skus: number };
+  products: SnapshotProduct[];
 };
 
-const VIEWS = ['front', 'side', 'back'] as const;
+function loadSnapshot(): Snapshot {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const path = resolve(
+    here,
+    '../../../task_tracker/todo/real-catalog-import/catalog-snapshot.json',
+  );
+  return JSON.parse(readFileSync(path, 'utf8')) as Snapshot;
+}
 
-/** media_assets rows for one variant: lifestyle (per view × model) + flat (per view). */
-function buildMediaRows(
-  productId: string,
-  variantId: string,
-  slug: string,
-  v: LegacyVariant,
-) {
-  const rows: (typeof schema.mediaAssets.$inferInsert)[] = [];
-  let sortOrder = 0;
-
-  // Lifestyle (with model)
-  for (const model of v.models) {
-    for (const view of VIEWS) {
-      rows.push({
-        scope: 'product',
-        productId,
-        variantId,
-        view,
-        model,
-        role: 'lifestyle',
-        url: productImagePath(slug, v.id, `${view}-${model}-full-lg.webp`),
-        sortOrder: sortOrder++,
-      });
-    }
-  }
-
-  // Flat (studio) — only if the variant has flat shots
-  if (v.hasFlatShots) {
-    for (const view of VIEWS) {
-      rows.push({
-        scope: 'product',
-        productId,
-        variantId,
-        view,
-        model: 'flat',
-        role: 'flat',
-        url: productImagePath(slug, v.id, `${view}-flat-full-lg.webp`),
-        sortOrder: sortOrder++,
-      });
-    }
-  }
-
-  return rows;
+/** Maps a snapshot product to the catalog write contract's ProductInput. */
+function toProductInput(p: SnapshotProduct): ProductInput {
+  return {
+    slug: p.slug,
+    name: p.name,
+    category: p.category,
+    // status omitted → defaults to 'published' (all real products are live).
+    priceBase: p.priceBase, // = Цена Kaspi (storefront base price)
+    description: p.description,
+    label: p.label,
+    care: p.care ?? undefined, // snapshot has care:null x7; schema is nullable+optional
+    // Ozon fields (ozonGroupId/priceOzon/ozonSku) are NOT imported into core —
+    // they belong to the marketplace channel (phase 5). marketplaces stays {}.
+    variants: p.variants.map((v) => ({
+      colorId: v.colorId,
+      colorLabel: v.colorLabel,
+      hex: v.hex,
+      models: [], // no real photos yet → storefront renders gradients (plan C adds photos)
+      hasFlatShots: false,
+      skus: v.skus.map((s) => ({
+        size: s.size,
+        ruSize: s.ruSize,
+        article: s.article,
+        stockQty: s.stock, // already 0 for unknown stock in the snapshot
+      })),
+    })),
+  };
 }
 
 async function main() {
-  // Idempotent: clear everything first (dev tool, not a prod data migration).
+  const snapshot = loadSnapshot();
+
+  // Reset only the catalog tables. CASCADE is required: order_items.sku_id and
+  // inventory_log.sku_id reference skus.id (FK without onDelete), so TRUNCATE
+  // skus would otherwise fail when those tables are non-empty — and CASCADE
+  // truncate reaches them regardless of onDelete. They are empty in plan A, so
+  // no data is lost. This import is strictly a dev/one-off tool (the dev/test
+  // guard above protects prod); it must NOT be run once real orders exist.
   await db.execute(
-    sql`TRUNCATE products, product_variants, skus, media_assets, orders, order_items, inventory_log CASCADE`,
+    sql`TRUNCATE products, product_variants, skus, media_assets CASCADE`,
   );
 
-  for (const legacy of legacyProducts) {
-    const status = legacy.comingSoon ? 'coming_soon' : 'published';
-    const [{ id: productId }] = await db
-      .insert(schema.products)
-      .values({
-        slug: legacy.slug,
-        name: legacy.name,
-        category: legacy.category,
-        status,
-        priceBase: legacy.price,
-        currency: legacy.currency,
-        description: legacy.description,
-        specs: legacy.specs,
-        gradient: legacy.gradient ?? null,
-        marketplaces: legacy.marketplaces ?? {},
-      })
-      .returning({ id: schema.products.id });
-
-    for (const v of legacy.variants ?? []) {
-      const [{ id: variantId }] = await db
-        .insert(schema.productVariants)
-        .values({
-          productId,
-          colorId: v.id,
-          colorLabel: v.label,
-          hex: v.hex,
-          models: v.models,
-          hasFlatShots: v.hasFlatShots ?? false,
-        })
-        .returning({ id: schema.productVariants.id });
-
-      // One SKU of size 'OS' per variant (real sizes come in phase 1).
-      await db.insert(schema.skus).values({
-        variantId,
-        size: 'OS',
-        stockQty: 0,
-        reservedQty: 0,
-      });
-
-      const mediaRows = buildMediaRows(productId, variantId, legacy.slug, v);
-      if (mediaRows.length > 0) {
-        await db.insert(schema.mediaAssets).values(mediaRows);
-      }
-    }
+  for (const product of snapshot.products) {
+    await createProduct(toProductInput(product));
   }
 
-  // Self-check: compare actual DB counts to expected counts derived from the
-  // source array (no hardcoded numbers — survives catalog changes).
+  // Self-check: counts derived from the snapshot (no hardcoded numbers).
   const expected = {
-    products: legacyProducts.length,
-    published: legacyProducts.filter((p) => !p.comingSoon).length,
-    comingSoon: legacyProducts.filter((p) => p.comingSoon).length,
-    variants: legacyProducts.reduce((s, p) => s + (p.variants?.length ?? 0), 0),
-    skus: legacyProducts.reduce((s, p) => s + (p.variants?.length ?? 0), 0),
-    mediaAssets: legacyProducts.reduce((s, p) => {
-      if (!p.variants) return s;
-      return (
-        s +
-        p.variants.reduce((vs, v) => {
-          const lifestyle = v.models.length * 3;
-          const flat = v.hasFlatShots ? 3 : 0;
-          return vs + lifestyle + flat;
-        }, 0)
-      );
-    }, 0),
+    products: snapshot.products.length,
+    variants: snapshot.products.reduce((s, p) => s + p.variants.length, 0),
+    skus: snapshot.products.reduce(
+      (s, p) => s + p.variants.reduce((vs, v) => vs + v.skus.length, 0),
+      0,
+    ),
   };
-
   const actual = {
     products: await db.$count(schema.products),
-    published: await db.$count(schema.products, eq(schema.products.status, 'published')),
-    comingSoon: await db.$count(schema.products, eq(schema.products.status, 'coming_soon')),
     variants: await db.$count(schema.productVariants),
     skus: await db.$count(schema.skus),
-    mediaAssets: await db.$count(schema.mediaAssets),
   };
-
   for (const key of Object.keys(expected) as (keyof typeof expected)[]) {
     if (actual[key] !== expected[key]) {
-      throw new Error(`seed mismatch [${key}]: expected ${expected[key]}, actual ${actual[key]}`);
+      throw new Error(
+        `import mismatch [${key}]: expected ${expected[key]}, actual ${actual[key]}`,
+      );
     }
   }
 
-  console.log('seed OK:', actual);
+  // Value spot-check: counts match even when field mapping is wrong, so verify
+  // a known product's price and that an article landed.
+  const sentinel = await getProductBySlug('jacket-sv7-goretex');
+  if (!sentinel) throw new Error('import check: jacket-sv7-goretex not found');
+  if (sentinel.price !== 80000) {
+    throw new Error(`import check: jacket-sv7-goretex price=${sentinel.price}, expected 80000`);
+  }
+  const articles = sentinel.variants.flatMap((v) => v.skus.map((s) => s.article));
+  if (!articles.includes('TANAR-001')) {
+    throw new Error('import check: article TANAR-001 missing on jacket-sv7-goretex');
+  }
+
+  console.log('import OK:', actual);
   await queryClient.end();
 }
 

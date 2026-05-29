@@ -41,7 +41,7 @@
 | 2 | step_2_categories.md — новые категории в contracts + catalog/categories + типы Product/Sku + Footer/CategoriesGrid | [x] |
 | 3 | step_3_crud_contract.md — полный write-контракт repository (create/update/delete, zod, транзакции) | [x] |
 | 4 | step_4_media_contract.md — заготовка контракта core/media (типы, пустые порты) | [x] |
-| 5 | step_5_import_script.md — импорт-скрипт из catalog-snapshot.json через createProduct; удалить seed-data | [ ] |
+| 5 | step_5_import_script.md — импорт-скрипт из catalog-snapshot.json через createProduct; удалить seed-data | [x] |
 | 6 | step_6_storefront_consumers.md — витрина: gradient-fallback при пустых models (крит!) + catalog metadata | [ ] |
 | 7 | step_7_e2e.md — переписать e2e под боевой каталог (чипы, slugs, счётчики) | [ ] |
 | 8 | step_8_completion.md — завершение плана | [ ] |

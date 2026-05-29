@@ -33,7 +33,7 @@ npm run db:up         # поднять postgres-dev (5442) + postgres-test (5443
 npm run db:down       # остановить
 npm run db:migrate    # применить миграции drizzle-kit к dev-БД
 npm run db:generate   # сгенерировать SQL после изменения src/core/db/schema.ts
-npm run db:seed       # наполнить БД демо-товарами (dev-инструмент; источник — src/core/db/seed-data.ts)
+npm run db:seed       # импортировать боевой каталог (dev-инструмент; источник — task_tracker/.../catalog-snapshot.json через createProduct)
 npm run db:reset      # очистить все таблицы
 ```
 
@@ -61,7 +61,7 @@ src/
     inventory/         (заглушка, Фаза 2)
     orders/            (заглушка, Фаза 3)
     media/             (заглушка, Фаза 1 — admin-загрузка)
-    db/                Drizzle: schema, client, migrations, seed, seed-data
+    db/                Drizzle: schema, client, migrations, seed (real-catalog import)
     contracts/         общие union-типы домена (ProductCategory, OrderSource, ...)
   marketplace/
     contract/          (Фаза 5) MarketplaceModule интерфейс
@@ -76,7 +76,7 @@ ESLint (`eslint.config.mjs`) запрещает: импорт внутренно
 
 ## Данные
 
-- **Продукты**: хранятся в Postgres (`products`, `product_variants`, `skus`). Доступ через `@/core/catalog` (async). Seed для dev: `npm run db:seed` (источник — `src/core/db/seed-data.ts`, демо-каталог). Реальный каталог заказчицы — отдельный план (`task_tracker/backlog/real-catalog-import.md`).
+- **Продукты**: хранятся в Postgres (`products`, `product_variants`, `skus`). Доступ через `@/core/catalog` (async). Запись — только через write-контракт (`createProduct`/`updateProduct`/`deleteProduct`). Наполнение dev-БД: `npm run db:seed` — импорт боевого каталога (12/30/109) из `task_tracker/.../catalog-snapshot.json` через `createProduct`.
 - **Посты блога**: 6 файлов в `content/blog/*.mdx` с frontmatter (title, slug, date, excerpt, cover gradient)
 - **Язык**: только русский
 - **Картинки**: CSS-градиенты из мягкой outdoor-палитры (земляные, пыльно-синие, серо-зелёные) + текст-метка с названием товара/поста
