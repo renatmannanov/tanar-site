@@ -58,13 +58,22 @@ export type GalleryShot = {
   alt: string;
 };
 
+const PRODUCT_IMAGE_BASE = '/images/products';
+
+/** Builds the path to a single product image variant file. */
+function productImagePath(slug: string, color: string, file: string): string {
+  return `${PRODUCT_IMAGE_BASE}/${slug}/${color}/${file}`;
+}
+
 export function getProductCardImage(
   slug: string,
   color: string,
   model: ProductImageModel
 ): { md: string; lg: string } {
-  const base = `/images/products/${slug}/${color}/front-${model}-card`;
-  return { md: `${base}-md.webp`, lg: `${base}-lg.webp` };
+  return {
+    md: productImagePath(slug, color, `front-${model}-card-md.webp`),
+    lg: productImagePath(slug, color, `front-${model}-card-lg.webp`),
+  };
 }
 
 export function getProductGalleryShots(product: Product, color: string): GalleryShot[] {
@@ -81,7 +90,7 @@ export function getProductGalleryShots(product: Product, color: string): Gallery
       shots.push({
         view,
         model,
-        src: `/images/products/${product.slug}/${color}/${view}-${model}-full-lg.webp`,
+        src: productImagePath(product.slug, color, `${view}-${model}-full-lg.webp`),
         alt: `${product.name} — ${variant.label}, ${viewLabel(view)}`,
       });
     }
@@ -93,7 +102,7 @@ export function getProductGalleryShots(product: Product, color: string): Gallery
       shots.push({
         view,
         model: 'flat',
-        src: `/images/products/${product.slug}/${color}/${view}-flat-full-lg.webp`,
+        src: productImagePath(product.slug, color, `${view}-flat-full-lg.webp`),
         alt: `${product.name} — ${variant.label}, студийное фото, ${viewLabel(view)}`,
       });
     }
