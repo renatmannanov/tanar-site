@@ -86,4 +86,15 @@
 - **Drizzle типы строк:** `typeof schema.products.$inferSelect` и т.д. Joined-строка имеет ключи по ИМЕНИ ТАБЛИЦЫ: `products`, `product_variants`, `skus` (не camelCase var-имена). Используется в `JoinedRow`.
 - БД пустая → `getAllProducts()` вернул `rows: 0`. Потребители НЕ переключены (это шаг 7), витрина читает старый lib/product, build всё ещё SSG для каталога (станет dynamic в шаге 7).
 
+### Шаг 6 (выполнено, 2026-05-29)
+
+- **Seed работает. Фактические числа из текущего каталога:** products=10 (published=5, coming_soon=5), variants=13, skus=13 (по 1 OS на variant), media_assets=51. **Это НЕ хардкод** — seed вычисляет ожидаемые числа из массива `@/data/products` и сверяет с БД; при изменении каталога пересчитается сам. (Цифры тут — для справки, не для проверки.)
+- **`db.$count` работает** в drizzle 0.45 — fallback на `count(*)` не понадобился.
+- **Идемпотентность через TRUNCATE ... CASCADE** в начале seed.ts. Повторный запуск → те же числа.
+- **Guard проверен:** `DATABASE_URL` без `tanar_dev|tanar_test` → throw до любых операций. Тест: инлайн prod-URL без `--env-file` → падает с понятной ошибкой.
+- **reset.ts** отдельным скриптом, тот же guard, `reset OK: all tables truncated`.
+- **env через `--env-file=.env.local`** (решение из шага 5) — оба скрипта запускаются без `DATABASE_URL is not set`, без dotenv в коде.
+- **Repository + seed проверены вместе:** `getAllProducts()` вернул 10, coming_soon с пустым `variants: []`, varианты с 1 SKU 'OS'. `getProductBySlug` ок.
+- seed.ts импортирует `productImagePath` из `@/core/catalog` (публичный, сделан в шаге 5) для генерации media URL по той же конвенции.
+
 ---

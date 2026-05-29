@@ -34,6 +34,12 @@ const eslintConfig = [
     files: ["src/lib/product.ts"],
     rules: { "no-restricted-imports": "off" },
   },
+  {
+    // seed.ts reads the legacy @/data/products to migrate it into the DB.
+    // Removed in step 8 when data moves to src/core/db/seed-data.ts.
+    files: ["src/core/db/seed.ts"],
+    rules: { "no-restricted-imports": "off" },
+  },
   // ── Module boundaries ──────────────────────────────────────────────
   // Alias @/core/* and @/marketplace/* are reserved for a module's PUBLIC
   // API (its index.ts). Inside a module use relative paths (./x, ../y) —
