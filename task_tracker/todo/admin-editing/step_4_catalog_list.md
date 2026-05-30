@@ -1,7 +1,7 @@
 # Шаг 4: Раздел /admin/catalog — список товаров
 
 > Зависит от: шаг 3 (shell + `requireAdmin()` в admin-auth)
-> Статус: [ ] pending
+> Статус: [x] done
 
 ## Задача
 
