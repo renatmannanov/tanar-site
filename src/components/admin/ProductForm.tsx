@@ -5,8 +5,10 @@ import { CATEGORIES, type ProductInput } from '@/core/catalog/client';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Textarea } from './ui/Textarea';
+import { AutoTextarea } from './ui/AutoTextarea';
 import { Select } from './ui/Select';
 import { Label } from './ui/Label';
+import { ConfirmButton } from './ui/ConfirmButton';
 
 const STATUSES: { value: string; label: string }[] = [
   { value: 'draft', label: 'Черновик' },
@@ -157,9 +159,8 @@ export default function ProductForm({ mode, initial, action }: Props) {
 
       <div className="flex flex-col gap-1">
         <Label htmlFor="description">Описание</Label>
-        <Textarea
+        <AutoTextarea
           id="description"
-          rows={4}
           value={form.description}
           onChange={(e) => patch({ description: e.target.value })}
         />
@@ -221,15 +222,22 @@ export default function ProductForm({ mode, initial, action }: Props) {
                   className="h-9 w-12 rounded border border-gray-300"
                 />
               </div>
-              <Button
-                type="button"
+              <ConfirmButton
                 variant="ghost"
-                onClick={() => removeVariant(vi)}
                 disabled={form.variants.length <= 1}
                 className="ml-auto text-red-600"
+                title="Удалить цвет?"
+                description={
+                  <>
+                    Цвет «{v.colorLabel || v.colorId || 'без названия'}» и все его размеры
+                    будут удалены из формы. Изменение запишется в каталог только после «Сохранить».
+                  </>
+                }
+                confirmLabel="Удалить цвет"
+                onConfirm={() => removeVariant(vi)}
               >
                 Удалить цвет
-              </Button>
+              </ConfirmButton>
             </div>
 
             <table className="w-full text-sm">
@@ -268,15 +276,22 @@ export default function ProductForm({ mode, initial, action }: Props) {
                       />
                     </td>
                     <td className="py-1">
-                      <Button
-                        type="button"
+                      <ConfirmButton
                         variant="ghost"
-                        onClick={() => removeSku(vi, si)}
                         disabled={v.skus.length <= 1}
                         className="text-red-600"
+                        title="Удалить размер?"
+                        description={
+                          <>
+                            Размер «{s.size || '—'}» будет удалён из формы. Изменение запишется
+                            в каталог только после «Сохранить».
+                          </>
+                        }
+                        confirmLabel="Удалить размер"
+                        onConfirm={() => removeSku(vi, si)}
                       >
                         ×
-                      </Button>
+                      </ConfirmButton>
                     </td>
                   </tr>
                 ))}
