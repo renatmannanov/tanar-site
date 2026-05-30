@@ -1,7 +1,9 @@
 # Шаг 5: ProductForm (create|edit) + маппер productToInput
 
 > Зависит от: шаг 3 (ui-примитивы), шаг 4 (список — точка входа)
-> Статус: [ ] pending
+> Статус: [x] done
+
+> **Реализация:** `product-mapper.ts` и `ProductForm.tsx` написаны. Submit — `useTransition` + проп `action` (не `useActionState`, т.к. action принимает `ProductInput`, а не FormData — controlled-форма собирает объект сама). `models`/`specs`/`marketplaces` маппер пробрасывает (форма их не редактирует в Плане B). marketplaces потребовал каста (read-тип Partial vs zod-input full Record).
 
 ## Задача
 
