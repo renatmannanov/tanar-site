@@ -1,4 +1,4 @@
-import type { Product, ProductInput } from '@/core/catalog';
+import type { Product, ProductInput } from '@/core/catalog/client';
 
 // Adapter read→write: the read type (Product) and the write type (ProductInput)
 // use DIFFERENT field names. This lives in the admin section (storefront-admin

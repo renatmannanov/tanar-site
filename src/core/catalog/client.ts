@@ -7,3 +7,7 @@ export * from './categories';
 export * from './images';
 export * from './gradient';
 export * from './format';
+// Write-contract input types only (type-only re-export — erased at compile time,
+// so repository.ts → postgres is NOT pulled into the client bundle). Admin forms
+// need these shapes client-side.
+export type { ProductInput, VariantInput, SkuInput } from './repository';

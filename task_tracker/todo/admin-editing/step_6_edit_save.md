@@ -1,7 +1,9 @@
 # Шаг 6: Edit-страница + updateProductAction → updateProduct
 
 > Зависит от: шаг 5 (ProductForm + маппер), шаг 3 (`requireAdmin()`)
-> Статус: [ ] pending
+> Статус: [x] done
+
+> **Build-фикс (всплыл здесь, корень в шаге 5):** client-компонент `ProductForm` импортил `@/core/catalog` (barrel → postgres) → build падал `Can't resolve 'tls'`. Переключено на `@/core/catalog/client` (+ type-only реэкспорт input-типов в client.ts). См. progress.md Learnings.
 
 ## Задача
 
