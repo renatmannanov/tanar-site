@@ -41,6 +41,14 @@ npm run db:reset      # очистить все таблицы
 
 Каждый step-файл в `task_tracker/` указывает свои verification-команды.
 
+### Admin auth (Фаза 1, План B)
+
+Однопользовательская cookie-аутентификация без БД. Env в `.env.local` (см. `.env.example`):
+- `ADMIN_PASSWORD` — пароль входа.
+- `ADMIN_SESSION_SECRET` — HMAC-ключ подписи cookie, **≥32 символов** (иначе throw).
+
+`/admin/login` → подписанная httpOnly-cookie (`admin_session`, HMAC-SHA256 `{exp}`). Guard: `middleware.ts` (redirect на login) + `requireAdmin()` в защищённых страницах/actions. e2e и dev требуют этих env в окружении (Next читает `.env.local`; Playwright — через `@next/env` в `playwright.config.ts`).
+
 ## Структура сайта (v1)
 
 - `/` — главная: hero, категории, featured продукты, сторителлинг-блок, последние посты блога, footer
@@ -65,9 +73,15 @@ src/
     contracts/         общие union-типы домена (ProductCategory, OrderSource, ...)
   marketplace/
     contract/          (Фаза 5) MarketplaceModule интерфейс
-  app/                 Next.js App Router (витрина; (admin) — Фаза 1)
-  components/, lib/     UI и общие утилиты (lib/blog, lib/gradients остались)
+  app/                 Next.js App Router
+    (public)/          витрина (Header/Footer layout): page, catalog/, blog/, icon
+    admin/             админка (Фаза 1, План B): login/ (вне сайдбара),
+                       (protected)/ (сайдбар-shell + requireAdmin): catalog/ edit
+  components/, lib/     UI и общие утилиты (lib/blog, lib/gradients, lib/admin-auth, lib/require-admin)
+  middleware.ts        guard на /admin/* (nodejs-runtime), redirect на /admin/login
 ```
+
+> **Client-компоненты админки импортят `@/core/catalog/client`, НЕ `@/core/catalog`** — barrel тянет `repository.ts`→postgres в client-бандл и ломает `build` (typecheck/lint этого не ловят — гонять `build`).
 
 Границы модулей: импорт ТОЛЬКО через публичный API (`index.ts`, либо `/client` для catalog).
 ESLint (`eslint.config.mjs`) запрещает: импорт внутренностей модуля минуя index.ts; импорт `@/marketplace/*` из `@/core/*` (обратная зависимость). Внутри модуля — относительные пути.

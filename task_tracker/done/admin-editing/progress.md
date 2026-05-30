@@ -46,4 +46,11 @@
 - **Client-компоненты админки ОБЯЗАНЫ импортить из `@/core/catalog/client`, не `@/core/catalog`.** Barrel `index.ts` реэкспортит `repository.ts` → `postgres` (node:tls/net/fs) — при импорте из `'use client'` это утекает в client-бандл и **build падает** (`Module not found: Can't resolve 'tls'`). typecheck/lint НЕ ловят это — только `npm run build`. Урок: после client-компонентов всегда гонять `build`, не только typecheck. Исправлено: `ProductForm` + `product-mapper` импортят из `/client`; в `client.ts` добавлен type-only реэкспорт `ProductInput/VariantInput/SkuInput` (input-типы живут в repository.ts; `export type` стирается, postgres в граф не тянет). **Для Плана C:** create-форма/любой новый client-компонент — из `/client`.
 - **`(protected)` route-group** (шаг 3): защищённые разделы в `src/app/admin/(protected)/`, login — в `src/app/admin/login/` (вне сайдбара). `admin/layout.tsx` = passthrough.
 - **Submit формы — `useTransition` + проп `action(input: ProductInput)`**, не `useActionState` (форма controlled, собирает объект, а не FormData).
+
+## Передача в План C (полный CRUD + фото)
+- **`ProductForm` готова в полном виде** (`mode: 'create' | 'edit'`). Для create: снять `disabled` с кнопок, добавить страницу `/admin/(protected)/catalog/new` + `createProductAction`/`deleteProductAction` (контракты в core готовы с Плана A: `createProduct`/`deleteProduct`).
+- **Фото-слот** в форме — визуальная заглушка (`Загрузка фото — Доступно в Плане C`). Оживить: реализация `MediaStore` (sharp → public/ → `media_assets`), media-picker подключается к слоту. Форма пока НЕ редактирует `models`/`hasFlatShots` (фото-связанные) — добавить в Плане C.
+- **Auth/shell/реестр разделов/UI-примитивы** — переиспользуются без изменений. Новый раздел = запись в `src/app/admin/sections.ts` + папка в `(protected)/`.
+- **Известное ограничение (Фаза 2):** `updateProduct` обнуляет `reservedQty` (хардкод 0 в `insertVariantTree`, маппер дропает поле). До ввода остатков/резервов — научить `updateProduct` сохранять существующие `reservedQty`/`stockQty`.
+- **Грабли (повторить в Плане C):** client-компоненты → `@/core/catalog/client`; после client-кода гонять `build` (не только typecheck); `Product.marketplaces` может нести undefined-ключи — фильтровать перед write (`cleanMarketplaces` в маппере).
 ---

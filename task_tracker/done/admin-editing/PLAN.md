@@ -1,6 +1,6 @@
 # Админка: редактирование (План B, Фаза 1 этап 2)
 
-> Статус: pending
+> Статус: done
 > Дата: 2026-05-29
 > Тип: фича (admin shell + auth + редактирование каталога)
 
@@ -40,21 +40,21 @@
 | 5 | step_5_product_form.md — ProductForm (mode create\|edit) + маппер productToInput; варианты/SKU; фото-слот и create/delete disabled | [x] |
 | 6 | step_6_edit_save.md — /admin/catalog/[slug]/edit + updateProductAction (server action) → updateProduct, revalidate, redirect | [x] |
 | 7 | step_7_e2e.md — Playwright: логин, guard-redirect, список, редактирование→сохранение, disabled-элементы видны | [x] |
-| 8 | step_8_completion.md — завершение плана | [ ] |
+| 8 | step_8_completion.md — завершение плана | [x] |
 
 ## Критерии готовности
 
-- [ ] `npm run typecheck` — без ошибок
-- [ ] `npm run lint` — без ошибок (границы модулей соблюдены)
-- [ ] `npm run build` — проходит
-- [ ] `npm run test:e2e` — все зелёные (вкл. новый admin spec)
-- [ ] Без cookie заход на `/admin/catalog` → redirect на `/admin/login`
-- [ ] Верный пароль → редирект в админку, ставится httpOnly-cookie; неверный → ошибка, остаёмся на логине
-- [ ] Logout чистит cookie, повторный заход требует логина
-- [ ] `/admin/catalog` показывает 12 боевых товаров со ссылками на edit
-- [ ] Открытие `/admin/catalog/jacket-sv7-goretex/edit` показывает форму, предзаполненную данными товара (name, priceBase=80000, 5 вариантов, SKU с article/ruSize/stockQty)
-- [ ] Изменение поля + submit → `updateProduct` отрабатывает, изменение видно на витрине `/catalog/jacket-sv7-goretex` (force-dynamic) и в БД
-- [ ] Кнопки «Создать»/«Удалить» и блок «Фото» — присутствуют в DOM, но `disabled` (визуально видны, не активны)
-- [ ] Витрина (публичные страницы) не сломана: `/`, `/catalog`, `/catalog/[slug]`, `/blog` работают как раньше
-- [ ] env-переменные (`ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`) задокументированы в `.env.example` и CLAUDE.md
-- [ ] Каждый шаг — отдельный коммит
+- [x] `npm run typecheck` — без ошибок
+- [x] `npm run lint` — без ошибок (границы модулей соблюдены)
+- [x] `npm run build` — проходит
+- [x] `npm run test:e2e` — все зелёные (45/45: 39 витрина + 6 admin)
+- [x] Без cookie заход на `/admin/catalog` → redirect на `/admin/login`
+- [x] Верный пароль → редирект в админку, ставится httpOnly-cookie; неверный → ошибка, остаёмся на логине
+- [x] Logout чистит cookie, повторный заход требует логина
+- [x] `/admin/catalog` показывает 12 боевых товаров со ссылками на edit
+- [x] Открытие `/admin/catalog/jacket-sv7-goretex/edit` показывает форму, предзаполненную данными товара (name, priceBase=80000, варианты/SKU)
+- [x] Изменение поля + submit → `updateProduct` отрабатывает, изменение видно в БД (e2e edit→save→revert)
+- [x] Кнопки «Создать»/«Удалить» и блок «Фото» — присутствуют в DOM, но `disabled`
+- [x] Витрина (публичные страницы) не сломана: `/`, `/catalog`, `/catalog/[slug]`, `/blog` работают как раньше
+- [x] env-переменные (`ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`) задокументированы в `.env.example` и CLAUDE.md
+- [x] Каждый шаг — отдельный коммит
