@@ -39,7 +39,7 @@
 | 4 | step_4_catalog_list.md — раздел /admin/catalog: список товаров (из getAllProducts), ссылки на edit, кнопка «Создать» (disabled) | [x] |
 | 5 | step_5_product_form.md — ProductForm (mode create\|edit) + маппер productToInput; варианты/SKU; фото-слот и create/delete disabled | [x] |
 | 6 | step_6_edit_save.md — /admin/catalog/[slug]/edit + updateProductAction (server action) → updateProduct, revalidate, redirect | [x] |
-| 7 | step_7_e2e.md — Playwright: логин, guard-redirect, список, редактирование→сохранение, disabled-элементы видны | [ ] |
+| 7 | step_7_e2e.md — Playwright: логин, guard-redirect, список, редактирование→сохранение, disabled-элементы видны | [x] |
 | 8 | step_8_completion.md — завершение плана | [ ] |
 
 ## Критерии готовности

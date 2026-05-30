@@ -8,6 +8,16 @@ import type { Product, ProductInput } from '@/core/catalog/client';
 //   variant.label-> colorLabel
 //   sku.{id,reservedQty} dropped (write schema has neither; reservedQty is set
 //     to 0 by the repository — known limitation, see progress.md)
+function cleanMarketplaces(
+  m: Product['marketplaces'],
+): ProductInput['marketplaces'] {
+  if (!m) return undefined;
+  const entries = Object.entries(m).filter(([, v]) => typeof v === 'string');
+  return entries.length
+    ? (Object.fromEntries(entries) as ProductInput['marketplaces'])
+    : undefined;
+}
+
 export function productToInput(p: Product): ProductInput {
   return {
     slug: p.slug,
@@ -21,10 +31,10 @@ export function productToInput(p: Product): ProductInput {
     gradient: p.gradient,
     label: p.label,
     care: p.care,
-    // Read type is Partial<Record<Marketplace,string>>; the zod input type is a
-    // full Record. zod accepts a partial record at runtime — cast to bridge the
-    // stricter declared input type. The form does not edit marketplaces.
-    marketplaces: p.marketplaces as ProductInput['marketplaces'],
+    // Read type is Partial<Record<Marketplace,string>> and may carry keys with
+    // undefined values; the write schema (z.record(enum, string)) rejects
+    // undefined. Drop undefined entries, and omit the field entirely if empty.
+    marketplaces: cleanMarketplaces(p.marketplaces),
     variants: p.variants.map((v) => ({
       colorId: v.id,
       colorLabel: v.label,

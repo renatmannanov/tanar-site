@@ -1,4 +1,9 @@
 import { defineConfig } from '@playwright/test';
+import { loadEnvConfig } from '@next/env';
+
+// Load .env.local into the Playwright (test runner) process the same way Next
+// loads it for the dev server — admin.spec.ts reads process.env.ADMIN_PASSWORD.
+loadEnvConfig(process.cwd());
 
 export default defineConfig({
   testDir: './e2e',

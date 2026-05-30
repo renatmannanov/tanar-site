@@ -1,7 +1,9 @@
 # Шаг 7: E2E — логин, guard, список, редактирование
 
 > Зависит от: шаги 1-6
-> Статус: [ ] pending
+> Статус: [x] done
+
+> **Реализация:** `e2e/admin.spec.ts` (6 тестов) + загрузка `.env.local` в `playwright.config.ts` через `@next/env` `loadEnvConfig` (Playwright-процесс сам .env.local не читает). `afterAll` → `db:seed` страховка. **Найден реальный баг при e2e:** `Product.marketplaces` приходит как `{ozon:undefined,kaspi:undefined}`, zod `z.record(enum,string)` отвергает undefined → save падал. Фикс в маппере (`cleanMarketplaces` дропает undefined-ключи). Итог: 45/45 e2e зелёные (39 витрина + 6 admin).
 
 ## Задача
 
