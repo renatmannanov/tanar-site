@@ -1,7 +1,12 @@
 # Шаг 3: Admin shell — layout, реестр разделов, UI-примитивы
 
 > Зависит от: шаг 1, шаг 2
-> Статус: [ ] pending
+> Статус: [x] done
+
+> **Уточнения при реализации (отступления от исходного плана, осознанные):**
+> 1. **Login вне сайдбара через `(protected)` группу.** `admin/layout.tsx` сделан passthrough (`return children`), а сайдбар-shell вынесен в `admin/(protected)/layout.tsx`. Иначе сайдбар отрендерился бы и на `/admin/login`. URL не меняются (группа в скобках). Защищённые разделы (catalog, шаг 4) живут в `admin/(protected)/`.
+> 2. **`requireAdmin()` вынесен в отдельный `src/lib/require-admin.ts`** (не в `admin-auth.ts`). Причина: `admin-auth.ts` импортируется middleware (Node-runtime, чистый crypto); тянуть туда `next/headers`+`next/navigation` нежелательно. `require-admin.ts` импортит `ADMIN_COOKIE`/`verifySessionToken` из admin-auth. Защищённые страницы/actions импортят `@/lib/require-admin`.
+> 3. Нет clsx — заведён локальный `cn()` в `src/components/admin/ui/cn.ts`.
 
 ## Задача
 

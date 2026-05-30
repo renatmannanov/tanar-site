@@ -7,8 +7,10 @@
 
 Страница списка товаров каталога в админке со ссылками на редактирование и неактивной кнопкой создания.
 
-### Страница — `src/app/admin/catalog/page.tsx`
-- Серверный компонент. Первой строкой `await requireAdmin()` (guard).
+> **Путь:** раздел живёт в `src/app/admin/(protected)/catalog/` (группа `(protected)` из шага 3 — даёт сайдбар-shell; URL остаётся `/admin/catalog`). `requireAdmin` импортится из `@/lib/require-admin` (шаг 3).
+
+### Страница — `src/app/admin/(protected)/catalog/page.tsx`
+- Серверный компонент. Первой строкой `await requireAdmin()` (guard, из `@/lib/require-admin`).
 - `const products = await getAllProducts()` из `@/core/catalog`.
 - Таблица/список: колонки — name, category (через `CATEGORY_LABELS`), priceBase (price), статус, число вариантов (`variants.length`), суммарный остаток (Σ skus.stockQty). Каждая строка — ссылка на `/admin/catalog/<slug>/edit`.
 - Заголовок раздела + кнопка **«Создать товар»** — `disabled` (тултип «Доступно в Плане C»). В DOM присутствует.

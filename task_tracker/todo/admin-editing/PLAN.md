@@ -34,8 +34,8 @@
 | # | Файл | Статус |
 |---|------|--------|
 | 1 | step_1_auth_session.md — env, cookie-сессия (подпись/проверка), login/logout server actions + страница логина | [x] |
-| 2 | step_2_middleware_guard.md — middleware.ts: guard на /admin/*, redirect на /admin/login | [ ] |
-| 3 | step_3_admin_shell.md — витрина в (public)/, admin layout, реестр разделов, базовый UI (Radix dialog/label) | [ ] |
+| 2 | step_2_middleware_guard.md — middleware.ts: guard на /admin/*, redirect на /admin/login | [x] |
+| 3 | step_3_admin_shell.md — витрина в (public)/, admin layout, реестр разделов, базовый UI (Radix dialog/label) | [x] |
 | 4 | step_4_catalog_list.md — раздел /admin/catalog: список товаров (из getAllProducts), ссылки на edit, кнопка «Создать» (disabled) | [ ] |
 | 5 | step_5_product_form.md — ProductForm (mode create\|edit) + маппер productToInput; варианты/SKU; фото-слот и create/delete disabled | [ ] |
 | 6 | step_6_edit_save.md — /admin/catalog/[slug]/edit + updateProductAction (server action) → updateProduct, revalidate, redirect | [ ] |

@@ -7,7 +7,9 @@
 
 Связать форму с боевой записью: edit-страница загружает товар, server action сохраняет через `updateProduct`.
 
-### Server action — `src/app/admin/catalog/actions.ts` (`'use server'`)
+> **Пути (после шага 3):** action — `src/app/admin/(protected)/catalog/actions.ts`; edit-страница — `src/app/admin/(protected)/catalog/[slug]/edit/page.tsx`. `requireAdmin` из `@/lib/require-admin`. URL остаётся `/admin/catalog/[slug]/edit`.
+
+### Server action — `src/app/admin/(protected)/catalog/actions.ts` (`'use server'`)
 ```ts
 'use server';
 import { updateProduct, type ProductInput } from '@/core/catalog';

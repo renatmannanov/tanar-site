@@ -1,7 +1,7 @@
 # Шаг 2: Middleware — guard на /admin/*
 
 > Зависит от: шаг 1 (нужен verifySessionToken/ADMIN_COOKIE)
-> Статус: [ ] pending
+> Статус: [x] done
 
 ## Задача
 
