@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { eq, ne, and } from 'drizzle-orm';
+import { eq, ne, and, inArray } from 'drizzle-orm';
 import { db, schema } from '@/core/db';
 import type {
   ProductCategory,
@@ -240,17 +240,135 @@ async function insertVariantTree(
       })
       .returning({ id: schema.productVariants.id });
 
-    await tx.insert(schema.skus).values(
-      variant.skus.map((sku) => ({
-        variantId: row.id,
-        size: sku.size,
-        ruSize: sku.ruSize ?? null,
-        article: sku.article ?? null,
-        priceOverride: sku.priceOverride ?? null,
-        stockQty: sku.stockQty ?? 0,
-        reservedQty: 0,
-      })),
-    );
+    await insertSkus(tx, row.id, variant.skus);
+  }
+}
+
+type SkuInputParsed = z.infer<typeof skuInputSchema>;
+
+/** Inserts skus for a variant. `reservedQty` always starts at 0 for new rows. */
+async function insertSkus(
+  tx: Tx,
+  variantId: string,
+  skuInputs: SkuInputParsed[],
+): Promise<void> {
+  if (skuInputs.length === 0) return;
+  await tx.insert(schema.skus).values(
+    skuInputs.map((sku) => ({
+      variantId,
+      size: sku.size,
+      ruSize: sku.ruSize ?? null,
+      article: sku.article ?? null,
+      priceOverride: sku.priceOverride ?? null,
+      stockQty: sku.stockQty ?? 0,
+      reservedQty: 0,
+    })),
+  );
+}
+
+/**
+ * Upserts a variant's skus by `size` (unique skus(variant_id, size)) via an
+ * explicit SELECT → diff, NOT `onConflictDoUpdate`. Rationale: an upsert that
+ * spreads all columns into `set` would clobber `reservedQty`. We instead:
+ *   existing size → UPDATE (reservedQty NOT in the set, so it is preserved),
+ *   new size      → INSERT (reservedQty: 0),
+ *   vanished size → DELETE.
+ */
+async function upsertSkus(
+  tx: Tx,
+  variantId: string,
+  skuInputs: SkuInputParsed[],
+): Promise<void> {
+  const existing = await tx
+    .select({ id: schema.skus.id, size: schema.skus.size })
+    .from(schema.skus)
+    .where(eq(schema.skus.variantId, variantId));
+  const existingBySize = new Map(existing.map((s) => [s.size, s.id]));
+  const inputSizes = new Set(skuInputs.map((s) => s.size));
+
+  const toInsert: SkuInputParsed[] = [];
+  for (const sku of skuInputs) {
+    const id = existingBySize.get(sku.size);
+    if (id) {
+      // UPDATE — reservedQty deliberately omitted so it is preserved.
+      await tx
+        .update(schema.skus)
+        .set({
+          ruSize: sku.ruSize ?? null,
+          article: sku.article ?? null,
+          priceOverride: sku.priceOverride ?? null,
+          stockQty: sku.stockQty ?? 0,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.skus.id, id));
+    } else {
+      toInsert.push(sku);
+    }
+  }
+  await insertSkus(tx, variantId, toInsert);
+
+  const toDelete = existing.filter((s) => !inputSizes.has(s.size)).map((s) => s.id);
+  if (toDelete.length > 0) {
+    await tx.delete(schema.skus).where(inArray(schema.skus.id, toDelete));
+  }
+}
+
+/**
+ * Upserts a product's variant/sku tree by stable keys (variant by `colorId`,
+ * sku by `size`) via SELECT → diff. Preserves `product_variants.id` for
+ * unchanged colors — critical so that cascading `media_assets` (FK on variantId)
+ * are NOT destroyed on every form save — and preserves `skus.reservedQty`.
+ *   existing colorId → UPDATE variant + upsertSkus,
+ *   new colorId      → INSERT variant + insert skus,
+ *   vanished colorId → DELETE variant (skus + media_assets rows cascade).
+ */
+async function upsertVariantTree(
+  tx: Tx,
+  productId: string,
+  input: z.infer<typeof productInputSchema>,
+): Promise<void> {
+  const existing = await tx
+    .select({ id: schema.productVariants.id, colorId: schema.productVariants.colorId })
+    .from(schema.productVariants)
+    .where(eq(schema.productVariants.productId, productId));
+  const existingByColor = new Map(existing.map((v) => [v.colorId, v.id]));
+  const inputColors = new Set(input.variants.map((v) => v.colorId));
+
+  for (const variant of input.variants) {
+    const variantId = existingByColor.get(variant.colorId);
+    if (variantId) {
+      await tx
+        .update(schema.productVariants)
+        .set({
+          colorLabel: variant.colorLabel,
+          hex: variant.hex,
+          models: variant.models ?? [],
+          hasFlatShots: variant.hasFlatShots ?? false,
+        })
+        .where(eq(schema.productVariants.id, variantId));
+      await upsertSkus(tx, variantId, variant.skus);
+    } else {
+      const [row] = await tx
+        .insert(schema.productVariants)
+        .values({
+          productId,
+          colorId: variant.colorId,
+          colorLabel: variant.colorLabel,
+          hex: variant.hex,
+          models: variant.models ?? [],
+          hasFlatShots: variant.hasFlatShots ?? false,
+        })
+        .returning({ id: schema.productVariants.id });
+      await insertSkus(tx, row.id, variant.skus);
+    }
+  }
+
+  // Variants whose colorId vanished from the form → delete (skus + media cascade).
+  const toDelete = existing.filter((v) => !inputColors.has(v.colorId)).map((v) => v.id);
+  if (toDelete.length > 0) {
+    await tx
+      .delete(schema.productVariants)
+      .where(inArray(schema.productVariants.id, toDelete));
   }
 }
 
@@ -290,10 +408,10 @@ export async function createProduct(input: ProductInput): Promise<Product> {
 }
 
 /**
- * Replaces a product's fields and its entire variant/sku tree. The product row
- * (and its id) is preserved — only its variants/skus are deleted and re-inserted.
- * Whole-object replacement: the admin form (phase B) submits the full product,
- * so there is no diff/merge. Throws if the slug does not exist.
+ * Updates a product's fields and upserts its variant/sku tree by stable keys
+ * (variant by `colorId`, sku by `size`) — see `upsertVariantTree`. Unlike a
+ * delete+rebuild, this preserves `product_variants.id` (so cascading
+ * `media_assets` survive) and `skus.reservedQty`. Throws if the slug is unknown.
  */
 export async function updateProduct(slug: string, input: ProductInput): Promise<Product> {
   const parsed = productInputSchema.parse(input);
@@ -307,11 +425,7 @@ export async function updateProduct(slug: string, input: ProductInput): Promise<
       .update(schema.products)
       .set(productColumns(parsed))
       .where(eq(schema.products.id, existing.id));
-    // Drop the old variant/sku tree (skus cascade) and rebuild from input.
-    await tx
-      .delete(schema.productVariants)
-      .where(eq(schema.productVariants.productId, existing.id));
-    await insertVariantTree(tx, existing.id, parsed);
+    await upsertVariantTree(tx, existing.id, parsed);
   });
   const updated = await getProductBySlug(parsed.slug);
   if (!updated) {
