@@ -82,5 +82,15 @@ Playwright `setInputFiles` на `<input type="file">`. Готовить тест
 - Edit-page передаёт `deleteAction={deleteProductAction.bind(null, product.slug)}`.
 - e2e: ассерт «Удалить товар disabled» → `toBeEnabled()`. Ассерт про заглушку «Загрузка фото — Доступно в Плане C» УБРАН (шаг 5 заменит заглушку). 6 admin e2e зелёные.
 - **Orphan-файлы при delete (отложенный долг):** `deleteProduct` сносит строки media_assets каскадом, но файлы в `public/images/products/<slug>/` остаются. Тот же остаток, что в шаге 1. Чистка — на потом (хук `MediaStore.removeByProduct` в deleteProduct).
-- **Git-грабля (важно):** коммит через Bash-tool с `@'...'@` here-string на Windows ломается — лидирующий/закрывающий `@` попадает в subject. Первые 3 коммита пришлось reword'ить через неинтерактивный rebase. **Коммитить через PowerShell-tool** (там here-string корректен) ИЛИ `git commit -F файл`.
+- **Git-грабля (важно):** коммит через Bash-tool с `@'...'@` here-string на Windows ломается — лидирующий/закрывающий `@` попадает в subject. Первые 3 коммита пришлось reword'ить через неинтерактивный rebase. **Коммитить через PowerShell-tool** (там here-string корректен), причём `git add` и `git commit` — РАЗНЫМИ вызовами (в одной строке через `;` here-string привязывается не туда).
+
+### Шаг 5 (фото-блок) — done
+- `media-actions.ts` (`'use server'`): `uploadVariantImageAction(FormData)` (читает file/slug/productId/variantId, валидирует, `mediaStore.upload`, БЕЗ redirect, revalidate edit+catalog), `removeVariantImageAction(id, slug)`, `reorderVariantImagesAction(items, slug)`. Импорт `mediaStore` НАПРЯМУЮ из `@/core/media/store`.
+- `VariantPhotos.tsx` (`'use client'`): тип `MediaAsset` из `@/core/media/client`. Сетка превью (`<img object-cover>`, aspect-square), бейдж «Главное» на первом, ←/→ reorder (swap+renumber sortOrder 0..n), × удаление через ConfirmButton, мягкие лимиты (<3 подсветка amber, ≥8 «Добавить» disabled), слот «✨ Сгенерировать на белом фоне» disabled. `router.refresh()` после действий. accept `image/jpeg,image/png,image/webp`.
+- Если `variantId` пустой (create-режим ИЛИ новый цвет ещё не сохранён) → плашка «Сначала сохраните товар».
+- `ProductForm` получил пропы `productId?`, `variantMedia?: Record<colorId, {variantId, images}>`, `mediaActions?`. `VariantPhotos` рендерится в блоке каждого варианта (по colorId сопоставляется variantId+images).
+- Edit-page: `listProductImages(product.id)` → группировка по variantId → `variantMedia` keyed by colorId → пробрасывает + `mediaActions`.
+- **ESLint граница:** добавил `!@/core/media/store` в whitelist `no-restricted-imports` (eslint.config.mjs, block 1) — store это ОСОЗНАННЫЙ второй публичный server-only вход (index НЕ реэкспортит sharp/fs). По аналогии с `/client`.
+- `typecheck`+`lint`+`build` зелёные (sharp/fs НЕ в client-бандле — build бы упал). 6 admin e2e зелёные (edit-страница с фото-блоком рендерится).
+- **Орфография pending:** полный upload/remove/reorder UI-цикл покрывается e2e в шаге 7.
 ---

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { CATEGORIES, type ProductInput } from '@/core/catalog/client';
+import type { MediaAsset } from '@/core/media/client';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Textarea } from './ui/Textarea';
@@ -9,6 +10,10 @@ import { AutoTextarea } from './ui/AutoTextarea';
 import { Select } from './ui/Select';
 import { Label } from './ui/Label';
 import { ConfirmButton } from './ui/ConfirmButton';
+import { VariantPhotos, type MediaActions } from './VariantPhotos';
+
+/** Per-variant media bundle, keyed by colorId (stable across read/write). */
+export type VariantMedia = { variantId: string; images: MediaAsset[] };
 
 const STATUSES: { value: string; label: string }[] = [
   { value: 'draft', label: 'Черновик' },
@@ -35,9 +40,23 @@ type Props = {
   action: (input: ProductInput) => Promise<{ error?: string }>;
   /** Bound delete action (edit only). When present, the "Delete" button shows. */
   deleteAction?: () => Promise<{ error?: string }>;
+  /** DB product id (edit only) — needed to attach uploaded media. */
+  productId?: string;
+  /** Per-variant media, keyed by colorId (edit only). */
+  variantMedia?: Record<string, VariantMedia>;
+  /** Bound media actions (edit only). */
+  mediaActions?: MediaActions;
 };
 
-export default function ProductForm({ mode, initial, action, deleteAction }: Props) {
+export default function ProductForm({
+  mode,
+  initial,
+  action,
+  deleteAction,
+  productId,
+  variantMedia,
+  mediaActions,
+}: Props) {
   const [form, setForm] = useState<ProductInput>(initial ?? EMPTY_INPUT);
   const [error, setError] = useState<string | undefined>();
   const [pending, startTransition] = useTransition();
@@ -327,6 +346,21 @@ export default function ProductForm({ mode, initial, action, deleteAction }: Pro
             <Button type="button" variant="secondary" onClick={() => addSku(vi)} className="mt-2">
               + Размер
             </Button>
+
+            {/* Photos for this color. Edit mode only (needs a persisted variantId). */}
+            <div className="mt-4 border-t border-gray-100 pt-4">
+              <h3 className="mb-2 text-xs font-semibold text-gray-700">Фото цвета</h3>
+              <VariantPhotos
+                slug={mode === 'edit' ? form.slug : undefined}
+                productId={mode === 'edit' ? productId : undefined}
+                variant={{
+                  variantId: variantMedia?.[v.colorId]?.variantId ?? '',
+                  colorLabel: v.colorLabel,
+                }}
+                images={variantMedia?.[v.colorId]?.images ?? []}
+                actions={mode === 'edit' ? mediaActions : undefined}
+              />
+            </div>
           </div>
         ))}
         <Button type="button" variant="secondary" onClick={addVariant} className="self-start">

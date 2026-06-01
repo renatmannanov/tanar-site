@@ -1,9 +1,15 @@
 import { notFound } from 'next/navigation';
 import { getProductBySlug } from '@/core/catalog';
+import { listProductImages } from '@/core/media';
 import { requireAdmin } from '@/lib/require-admin';
-import ProductForm from '@/components/admin/ProductForm';
+import ProductForm, { type VariantMedia } from '@/components/admin/ProductForm';
 import { productToInput } from '../../product-mapper';
 import { updateProductAction, deleteProductAction } from '../../actions';
+import {
+  uploadVariantImageAction,
+  removeVariantImageAction,
+  reorderVariantImagesAction,
+} from '../../media-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +30,30 @@ export default async function EditProductPage({
   const boundAction = updateProductAction.bind(null, product.slug);
   const boundDelete = deleteProductAction.bind(null, product.slug);
 
+  // Load this product's images (one query), group them per variant keyed by
+  // colorId — the stable key the form's variants carry.
+  const images = await listProductImages(product.id);
+  const imagesByVariantId = new Map<string, typeof images>();
+  for (const img of images) {
+    if (!img.variantId) continue;
+    const list = imagesByVariantId.get(img.variantId) ?? [];
+    list.push(img);
+    imagesByVariantId.set(img.variantId, list);
+  }
+  const variantMedia: Record<string, VariantMedia> = {};
+  for (const v of product.variants) {
+    variantMedia[v.id] = {
+      variantId: v.variantId,
+      images: imagesByVariantId.get(v.variantId) ?? [],
+    };
+  }
+
+  const mediaActions = {
+    upload: uploadVariantImageAction,
+    remove: removeVariantImageAction,
+    reorder: reorderVariantImagesAction,
+  };
+
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="mb-6 text-xl font-semibold">Редактирование: {product.name}</h1>
@@ -32,6 +62,9 @@ export default async function EditProductPage({
         initial={initial}
         action={boundAction}
         deleteAction={boundDelete}
+        productId={product.id}
+        variantMedia={variantMedia}
+        mediaActions={mediaActions}
       />
     </div>
   );

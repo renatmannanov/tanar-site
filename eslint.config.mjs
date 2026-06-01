@@ -34,7 +34,10 @@ const eslintConfig = [
           {
             // '!@/core/*/client' whitelists the client-safe entry (e.g.
             // @/core/catalog/client) — a second public entry alongside index.ts.
-            group: ["@/core/*/*", "!@/core/*/client"],
+            // '!@/core/media/store' whitelists the SERVER-ONLY media writer:
+            // index.ts deliberately does NOT re-export store.ts (sharp/node:fs),
+            // so server actions import it as a second public entry directly.
+            group: ["@/core/*/*", "!@/core/*/client", "!@/core/media/store"],
             message: "Импортируй только из публичного API модуля: '@/core/<module>' (или '@/core/<module>/client' для client-компонентов). Внутри своего модуля используй относительные пути (./).",
           },
           {
