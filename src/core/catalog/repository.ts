@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { eq, ne, and, inArray } from 'drizzle-orm';
+import { eq, ne, and, or, like, inArray } from 'drizzle-orm';
 import { db, schema } from '@/core/db';
 import type {
   ProductCategory,
@@ -144,6 +144,31 @@ export async function getRelatedProducts(current: Product, limit = 3): Promise<P
     ),
   );
   return groupRows(rows as JoinedRow[]).slice(0, limit);
+}
+
+/**
+ * Returns a slug unique among existing products: `base` if free, otherwise the
+ * lowest free `base-N` (starting at `base-2`). Called before createProduct so
+ * the admin never has to think about slug collisions. One SELECT (`base%`) then
+ * filtered in JS to exact `base` / `base-<digits>` — the catalog is small (tens).
+ * The UNIQUE constraint on slug remains the last line of defence against races.
+ */
+export async function ensureUniqueSlug(base: string): Promise<string> {
+  const rows = await db
+    .select({ slug: schema.products.slug })
+    .from(schema.products)
+    .where(or(eq(schema.products.slug, base), like(schema.products.slug, `${base}-%`)));
+  const taken = new Set(rows.map((r) => r.slug));
+  if (!taken.has(base)) return base;
+
+  // Find the highest numeric suffix among `base-N`; next free is max+1 (min 2).
+  const suffixRe = new RegExp(`^${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-(\\d+)$`);
+  let maxN = 1;
+  for (const slug of taken) {
+    const m = suffixRe.exec(slug);
+    if (m) maxN = Math.max(maxN, Number(m[1]));
+  }
+  return `${base}-${maxN + 1}`;
 }
 
 // ---------------------------------------------------------------------------

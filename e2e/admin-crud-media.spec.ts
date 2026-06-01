@@ -40,7 +40,8 @@ test.describe.serial('product CRUD + variant photos', () => {
     await login(page);
     await page.goto('/admin/catalog/new');
 
-    await page.locator('#slug').fill(TEST_SLUG);
+    // #slug is read-only — auto-generated from #name. slugify('E2E Test Product')
+    // === 'e2e-test-product' === TEST_SLUG, so the URL assertion below still holds.
     await page.locator('#name').fill('E2E Test Product');
     await page.locator('#priceBase').fill('12345');
     await page.locator('#description').fill('E2E description.');

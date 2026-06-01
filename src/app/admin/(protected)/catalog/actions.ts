@@ -4,6 +4,7 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
+  ensureUniqueSlug,
   type ProductInput,
 } from '@/core/catalog';
 import { revalidatePath } from 'next/cache';
@@ -15,17 +16,26 @@ export async function createProductAction(
 ): Promise<{ error?: string }> {
   await requireAdmin();
 
+  // Resolve slug collisions automatically (kurtka → kurtka-2 → ...). The admin
+  // never edits the slug; it is auto-generated from the name and uniquified here.
+  let finalSlug = input.slug;
   try {
-    await createProduct(input); // zod-validates inside (incl. slug pattern)
+    finalSlug = await ensureUniqueSlug(input.slug);
+    await createProduct({ ...input, slug: finalSlug }); // zod-validates inside
   } catch (e) {
+    // 23505 = unique_violation: a race between ensureUniqueSlug and insert (two
+    // tabs). Rare for a single admin, but the UNIQUE constraint is the last word.
+    if (typeof e === 'object' && e !== null && 'code' in e && e.code === '23505') {
+      return { error: 'Не удалось подобрать уникальный slug, попробуйте другое название.' };
+    }
     return { error: e instanceof Error ? e.message : 'Ошибка создания' };
   }
 
   // OUTSIDE try/catch — redirect() throws a control-flow exception a catch would
-  // swallow. Land on the new product's edit page (where photos are uploaded).
+  // swallow. Land on the new product's edit page, at its ACTUAL (uniquified) slug.
   revalidatePath('/admin/catalog');
   revalidatePath('/catalog');
-  redirect(`/admin/catalog/${input.slug}/edit`);
+  redirect(`/admin/catalog/${finalSlug}/edit`);
 }
 
 export async function deleteProductAction(

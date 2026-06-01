@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { CATEGORIES, type ProductInput } from '@/core/catalog/client';
+import { slugify } from '@/lib/slugify';
 import type { MediaAsset } from '@/core/media/client';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -143,27 +144,36 @@ export default function ProductForm({
       <section className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1">
           <Label htmlFor="slug">
-            {mode === 'edit' ? 'Slug (URL, не редактируется)' : 'Slug (URL)'}
+            {mode === 'edit'
+              ? 'Slug (URL, не редактируется)'
+              : 'Slug (генерируется из названия)'}
           </Label>
           <Input
             id="slug"
             value={form.slug}
-            readOnly={mode === 'edit'}
-            aria-readonly={mode === 'edit'}
+            readOnly
+            aria-readonly
             placeholder={mode === 'create' ? 'jacket-sv7-goretex' : undefined}
-            onChange={
-              mode === 'create' ? (e) => patch({ slug: e.target.value }) : undefined
-            }
           />
           {mode === 'create' ? (
             <span className="text-xs text-gray-400">
-              Только строчные латинские буквы, цифры и дефис.
+              Формируется автоматически из названия. Если занят — добавится суффикс.
             </span>
           ) : null}
         </div>
         <div className="flex flex-col gap-1">
           <Label htmlFor="name">Название</Label>
-          <Input id="name" value={form.name} onChange={(e) => patch({ name: e.target.value })} />
+          <Input
+            id="name"
+            value={form.name}
+            onChange={(e) =>
+              patch(
+                mode === 'create'
+                  ? { name: e.target.value, slug: slugify(e.target.value) }
+                  : { name: e.target.value },
+              )
+            }
+          />
         </div>
         <div className="flex flex-col gap-1">
           <Label htmlFor="category">Категория</Label>
@@ -376,7 +386,10 @@ export default function ProductForm({
       ) : null}
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={pending}>
+        <Button
+          type="submit"
+          disabled={pending || (mode === 'create' && form.slug.trim() === '')}
+        >
           {pending ? 'Сохранение…' : mode === 'edit' ? 'Сохранить' : 'Создать'}
         </Button>
         <Link
