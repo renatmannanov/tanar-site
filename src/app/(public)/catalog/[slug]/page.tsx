@@ -2,8 +2,8 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import {
-  getProductBySlug,
-  getRelatedProducts,
+  getStorefrontProductBySlug,
+  getStorefrontRelatedProducts,
   CATEGORY_LABELS,
 } from '@/core/catalog';
 import { listProductImages } from '@/core/media';
@@ -18,7 +18,7 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const product = await getStorefrontProductBySlug(slug);
   if (!product) return { title: 'Товар не найден — Tanar' };
   return {
     title: `${product.name} — Tanar`,
@@ -28,9 +28,9 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const product = await getStorefrontProductBySlug(slug);
   if (!product) notFound();
-  const related = await getRelatedProducts(product);
+  const related = await getStorefrontRelatedProducts(product);
   const images = await listProductImages(product.id);
   const relatedImages = await primaryImagesFor(related);
 

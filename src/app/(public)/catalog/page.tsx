@@ -1,4 +1,4 @@
-import { CATEGORY_LABELS, CATEGORY_ORDER, getProductsByCategory, isValidCategory, type ProductCategory } from '@/core/catalog';
+import { CATEGORY_LABELS, CATEGORY_ORDER, getStorefrontProductsByCategory, isValidCategory, type ProductCategory } from '@/core/catalog';
 import ProductCard from '@/components/ProductCard';
 import { primaryImagesFor } from '@/lib/product-images';
 import Link from 'next/link';
@@ -19,7 +19,7 @@ export default async function CatalogPage({ searchParams }: Props) {
   const params = await searchParams;
   const raw = params.category;
   const active: ProductCategory | null = isValidCategory(raw) ? raw : null;
-  const filtered = await getProductsByCategory(active);
+  const filtered = await getStorefrontProductsByCategory(active);
   // One query for all cards' primary images (no N+1).
   const primaryImages = await primaryImagesFor(filtered);
 

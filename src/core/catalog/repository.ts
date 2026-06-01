@@ -172,6 +172,63 @@ export async function ensureUniqueSlug(base: string): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
+// Storefront read functions — same as the plain getters but filtered to the
+// statuses a customer may see. The plain getters (getAllProducts / *BySlug /
+// *ByCategory / getRelated) are LEFT UNFILTERED on purpose: the admin calls them
+// and must see every status (draft/archived included). Storefront pages call the
+// getStorefront* variants below; hidden products resolve to undefined → 404.
+// ---------------------------------------------------------------------------
+
+// `as const satisfies` keeps the array a readonly tuple of ProductStatus so
+// Drizzle's inArray() type-checks (a bare string[] would widen and error).
+const STOREFRONT_VISIBLE = [
+  'published',
+  'coming_soon',
+] as const satisfies readonly ProductStatus[];
+
+const visibleStatus = () => inArray(schema.products.status, STOREFRONT_VISIBLE);
+
+export async function getStorefrontProducts(): Promise<Product[]> {
+  const rows = await baseSelect().where(visibleStatus());
+  return groupRows(rows as JoinedRow[]);
+}
+
+export async function getStorefrontProductsByCategory(
+  category: ProductCategory | null,
+): Promise<Product[]> {
+  // null = "all categories" → still storefront-filtered (NOT getAllProducts,
+  // which would leak hidden products into the "all" view).
+  if (!category) return getStorefrontProducts();
+  const rows = await baseSelect().where(
+    and(eq(schema.products.category, category), visibleStatus()),
+  );
+  return groupRows(rows as JoinedRow[]);
+}
+
+export async function getStorefrontProductBySlug(
+  slug: string,
+): Promise<Product | undefined> {
+  const rows = await baseSelect().where(
+    and(eq(schema.products.slug, slug), visibleStatus()),
+  );
+  return groupRows(rows as JoinedRow[])[0];
+}
+
+export async function getStorefrontRelatedProducts(
+  current: Product,
+  limit = 3,
+): Promise<Product[]> {
+  const rows = await baseSelect().where(
+    and(
+      eq(schema.products.category, current.category),
+      ne(schema.products.slug, current.slug),
+      visibleStatus(),
+    ),
+  );
+  return groupRows(rows as JoinedRow[]).slice(0, limit);
+}
+
+// ---------------------------------------------------------------------------
 // Write contract — the only sanctioned path for mutating the catalog.
 // The import script (real-catalog-import) is the first consumer; admin CRUD
 // (phases B/C) reuses these. Input is the domain WRITE shape: a whole product

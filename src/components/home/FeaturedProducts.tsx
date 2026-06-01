@@ -1,10 +1,10 @@
 import Placeholder from '@/components/Placeholder';
 import ProductCard from '@/components/ProductCard';
-import { getAllProducts } from '@/core/catalog';
+import { getStorefrontProducts } from '@/core/catalog';
 import { primaryImagesFor } from '@/lib/product-images';
 
 export default async function FeaturedProducts() {
-  const all = await getAllProducts();
+  const all = await getStorefrontProducts();
   const featured = all.slice(0, 4);
   const primaryImages = await primaryImagesFor(featured);
 
