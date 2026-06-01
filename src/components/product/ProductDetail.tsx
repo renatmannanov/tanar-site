@@ -60,6 +60,8 @@ export default function ProductDetail({
   }
 
   const descriptionParagraphs = product.description.split('\n\n');
+  // Sizes of the active color (no stock/availability yet — Phase 2/3).
+  const sizes = activeVariant?.skus ?? [];
 
   return (
     <div className="grid grid-cols-1 gap-12 md:grid-cols-2">
@@ -109,6 +111,12 @@ export default function ProductDetail({
 
       {/* Правая колонка: инфо */}
       <div>
+        {product.label?.badge && (
+          <span className="mb-3 inline-block rounded-full bg-stone-900 px-3 py-1 text-xs font-medium uppercase tracking-wider text-stone-50">
+            {product.label.badge}
+          </span>
+        )}
+
         <h1 className="font-display text-4xl font-bold tracking-tight text-stone-900">
           {product.name}
         </h1>
@@ -140,6 +148,22 @@ export default function ProductDetail({
           </div>
         )}
 
+        {sizes.length > 0 && (
+          <div className="mt-6">
+            <p className="text-sm text-stone-700">Размеры</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {sizes.map((sku) => (
+                <span
+                  key={sku.id ?? sku.size}
+                  className="rounded-md border border-stone-300 px-3 py-1 text-sm text-stone-700"
+                >
+                  {sku.ruSize ? `${sku.size} / ${sku.ruSize}` : sku.size}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mt-6 space-y-4 text-stone-600 leading-relaxed">
           {descriptionParagraphs.map((paragraph, i) => (
             <p key={i}>{paragraph}</p>
@@ -155,6 +179,15 @@ export default function ProductDetail({
               </div>
             ))}
           </dl>
+        )}
+
+        {product.care && (
+          <div className="mt-8">
+            <h2 className="text-sm font-medium text-stone-500">Уход</h2>
+            <p className="mt-2 whitespace-pre-line text-sm text-stone-700 leading-relaxed">
+              {product.care}
+            </p>
+          </div>
         )}
 
         <div className="mt-8">

@@ -38,10 +38,16 @@ export default function ProductCard({
         ) : (
           <Placeholder label={product.name} gradient={getProductGradient(product)} aspect="portrait" />
         )}
-        {isComingSoon && (
+        {isComingSoon ? (
           <span className="absolute right-3 top-3 rounded-full bg-stone-900/80 px-3 py-1 text-xs font-medium uppercase tracking-wider text-stone-100">
             Скоро
           </span>
+        ) : (
+          product.label?.badge && (
+            <span className="absolute left-3 top-3 rounded-full bg-stone-900/80 px-3 py-1 text-xs font-medium uppercase tracking-wider text-stone-100">
+              {product.label.badge}
+            </span>
+          )
         )}
       </div>
 
