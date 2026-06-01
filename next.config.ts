@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
     // crashes Turbopack dev workers on Windows (jest-worker child exit).
     unoptimized: true,
   },
+  experimental: {
+    serverActions: {
+      // Product photo uploads travel through a Server Action as FormData. The
+      // default 1 MB cap rejects normal phone/camera JPEGs — raise it to match
+      // MediaStore's MAX_BYTES (10 MB). The store still validates size itself.
+      bodySizeLimit: '10mb',
+    },
+  },
 };
 
 export default nextConfig;

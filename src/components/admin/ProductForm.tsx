@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { CATEGORIES, type ProductInput } from '@/core/catalog/client';
 import type { MediaAsset } from '@/core/media/client';
 import { Button } from './ui/Button';
@@ -368,11 +369,6 @@ export default function ProductForm({
         </Button>
       </section>
 
-      {/* Photo slot — Plan C */}
-      <section className="rounded-md border border-dashed border-gray-300 p-6 text-center text-sm text-gray-400">
-        Загрузка фото — Доступно в Плане C
-      </section>
-
       {error ? (
         <p className="text-sm text-red-600" role="alert">
           {error}
@@ -383,11 +379,17 @@ export default function ProductForm({
         <Button type="submit" disabled={pending}>
           {pending ? 'Сохранение…' : mode === 'edit' ? 'Сохранить' : 'Создать'}
         </Button>
+        <Link
+          href="/admin/catalog"
+          className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50"
+        >
+          Отмена
+        </Link>
         {deleteAction ? (
           <ConfirmButton
             variant="secondary"
             disabled={pending}
-            className="text-red-600"
+            className="ml-auto text-red-600"
             title="Удалить товар?"
             description="Товар, все цвета, размеры и фото будут удалены безвозвратно."
             confirmLabel="Удалить товар"

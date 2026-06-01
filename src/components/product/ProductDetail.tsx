@@ -23,7 +23,14 @@ export default function ProductDetail({
   const pathname = usePathname();
 
   const variants = product.variants;
-  const defaultColor = variants[0]?.id ?? '';
+  // Default to the first color that actually has photos (so a buyer lands on a
+  // real gallery, not a gradient), falling back to the first color. An explicit
+  // ?color= in the URL always wins over this default.
+  const variantIdsWithPhotos = new Set(images.map((img) => img.variantId));
+  const firstColorWithPhotos = variants.find((v) =>
+    variantIdsWithPhotos.has(v.variantId),
+  )?.id;
+  const defaultColor = firstColorWithPhotos ?? variants[0]?.id ?? '';
   const colorParam = searchParams.get('color');
   const activeColor = variants.find((v) => v.id === colorParam)?.id ?? defaultColor;
   const activeVariant = variants.find((v) => v.id === activeColor);

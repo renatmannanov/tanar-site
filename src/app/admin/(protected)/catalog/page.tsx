@@ -13,7 +13,11 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default async function CatalogListPage() {
   await requireAdmin();
-  const products = await getAllProducts();
+  // Sort by name so a freshly-edited product keeps its place (the DB order is
+  // not stable across updates).
+  const products = (await getAllProducts()).sort((a, b) =>
+    a.name.localeCompare(b.name, 'ru'),
+  );
 
   return (
     <div className="mx-auto max-w-5xl">
