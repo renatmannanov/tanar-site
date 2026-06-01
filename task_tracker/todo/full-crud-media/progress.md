@@ -102,4 +102,11 @@ Playwright `setInputFiles` на `<input type="file">`. Готовить тест
 - `CategoriesGrid` НЕ тронут (категорийные плашки, не потребитель медиа).
 - `images.ts` помечен `@deprecated` (конвенция имён, потребителей на витрине нет; файл оставлен — demo-папки + тип GalleryShot).
 - `typecheck`+`lint`+`build` зелёные. Все 45 витринных e2e + 6 admin зелёные (товары без фото → градиент, витрина не сломана).
+
+### Шаг 7 (e2e CRUD+media) — done
+- Фикстура `e2e/fixtures/sample.png` (120×160, сгенерирована sharp).
+- `e2e/admin-crud-media.spec.ts` (`describe.serial`, 6 тестов): create→edit-redirect, upload (превью + «Главное»), 2-е фото + reorder (←), remove (ConfirmButton), витрина показывает `<img src*=/images/products/...>`, delete→редирект→`/catalog/<slug>` 404.
+- `afterAll`: `db:seed` + `rmSync(public/images/products/e2e-test-product, recursive)`. Проверено: после прогона папка удалена, БД=12 товаров, media_assets=0.
+- Селекторы-грабли: variant-инпуты по позиции (`input:not([type])`, нет htmlFor у Label); confirm-кнопка delete — внутри `getByRole('dialog')` (триггер и confirmLabel совпадают по имени «Удалить товар»).
+- **Всего e2e: 51 зелёных** (39 витринных + 6 admin + 6 crud-media). `workers:1, fullyParallel:false` — гонок db:seed между spec нет.
 ---
