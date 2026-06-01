@@ -51,16 +51,15 @@ test('correct password logs in and shows the catalog list', async ({ page }) => 
   );
 });
 
-test('edit form is prefilled; delete and photo slot are disabled', async ({ page }) => {
+test('edit form is prefilled; delete button is active', async ({ page }) => {
   await login(page);
   await page.goto(`/admin/catalog/${TEST_SLUG}/edit`);
   // Prefilled.
   await expect(page.locator('#slug')).toHaveValue(TEST_SLUG);
   await expect(page.locator('#name')).not.toHaveValue('');
   await expect(page.locator('#priceBase')).toHaveValue('80000');
-  // Disabled bits (Plan C).
-  await expect(page.getByRole('button', { name: 'Удалить товар' })).toBeDisabled();
-  await expect(page.getByText('Загрузка фото — Доступно в Плане C')).toBeVisible();
+  // Delete button active on edit (Plan C).
+  await expect(page.getByRole('button', { name: 'Удалить товар' })).toBeEnabled();
 });
 
 test('edit -> save persists, then reverts (idempotent)', async ({ page }) => {

@@ -1,6 +1,11 @@
 'use server';
 
-import { createProduct, updateProduct, type ProductInput } from '@/core/catalog';
+import {
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  type ProductInput,
+} from '@/core/catalog';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/require-admin';
@@ -21,6 +26,26 @@ export async function createProductAction(
   revalidatePath('/admin/catalog');
   revalidatePath('/catalog');
   redirect(`/admin/catalog/${input.slug}/edit`);
+}
+
+export async function deleteProductAction(
+  slug: string,
+): Promise<{ error?: string }> {
+  await requireAdmin();
+
+  try {
+    // Cascade removes variants/skus/media_assets rows. NOTE: image files in
+    // public/images/products/<slug>/ are NOT removed (known orphan-files debt,
+    // see progress.md) — disk is cheap, a cleanup hook can be added later.
+    await deleteProduct(slug);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Ошибка удаления' };
+  }
+
+  // OUTSIDE try/catch — redirect throws a control-flow exception.
+  revalidatePath('/admin/catalog');
+  revalidatePath('/catalog');
+  redirect('/admin/catalog');
 }
 
 export async function updateProductAction(

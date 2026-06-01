@@ -1,7 +1,7 @@
 # Шаг 4: Admin delete — deleteProductAction + кнопка
 
 > Зависит от: **шаг 3** (тот же `actions.ts` + та же `ProductForm.tsx`) — ОБЯЗАТЕЛЬНО после шага 3, НЕ параллельно. ConfirmButton готов из Плана B.
-> Статус: [ ] pending
+> Статус: [x] done
 
 ## Задача
 

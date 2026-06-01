@@ -75,4 +75,12 @@ Playwright `setInputFiles` на `<input type="file">`. Готовить тест
 - slug-паттерн `^[a-z0-9-]+$` добавлен в `productInputSchema` (repository.ts).
 - **Баг Плана B пофикшен:** в `ProductForm` поле `#slug` на create было `readOnly={false}` НО без `onChange` → ввести slug было нельзя. Теперь на create редактируемо с `onChange` + подсказка по charset. На edit — readOnly как было.
 - e2e admin.spec: ассерт «Создать товар disabled» → `toHaveAttribute('href','/admin/catalog/new')`. Все 6 admin e2e зелёные.
+
+### Шаг 4 (admin delete) — done
+- `deleteProductAction(slug)` в `actions.ts`: `requireAdmin` → `deleteProduct` (try/catch) → ВНЕ catch revalidate + `redirect('/admin/catalog')`. Каскад сносит variants/skus/media_assets-строки.
+- `ProductForm` получил опц. проп `deleteAction?: () => Promise<{error?}>`. Кнопка «Удалить товар» рендерится ТОЛЬКО при наличии пропа (на create не передаётся → кнопки нет) через `ConfirmButton` (title «Удалить товар?»). `onDelete` зовёт action в `startTransition`, при `{error}` показывает ошибку.
+- Edit-page передаёт `deleteAction={deleteProductAction.bind(null, product.slug)}`.
+- e2e: ассерт «Удалить товар disabled» → `toBeEnabled()`. Ассерт про заглушку «Загрузка фото — Доступно в Плане C» УБРАН (шаг 5 заменит заглушку). 6 admin e2e зелёные.
+- **Orphan-файлы при delete (отложенный долг):** `deleteProduct` сносит строки media_assets каскадом, но файлы в `public/images/products/<slug>/` остаются. Тот же остаток, что в шаге 1. Чистка — на потом (хук `MediaStore.removeByProduct` в deleteProduct).
+- **Git-грабля (важно):** коммит через Bash-tool с `@'...'@` here-string на Windows ломается — лидирующий/закрывающий `@` попадает в subject. Первые 3 коммита пришлось reword'ить через неинтерактивный rebase. **Коммитить через PowerShell-tool** (там here-string корректен) ИЛИ `git commit -F файл`.
 ---

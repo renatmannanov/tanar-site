@@ -33,12 +33,23 @@ type Props = {
   mode: 'create' | 'edit';
   initial?: ProductInput;
   action: (input: ProductInput) => Promise<{ error?: string }>;
+  /** Bound delete action (edit only). When present, the "Delete" button shows. */
+  deleteAction?: () => Promise<{ error?: string }>;
 };
 
-export default function ProductForm({ mode, initial, action }: Props) {
+export default function ProductForm({ mode, initial, action, deleteAction }: Props) {
   const [form, setForm] = useState<ProductInput>(initial ?? EMPTY_INPUT);
   const [error, setError] = useState<string | undefined>();
   const [pending, startTransition] = useTransition();
+
+  function onDelete() {
+    setError(undefined);
+    startTransition(async () => {
+      // On success the action redirects (throws) — we only get here on error.
+      const result = await deleteAction!();
+      if (result?.error) setError(result.error);
+    });
+  }
 
   function patch(p: Partial<ProductInput>) {
     setForm((f) => ({ ...f, ...p }));
@@ -338,9 +349,19 @@ export default function ProductForm({ mode, initial, action }: Props) {
         <Button type="submit" disabled={pending}>
           {pending ? 'Сохранение…' : mode === 'edit' ? 'Сохранить' : 'Создать'}
         </Button>
-        <Button type="button" variant="secondary" disabled title="Доступно в Плане C" className="text-red-600">
-          Удалить товар
-        </Button>
+        {deleteAction ? (
+          <ConfirmButton
+            variant="secondary"
+            disabled={pending}
+            className="text-red-600"
+            title="Удалить товар?"
+            description="Товар, все цвета, размеры и фото будут удалены безвозвратно."
+            confirmLabel="Удалить товар"
+            onConfirm={onDelete}
+          >
+            Удалить товар
+          </ConfirmButton>
+        ) : null}
       </div>
     </form>
   );

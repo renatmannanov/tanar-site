@@ -3,7 +3,7 @@ import { getProductBySlug } from '@/core/catalog';
 import { requireAdmin } from '@/lib/require-admin';
 import ProductForm from '@/components/admin/ProductForm';
 import { productToInput } from '../../product-mapper';
-import { updateProductAction } from '../../actions';
+import { updateProductAction, deleteProductAction } from '../../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,11 +22,17 @@ export default async function EditProductPage({
   // .bind (NOT an inline arrow): an inline closure would be a fresh client
   // function and would not serialize as a server action reference.
   const boundAction = updateProductAction.bind(null, product.slug);
+  const boundDelete = deleteProductAction.bind(null, product.slug);
 
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="mb-6 text-xl font-semibold">Редактирование: {product.name}</h1>
-      <ProductForm mode="edit" initial={initial} action={boundAction} />
+      <ProductForm
+        mode="edit"
+        initial={initial}
+        action={boundAction}
+        deleteAction={boundDelete}
+      />
     </div>
   );
 }
