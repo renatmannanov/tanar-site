@@ -1,5 +1,6 @@
 import { CATEGORY_LABELS, CATEGORY_ORDER, getProductsByCategory, isValidCategory, type ProductCategory } from '@/core/catalog';
 import ProductCard from '@/components/ProductCard';
+import { primaryImagesFor } from '@/lib/product-images';
 import Link from 'next/link';
 
 // SSG off: catalog reads live data from the DB (Variant A). Rendered per request.
@@ -19,6 +20,8 @@ export default async function CatalogPage({ searchParams }: Props) {
   const raw = params.category;
   const active: ProductCategory | null = isValidCategory(raw) ? raw : null;
   const filtered = await getProductsByCategory(active);
+  // One query for all cards' primary images (no N+1).
+  const primaryImages = await primaryImagesFor(filtered);
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -65,7 +68,9 @@ export default async function CatalogPage({ searchParams }: Props) {
         className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
         {filtered.length > 0 ? (
-          filtered.map((p) => <ProductCard key={p.slug} product={p} />)
+          filtered.map((p) => (
+            <ProductCard key={p.slug} product={p} image={primaryImages.get(p.id)} />
+          ))
         ) : (
           <p className="col-span-full text-center text-stone-400">
             Скоро здесь появятся товары

@@ -93,4 +93,13 @@ Playwright `setInputFiles` на `<input type="file">`. Готовить тест
 - **ESLint граница:** добавил `!@/core/media/store` в whitelist `no-restricted-imports` (eslint.config.mjs, block 1) — store это ОСОЗНАННЫЙ второй публичный server-only вход (index НЕ реэкспортит sharp/fs). По аналогии с `/client`.
 - `typecheck`+`lint`+`build` зелёные (sharp/fs НЕ в client-бандле — build бы упал). 6 admin e2e зелёные (edit-страница с фото-блоком рендерится).
 - **Орфография pending:** полный upload/remove/reorder UI-цикл покрывается e2e в шаге 7.
+
+### Шаг 6 (витрина из media_assets) — done
+- `@/core/media/client` дополнен pure-хелперами `urlForWidth`/`srcSetFromUrl` (строят srcset 400/800/1600w из 1600-url подменой). Безопасны для client.
+- `ProductCard` (server): новый проп `image?: MediaAsset` (главное фото). Есть → `<img srcSet object-cover loading=lazy>`; нет/coming_soon → градиент. Старая логика `getProductCardImage`/`hasModels`/`models[0]` убрана.
+- `ProductDetail` (client): новый проп `images?: MediaAsset[]` (все фото товара). Фильтр по `activeVariant.variantId` → галерея из media (главное + thumbnails, srcset); нет фото у цвета → градиент. `getProductGalleryShots`/`next/image` убраны, перешёл на `<img>`.
+- **Анти-N+1:** `src/lib/product-images.ts` → `primaryImagesFor(products)` грузит media для ВСЕХ товаров ОДНИМ `listProductImagesForProducts(ids)`, индексирует productId→главное фото (первое фото первого варианта с фото). Используют: `catalog/page.tsx`, `[slug]/page.tsx` (related), `FeaturedProducts.tsx`. Деталь товара грузит `listProductImages(product.id)` (1 товар — ок).
+- `CategoriesGrid` НЕ тронут (категорийные плашки, не потребитель медиа).
+- `images.ts` помечен `@deprecated` (конвенция имён, потребителей на витрине нет; файл оставлен — demo-папки + тип GalleryShot).
+- `typecheck`+`lint`+`build` зелёные. Все 45 витринных e2e + 6 admin зелёные (товары без фото → градиент, витрина не сломана).
 ---

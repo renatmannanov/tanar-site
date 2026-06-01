@@ -6,6 +6,8 @@ import {
   getRelatedProducts,
   CATEGORY_LABELS,
 } from '@/core/catalog';
+import { listProductImages } from '@/core/media';
+import { primaryImagesFor } from '@/lib/product-images';
 import ProductCard from '@/components/ProductCard';
 import ProductDetail from '@/components/product/ProductDetail';
 
@@ -29,6 +31,8 @@ export default async function ProductPage({ params }: Props) {
   const product = await getProductBySlug(slug);
   if (!product) notFound();
   const related = await getRelatedProducts(product);
+  const images = await listProductImages(product.id);
+  const relatedImages = await primaryImagesFor(related);
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -55,7 +59,7 @@ export default async function ProductPage({ params }: Props) {
       </nav>
 
       <Suspense fallback={<div className="min-h-[60vh]" />}>
-        <ProductDetail product={product} />
+        <ProductDetail product={product} images={images} />
       </Suspense>
 
       {/* Related products */}
@@ -66,7 +70,7 @@ export default async function ProductPage({ params }: Props) {
           </h2>
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {related.map((p) => (
-              <ProductCard key={p.slug} product={p} />
+              <ProductCard key={p.slug} product={p} image={relatedImages.get(p.id)} />
             ))}
           </div>
         </div>

@@ -1,3 +1,8 @@
+// @deprecated — convention-based image paths ({view}-{model}-...webp). The
+// storefront now reads real images from media_assets (see @/core/media and
+// @/lib/product-images); these helpers have no live consumers. Kept (not
+// deleted) so the convention-based demo folders in public/images/products/
+// and the GalleryShot type remain available. Remove once those are gone.
 import type { Product, ProductImageModel, ProductImageView, GalleryShot } from './types';
 
 const PRODUCT_IMAGE_BASE = '/images/products';

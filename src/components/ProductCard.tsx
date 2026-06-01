@@ -1,19 +1,19 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import Placeholder from '@/components/Placeholder';
-import { CATEGORY_LABELS, formatPrice, getProductCardImage, getProductGradient, type Product } from '@/core/catalog';
+import { CATEGORY_LABELS, formatPrice, getProductGradient, type Product } from '@/core/catalog';
+import type { MediaAsset } from '@/core/media/client';
+import { srcSetFromUrl } from '@/core/media/client';
 
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({
+  product,
+  image,
+}: {
+  product: Product;
+  /** Primary image (first sortOrder of the first variant), if any. */
+  image?: MediaAsset;
+}) {
   const isComingSoon = product.status === 'coming_soon';
-  const defaultVariant = product.variants[0];
-  // Only build a card image when the variant actually declares models — at
-  // models: [] (no photos yet) getProductCardImage would emit a
-  // `front-undefined-*.webp` path (404). Without photos we render the gradient.
-  const hasModels = !!defaultVariant && defaultVariant.models.length > 0;
-  const cardImage = hasModels
-    ? getProductCardImage(product.slug, defaultVariant.id, defaultVariant.models[0])
-    : null;
-  const showImage = cardImage && !isComingSoon;
+  const showImage = image && !isComingSoon;
 
   return (
     <Link
@@ -25,12 +25,14 @@ export default function ProductCard({ product }: { product: Product }) {
       <div className="relative">
         {showImage ? (
           <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-stone-100">
-            <Image
-              src={cardImage.md}
-              alt={`${product.name} — ${defaultVariant!.label}`}
-              fill
-              className="object-cover"
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={image.url}
+              srcSet={srcSetFromUrl(image.url)}
               sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+              alt={image.alt ?? `${product.name}`}
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover"
             />
           </div>
         ) : (

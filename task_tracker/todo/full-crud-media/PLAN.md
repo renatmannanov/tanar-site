@@ -40,7 +40,7 @@
 | 3 | step_3_admin_create.md — /admin/catalog/new + createProductAction; кнопка «Создать»; slug-паттерн; обновить e2e | [x] |
 | 4 | step_4_admin_delete.md — deleteProductAction; кнопка «Удалить» через ConfirmButton; обновить e2e (ПОСЛЕ шага 3) | [x] |
 | 5 | step_5_photo_block.md — фото-блок в ProductForm (upload/remove/reorder, главное, слот генератора disabled) (ПОСЛЕ шага 4) | [x] |
-| 6 | step_6_storefront_gallery.md — витрина читает media_assets (ProductDetail/ProductCard/FeaturedProducts), фолбэк градиент, без N+1 | [ ] |
+| 6 | step_6_storefront_gallery.md — витрина читает media_assets (ProductDetail/ProductCard/FeaturedProducts), фолбэк градиент, без N+1 | [x] |
 | 7 | step_7_e2e.md — Playwright: create→edit, delete, upload/remove/reorder фото, витрина показывает фото | [ ] |
 | 8 | step_8_completion.md — завершение плана | [ ] |
 
