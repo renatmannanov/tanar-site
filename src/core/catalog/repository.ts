@@ -33,6 +33,7 @@ function mapSku(row: SkuRow): Sku {
 
 function mapProduct(row: ProductRow): Product {
   return {
+    id: row.id,
     slug: row.slug,
     name: row.name,
     category: row.category as ProductCategory,
@@ -52,6 +53,7 @@ function mapProduct(row: ProductRow): Product {
 function mapVariant(row: VariantRow): ProductColor {
   return {
     id: row.colorId,
+    variantId: row.id,
     label: row.colorLabel,
     hex: row.hex,
     models: row.models,

@@ -19,7 +19,10 @@ export type Sku = {
 };
 
 export type ProductColor = {
+  /** Business color key (e.g. 'stone-green'), unique per product. */
   id: string;
+  /** DB primary key (product_variants.id) — links to media_assets.variantId. */
+  variantId: string;
   label: string;
   hex: string;
   models: ProductImageModel[];
@@ -29,6 +32,8 @@ export type ProductColor = {
 };
 
 export type Product = {
+  /** DB primary key (products.id) — used to load media_assets. */
+  id: string;
   slug: string;
   name: string;
   category: ProductCategory;

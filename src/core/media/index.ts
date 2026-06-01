@@ -1,45 +1,53 @@
-// Public API of the media module. Other code must import only from here.
+// Server-side public API of the media module: types + DB read functions.
 //
-// Contract skeleton: types and ports only. The real implementation (sharp
-// pipeline → public/, media_assets rows) lands in Plan C; the admin media-picker
-// (Plan B) types against the MediaStore port defined here.
-import type {
-  MediaScope,
-  ProductImageView,
-  ProductImageModel,
-} from '@/core/contracts';
+// IMPORTANT: this does NOT re-export ./store — store.ts pulls in sharp/node:fs,
+// which must never reach a client bundle. Server actions import the writer
+// (mediaStore) DIRECTLY from '@/core/media/store'. Client components import the
+// MediaAsset type from '@/core/media/client'.
+import { inArray, eq, asc } from 'drizzle-orm';
+import { db, schema } from '@/core/db';
+import type { MediaAsset } from './types';
 
-/** Stored image asset. Mirrors the media_assets table (read projection). */
-export type MediaAsset = {
-  id: string;
-  scope: MediaScope; // 'product' | 'site' | 'blog'
-  url: string;
-  sortOrder: number;
-  productId?: string;
-  variantId?: string;
-  view?: ProductImageView;
-  model?: ProductImageModel | 'flat';
-  role?: 'lifestyle' | 'flat';
-  key?: string; // for site/blog scope
-  alt?: string;
-};
+export type { MediaAsset, MediaUploadInput, MediaStore } from './types';
 
-/** Input for uploading/registering an asset. File handling lands in Plan C. */
-export type MediaUploadInput = {
-  scope: MediaScope;
-  productId?: string;
-  variantId?: string;
-  key?: string;
-  alt?: string;
-};
+function mapAssetRow(row: typeof schema.mediaAssets.$inferSelect): MediaAsset {
+  return {
+    id: row.id,
+    scope: row.scope as MediaAsset['scope'],
+    url: row.url,
+    sortOrder: row.sortOrder,
+    productId: row.productId ?? undefined,
+    variantId: row.variantId ?? undefined,
+    view: (row.view as MediaAsset['view']) ?? undefined,
+    model: (row.model as MediaAsset['model']) ?? undefined,
+    role: (row.role as MediaAsset['role']) ?? undefined,
+    key: row.key ?? undefined,
+    alt: row.alt ?? undefined,
+  };
+}
+
+/** All product images for one product, sorted by (variantId, sortOrder). */
+export async function listProductImages(productId: string): Promise<MediaAsset[]> {
+  const rows = await db
+    .select()
+    .from(schema.mediaAssets)
+    .where(eq(schema.mediaAssets.productId, productId))
+    .orderBy(asc(schema.mediaAssets.variantId), asc(schema.mediaAssets.sortOrder));
+  return rows.map(mapAssetRow);
+}
 
 /**
- * Port for media storage. Implementation (sharp pipeline → public/, DB row)
- * lands in Plan C. Defined here so the admin media-picker (Plan B) can type
- * against it before the backend exists.
+ * Batch read for storefront lists (catalog/related/featured) — one query for
+ * all products to avoid N+1. Sorted by (variantId, sortOrder). Empty input → [].
  */
-export interface MediaStore {
-  list(filter: { scope: MediaScope; productId?: string }): Promise<MediaAsset[]>;
-  upload(file: Uint8Array, input: MediaUploadInput): Promise<MediaAsset>;
-  remove(id: string): Promise<void>;
+export async function listProductImagesForProducts(
+  productIds: string[],
+): Promise<MediaAsset[]> {
+  if (productIds.length === 0) return [];
+  const rows = await db
+    .select()
+    .from(schema.mediaAssets)
+    .where(inArray(schema.mediaAssets.productId, productIds))
+    .orderBy(asc(schema.mediaAssets.variantId), asc(schema.mediaAssets.sortOrder));
+  return rows.map(mapAssetRow);
 }

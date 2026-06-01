@@ -36,7 +36,7 @@
 | # | Файл | Статус |
 |---|------|--------|
 | 1 | step_1_update_product_upsert.md — updateProduct: delete+insert → upsert по colorId/size; маппер прокидывает reservedQty | [x] |
-| 2 | step_2_media_store.md — MediaStore impl (sharp→public→media_assets) + reorder в контракте + read media в core | [ ] |
+| 2 | step_2_media_store.md — MediaStore impl (sharp→public→media_assets) + reorder в контракте + read media в core | [x] |
 | 3 | step_3_admin_create.md — /admin/catalog/new + createProductAction; кнопка «Создать»; slug-паттерн; обновить e2e | [ ] |
 | 4 | step_4_admin_delete.md — deleteProductAction; кнопка «Удалить» через ConfirmButton; обновить e2e (ПОСЛЕ шага 3) | [ ] |
 | 5 | step_5_photo_block.md — фото-блок в ProductForm (upload/remove/reorder, главное, слот генератора disabled) (ПОСЛЕ шага 4) | [ ] |

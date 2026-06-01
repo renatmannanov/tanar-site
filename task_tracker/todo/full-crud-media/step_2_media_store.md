@@ -1,7 +1,7 @@
 # Шаг 2: MediaStore impl (sharp→public→media_assets) + reorder + read media
 
 > Зависит от: нет (можно параллельно шагу 1)
-> Статус: [ ] pending
+> Статус: [x] done
 
 ## Задача
 

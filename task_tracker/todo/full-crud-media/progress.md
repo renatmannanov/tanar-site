@@ -53,4 +53,18 @@ Playwright `setInputFiles` на `<input type="file">`. Готовить тест
 - **Orphan-файлы (отложенный долг, НЕ чинить сейчас):** когда `colorId` исчезает из формы → `upsertVariantTree` делает DELETE варианта → каскад сносит строки `media_assets`, но ФАЙЛЫ в `public/images/products/<slug>/` остаются на диске. Тот же остаток, что и при `deleteProduct` (шаг 4). Чистка файлов — отдельный пункт (хук в deleteProduct / `MediaStore.removeByProduct` / `removeByVariant`) на потом. Диск дёшев, не блокер.
 - `tsx`-скрипты для dev-БД требуют `--env-file=.env.local` (как `db:seed`), иначе `DATABASE_URL is not set`.
 - `npm run db:seed` печатает Postgres NOTICE `truncate cascades to "inventory_log"/"order_items"` — это норма (reset через TRUNCATE CASCADE), НЕ ошибка.
+
+### Шаг 2 (MediaStore) — done
+- `sharp@0.34.5` в `dependencies` (перемещён из devDependencies вручную — npm i поставил его в dev).
+- **HEIC НЕ поддерживается** prebuilt-sharp на Windows (проверено: `heifsave: Unsupported compression`). **Принимаемые форматы входа: JPG / PNG / WEBP.** AVIF технически декодится, но в UI не афишируем. Детект формата — по MIME + `sharp().metadata().format` (magic bytes), расширение файла не используем.
+- Структура media-модуля (грабля client-бандла соблюдена):
+  - `types.ts` — чистые типы (`MediaAsset`/`MediaUploadInput`/`MediaStore`), без node-deps.
+  - `client.ts` — реэкспорт ТОЛЬКО типов (для `'use client'`).
+  - `index.ts` — server: типы + read (`listProductImages(productId)`, `listProductImagesForProducts(ids)`). **НЕ реэкспортит store.**
+  - `store.ts` — `mediaStore` impl (sharp+fs+db). Импортить НАПРЯМУЮ `@/core/media/store` из server-actions, НЕ через index.
+- `MediaUploadInput` финальная: `{ scope:'product', slug, productId, variantId, alt? }`. Pipeline: `rotate()`(EXIF) → resize max 2000 (inside, withoutEnlargement) → 3×WEBP (1600/800/400, q82) → `public/images/products/<slug>/<uuid>-{w}.webp`. `url` в БД = 1600-версия; меньшие по конвенции (`urlForWidth` подменяет `-1600`→`-800`/`-400`). `sortOrder` = max(variant)+1. alt авто `Фото N`.
+- `remove(id)` удаляет все 3 файла + строку (идемпотентно). `reorder(items)` — UPDATE sortOrder в транзакции.
+- Read-тип обогащён: `Product.id` (=products.id) и `ProductColor.variantId` (=product_variants.id, линк к media_assets.variantId). `mapProduct`/`mapVariant` прокидывают. Маппер `productToInput` новые поля игнорит (не сломан).
+- Проверено tsx-тестом (удалён): upload реального JPG → 3 webp + строка, 2-й asset sortOrder+1, remove чистит файлы+строку. `npm run build` зелёный (sharp/fs НЕ в client).
+- **Demo-фолбэк-картинки** в `public/images/products/{hoodie-alatau,hoodie-turgen,light-jacket-tengri,shell-jacket-khan,tshirt-tanar}/` — старая конвенция имён (НЕ боевые slug'и, на витрине не подтягиваются). Оставлены, шаг 6 не трогает.
 ---
