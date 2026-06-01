@@ -2,7 +2,14 @@
 
 > Источник: ручная проверка Плана C (full-crud-media), 2026-06-01.
 
-## 1. Фильтрация витрины по статусу товара (нужно)
+## 1. Фильтрация витрины по статусу товара (✅ ВЫПОЛНЕНО — storefront-completion, 2026-06-01)
+
+> Реализовано в плане `task_tracker/done/storefront-completion/`. Выбран вариант
+> «отдельные storefront-функции» (`getStorefrontProducts`/`*ByCategory`/`*BySlug`/
+> `*RelatedProducts` в `src/core/catalog/repository.ts`), фильтр
+> `status IN ('published','coming_soon')`. Витринные страницы переключены на них;
+> админка осталась на старых (видит все статусы). Прямой заход на draft/archived
+> на витрине → 404. Покрыто e2e (`storefront-completion.spec.ts`).
 
 **Сейчас:** статус (`draft`/`published`/`archived`/`coming_soon`) на витрине НЕ фильтрует.
 `getAllProducts`/`getProductsByCategory`/`getRelatedProducts` (`src/core/catalog/repository.ts`)
