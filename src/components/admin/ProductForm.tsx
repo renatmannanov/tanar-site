@@ -128,11 +128,36 @@ export default function ProductForm({
     }));
   }
 
+  // specs is optional in ProductInput — always operate through (form.specs ?? []).
+  function addSpec() {
+    setForm((f) => ({ ...f, specs: [...(f.specs ?? []), { label: '', value: '' }] }));
+  }
+
+  function removeSpec(i: number) {
+    setForm((f) => ({ ...f, specs: (f.specs ?? []).filter((_, j) => j !== i) }));
+  }
+
+  function patchSpec(i: number, p: Partial<{ label: string; value: string }>) {
+    setForm((f) => ({
+      ...f,
+      specs: (f.specs ?? []).map((s, j) => (j === i ? { ...s, ...p } : s)),
+    }));
+  }
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(undefined);
+    // Drop spec rows with an empty label OR value so half-filled rows never reach
+    // the DB. Filter on submit only (not in state) — otherwise a freshly added
+    // blank row would vanish from the UI before the user types into it.
+    const payload: ProductInput = {
+      ...form,
+      specs: (form.specs ?? []).filter(
+        (s) => s.label.trim() !== '' && s.value.trim() !== '',
+      ),
+    };
     startTransition(async () => {
-      const result = await action(form);
+      const result = await action(payload);
       // On success the server action redirects (throws) — we only get here on error.
       if (result?.error) setError(result.error);
     });
@@ -255,6 +280,48 @@ export default function ProductForm({
           onChange={(e) => patch({ care: e.target.value })}
         />
       </div>
+
+      {/* Specs — product characteristics table (material, weight, membrane, …). */}
+      <section className="flex flex-col gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-700">Характеристики</h2>
+          <p className="text-xs text-gray-400">
+            Материал, вес, мембрана и т.п. — показываются на странице товара таблицей.
+          </p>
+        </div>
+        {(form.specs ?? []).map((s, i) => (
+          <div key={i} className="flex items-end gap-3">
+            <div className="flex flex-1 flex-col gap-1">
+              <Label>Характеристика</Label>
+              <Input
+                value={s.label}
+                placeholder="Материал"
+                onChange={(e) => patchSpec(i, { label: e.target.value })}
+              />
+            </div>
+            <div className="flex flex-1 flex-col gap-1">
+              <Label>Значение</Label>
+              <Input
+                value={s.value}
+                placeholder="GORE-TEX 3L"
+                onChange={(e) => patchSpec(i, { value: e.target.value })}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-red-600"
+              onClick={() => removeSpec(i)}
+              aria-label="Удалить характеристику"
+            >
+              ×
+            </Button>
+          </div>
+        ))}
+        <Button type="button" variant="secondary" onClick={addSpec} className="self-start">
+          + Характеристика
+        </Button>
+      </section>
 
       {/* Variants */}
       <section className="flex flex-col gap-4">
