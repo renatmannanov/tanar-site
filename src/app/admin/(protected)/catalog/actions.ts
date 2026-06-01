@@ -1,9 +1,27 @@
 'use server';
 
-import { updateProduct, type ProductInput } from '@/core/catalog';
+import { createProduct, updateProduct, type ProductInput } from '@/core/catalog';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/require-admin';
+
+export async function createProductAction(
+  input: ProductInput,
+): Promise<{ error?: string }> {
+  await requireAdmin();
+
+  try {
+    await createProduct(input); // zod-validates inside (incl. slug pattern)
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Ошибка создания' };
+  }
+
+  // OUTSIDE try/catch — redirect() throws a control-flow exception a catch would
+  // swallow. Land on the new product's edit page (where photos are uploaded).
+  revalidatePath('/admin/catalog');
+  revalidatePath('/catalog');
+  redirect(`/admin/catalog/${input.slug}/edit`);
+}
 
 export async function updateProductAction(
   slug: string,

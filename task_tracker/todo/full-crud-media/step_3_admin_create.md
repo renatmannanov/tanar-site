@@ -1,7 +1,7 @@
 # Шаг 3: Admin create — /catalog/new + createProductAction
 
 > Зависит от: нет (ProductForm mode=create готова из Плана B). ВАЖНО: шаг 4 редактирует тот же `actions.ts` — выполнять 3 → 4 → 5 СТРОГО последовательно, НЕ параллельно.
-> Статус: [ ] pending
+> Статус: [x] done
 
 ## Задача
 

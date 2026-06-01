@@ -111,8 +111,24 @@ export default function ProductForm({ mode, initial, action }: Props) {
       {/* Core fields */}
       <section className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1">
-          <Label htmlFor="slug">Slug (URL, не редактируется)</Label>
-          <Input id="slug" value={form.slug} readOnly={mode === 'edit'} aria-readonly={mode === 'edit'} />
+          <Label htmlFor="slug">
+            {mode === 'edit' ? 'Slug (URL, не редактируется)' : 'Slug (URL)'}
+          </Label>
+          <Input
+            id="slug"
+            value={form.slug}
+            readOnly={mode === 'edit'}
+            aria-readonly={mode === 'edit'}
+            placeholder={mode === 'create' ? 'jacket-sv7-goretex' : undefined}
+            onChange={
+              mode === 'create' ? (e) => patch({ slug: e.target.value }) : undefined
+            }
+          />
+          {mode === 'create' ? (
+            <span className="text-xs text-gray-400">
+              Только строчные латинские буквы, цифры и дефис.
+            </span>
+          ) : null}
         </div>
         <div className="flex flex-col gap-1">
           <Label htmlFor="name">Название</Label>

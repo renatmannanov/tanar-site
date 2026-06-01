@@ -199,7 +199,12 @@ const variantInputSchema = z.object({
 });
 
 const productInputSchema = z.object({
-  slug: z.string().min(1),
+  // Restricted charset: the slug is used verbatim in URLs and redirect targets.
+  // Spaces/Cyrillic/special chars would produce a broken URL on create-redirect.
+  slug: z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9-]+$/, 'slug: только строчные латинские буквы, цифры и дефис'),
   name: z.string().min(1),
   category: z.enum(ProductCategoryValues),
   status: z.enum(ProductStatusValues).optional(),

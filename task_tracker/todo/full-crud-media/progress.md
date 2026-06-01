@@ -67,4 +67,12 @@ Playwright `setInputFiles` на `<input type="file">`. Готовить тест
 - Read-тип обогащён: `Product.id` (=products.id) и `ProductColor.variantId` (=product_variants.id, линк к media_assets.variantId). `mapProduct`/`mapVariant` прокидывают. Маппер `productToInput` новые поля игнорит (не сломан).
 - Проверено tsx-тестом (удалён): upload реального JPG → 3 webp + строка, 2-й asset sortOrder+1, remove чистит файлы+строку. `npm run build` зелёный (sharp/fs НЕ в client).
 - **Demo-фолбэк-картинки** в `public/images/products/{hoodie-alatau,hoodie-turgen,light-jacket-tengri,shell-jacket-khan,tshirt-tanar}/` — старая конвенция имён (НЕ боевые slug'и, на витрине не подтягиваются). Оставлены, шаг 6 не трогает.
+
+### Шаг 3 (admin create) — done
+- `createProductAction(input)` в `actions.ts`: `requireAdmin` → `createProduct` (try/catch) → ВНЕ catch revalidate + `redirect('/admin/catalog/<slug>/edit')`.
+- Страница `new/page.tsx`: `<ProductForm mode="create" action={createProductAction}/>` (без initial → EMPTY_INPUT).
+- Кнопка «Создать товар» в списке → `<Link href="/admin/catalog/new">` (стилизован под кнопку; `Button` не поддерживает asChild, использован голый Link). Импорт Button из page.tsx убран.
+- slug-паттерн `^[a-z0-9-]+$` добавлен в `productInputSchema` (repository.ts).
+- **Баг Плана B пофикшен:** в `ProductForm` поле `#slug` на create было `readOnly={false}` НО без `onChange` → ввести slug было нельзя. Теперь на create редактируемо с `onChange` + подсказка по charset. На edit — readOnly как было.
+- e2e admin.spec: ассерт «Создать товар disabled» → `toHaveAttribute('href','/admin/catalog/new')`. Все 6 admin e2e зелёные.
 ---

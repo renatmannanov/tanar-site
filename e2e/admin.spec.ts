@@ -44,8 +44,11 @@ test('correct password logs in and shows the catalog list', async ({ page }) => 
   // 12 real products seeded.
   const rows = page.locator('table tbody tr');
   await expect(rows).toHaveCount(12);
-  // Create button present but disabled (Plan C).
-  await expect(page.getByRole('button', { name: 'Создать товар' })).toBeDisabled();
+  // Create link is active and points to the new-product page (Plan C).
+  await expect(page.getByRole('link', { name: 'Создать товар' })).toHaveAttribute(
+    'href',
+    '/admin/catalog/new',
+  );
 });
 
 test('edit form is prefilled; delete and photo slot are disabled', async ({ page }) => {

@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { getAllProducts, CATEGORY_LABELS, formatPrice } from '@/core/catalog';
 import { requireAdmin } from '@/lib/require-admin';
-import { Button } from '@/components/admin/ui/Button';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,9 +19,12 @@ export default async function CatalogListPage() {
     <div className="mx-auto max-w-5xl">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold">Каталог</h1>
-        <Button disabled title="Доступно в Плане C">
+        <Link
+          href="/admin/catalog/new"
+          className="inline-flex items-center justify-center rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+        >
           Создать товар
-        </Button>
+        </Link>
       </div>
 
       {products.length === 0 ? (
