@@ -1,6 +1,6 @@
 # Полный CRUD + фото (План C, Фаза 1 этап 3)
 
-> Статус: pending
+> Статус: done
 > Дата: 2026-06-01
 > Тип: фича (admin create/delete + media-управление + витрина из media_assets)
 
@@ -42,7 +42,7 @@
 | 5 | step_5_photo_block.md — фото-блок в ProductForm (upload/remove/reorder, главное, слот генератора disabled) (ПОСЛЕ шага 4) | [x] |
 | 6 | step_6_storefront_gallery.md — витрина читает media_assets (ProductDetail/ProductCard/FeaturedProducts), фолбэк градиент, без N+1 | [x] |
 | 7 | step_7_e2e.md — Playwright: create→edit, delete, upload/remove/reorder фото, витрина показывает фото | [x] |
-| 8 | step_8_completion.md — завершение плана | [ ] |
+| 8 | step_8_completion.md — завершение плана | [x] |
 
 ## Критерии готовности
 

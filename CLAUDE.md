@@ -90,10 +90,12 @@ ESLint (`eslint.config.mjs`) запрещает: импорт внутренно
 
 ## Данные
 
-- **Продукты**: хранятся в Postgres (`products`, `product_variants`, `skus`). Доступ через `@/core/catalog` (async). Запись — только через write-контракт (`createProduct`/`updateProduct`/`deleteProduct`). Наполнение dev-БД: `npm run db:seed` — импорт боевого каталога (12/30/109) из `task_tracker/.../catalog-snapshot.json` через `createProduct`.
+- **Продукты**: хранятся в Postgres (`products`, `product_variants`, `skus`). Доступ через `@/core/catalog` (async). Запись — только через write-контракт (`createProduct`/`updateProduct`/`deleteProduct`). `updateProduct` — **upsert** по `colorId`/`size` (сохраняет `variantId` и `reservedQty`, не сносит фото). Наполнение dev-БД: `npm run db:seed` — импорт боевого каталога (12/30/109) из `task_tracker/.../catalog-snapshot.json` через `createProduct`.
+- **Фото товаров**: в таблице `media_assets`, привязка к **варианту-цвету** (`variantId`). Загрузка — админка (Фаза 1, План C): `MediaStore` (`@/core/media/store`) гоняет `sharp` → 3×WEBP (1600/800/400, макс 2000px) в `public/images/products/<slug>/`. Приём JPG/PNG/WEBP (HEIC не поддержан prebuilt-sharp на Windows). Чтение для витрины — `@/core/media` (`listProductImages`/`listProductImagesForProducts`). Витрина: фото есть → галерея (object-cover, srcset); нет → CSS-градиент-фолбэк.
+  - **Прод-требование:** `public/images/products/` на VPS должна быть **persistent volume** — иначе редеплой сотрёт загруженные фото.
 - **Посты блога**: 6 файлов в `content/blog/*.mdx` с frontmatter (title, slug, date, excerpt, cover gradient)
 - **Язык**: только русский
-- **Картинки**: CSS-градиенты из мягкой outdoor-палитры (земляные, пыльно-синие, серо-зелёные) + текст-метка с названием товара/поста
+- **Картинки-фолбэк**: для товаров без фото — CSS-градиенты из мягкой outdoor-палитры (земляные, пыльно-синие, серо-зелёные) + текст-метка с названием. Блог — пока на градиентах.
 
 ## Дизайн
 
@@ -107,7 +109,7 @@ Outdoor-вайб, между Patagonia и Arc'teryx. Мягкие земляны
 - `PLAN.md` — мастер-файл
 - `step_N_name.md` ≤ 300 строк, с проверяемыми критериями (команды, не слова)
 - После завершения всех шагов — папка переезжает в `task_tracker/done/`
-- Текущий план: [task_tracker/todo/phase-0-foundation/PLAN.md](task_tracker/todo/phase-0-foundation/PLAN.md)
+- Фаза 1 завершена целиком (admin auth + editing + CRUD + media). Дальше — Фаза 2 (остатки/инвентарь), см. `task_tracker/backlog/ARCHITECTURE-ecommerce.md`.
 
 ## Ralph loop
 

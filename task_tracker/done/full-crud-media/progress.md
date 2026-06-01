@@ -109,4 +109,24 @@ Playwright `setInputFiles` на `<input type="file">`. Готовить тест
 - `afterAll`: `db:seed` + `rmSync(public/images/products/e2e-test-product, recursive)`. Проверено: после прогона папка удалена, БД=12 товаров, media_assets=0.
 - Селекторы-грабли: variant-инпуты по позиции (`input:not([type])`, нет htmlFor у Label); confirm-кнопка delete — внутри `getByRole('dialog')` (триггер и confirmLabel совпадают по имени «Удалить товар»).
 - **Всего e2e: 51 зелёных** (39 витринных + 6 admin + 6 crud-media). `workers:1, fullyParallel:false` — гонок db:seed между spec нет.
+
+### Багфиксы после ручной проверки (2026-06-01)
+- **Лимит 1 МБ на upload (критичный):** Server Actions по умолчанию режут тело на 1 МБ → обычные фото с телефона падали `Body exceeded 1 MB limit`. Фикс: `next.config.ts` → `experimental.serverActions.bodySizeLimit: '10mb'` (под `MAX_BYTES` store). **`next.config` подхватывается ТОЛЬКО при рестарте dev.**
+- Кнопка «Отмена» на create+edit (Link → `/admin/catalog`); кнопка «Удалить» отодвинута вправо (`ml-auto`).
+- Убрана оставшаяся заглушка «Загрузка фото — Доступно в Плане C» внизу `ProductForm` (per-variant фото-блоки её заменили, но общая секция осталась — мой недочёт шага 5).
+- **Дефолтный цвет на витрине** = первый вариант с фото (а не первый по списку) — покупатель сразу видит галерею, не градиент. Явный `?color=` приоритетнее.
+- Админ-список сортируется по имени (`localeCompare 'ru'`) — отредактированный товар не уезжает вниз (порядок БД нестабилен после update).
+
+### Отложенные пункты (передача дальше)
+- **Автоген slug** (решение пользователя): полный автоген из названия с транслитерацией кириллицы, поле видимое read-only. НЕ сделано — отдельная мелкая задача.
+- **Orphan-файлы** при delete товара/варианта: строки media_assets каскадятся, файлы в `public/` остаются. Хук `MediaStore.removeByProduct`/`removeByVariant` — позже.
+- **Фильтрация витрины по статусу** (draft/archived сейчас ВИДНЫ покупателям) — в бэклоге `storefront-status-and-photo-tools.md`. → Решить в Фазе 2 или отдельно.
+- **AI-инструменты фото**: генератор на белом фоне (слот disabled готов) + перекраска фото в другой цвет — бэклог `storefront-status-and-photo-tools.md`.
+- **Ручной alt** для фото — SEO-фаза (сейчас авто `Фото N`).
+- **DnD-reorder** вместо стрелок ←/→ — улучшение UX.
+
+### Git-грабли (Windows, важно)
+- Коммит через **Bash-tool** с `@'...'@` here-string → лидирующий/закрывающий `@` попадает в subject. Использовать **PowerShell-tool**, `git add` и `git commit` — РАЗНЫМИ вызовами.
+- В PowerShell here-string `@'...'@` нельзя **двойные кавычки** внутри (`"Plan C"`) — ломают парсинг multiline-аргумента. Писать без внутренних кавычек.
+- **НЕ запускать `npm run build` пока работает `npm run dev`** — build перезаписывает `.next` под dev-сервером → dev падает `ENOENT _buildManifest.js.tmp`. Останавливать dev перед build.
 ---
