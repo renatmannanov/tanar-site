@@ -112,6 +112,14 @@ test.describe.serial('product CRUD + variant photos', () => {
   });
 
   test('storefront shows the uploaded image (not a gradient)', async ({ page }) => {
+    // The product is created as draft (hidden from the storefront since the
+    // status-visibility change). Publish it first so /catalog/<slug> serves it.
+    await login(page);
+    await page.goto(`/admin/catalog/${TEST_SLUG}/edit`);
+    await page.locator('#status').selectOption('published');
+    await page.getByRole('button', { name: 'Сохранить' }).click();
+    await expect(page).toHaveURL(/\/admin\/catalog$/);
+
     await page.goto(`/catalog/${TEST_SLUG}`);
     const galleryImg = page.locator('img[src*="/images/products/' + TEST_SLUG + '/"]').first();
     await expect(galleryImg).toBeVisible();
