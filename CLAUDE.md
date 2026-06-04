@@ -49,6 +49,30 @@ npm run db:reset      # очистить все таблицы
 
 `/admin/login` → подписанная httpOnly-cookie (`admin_session`, HMAC-SHA256 `{exp}`). Guard: `middleware.ts` (redirect на login) + `requireAdmin()` в защищённых страницах/actions. e2e и dev требуют этих env в окружении (Next читает `.env.local`; Playwright — через `@next/env` в `playwright.config.ts`).
 
+## Прод-деплой (VPS + Docker + Caddy)
+
+Витрина деплоится как Docker Compose стек: `web` (Next.js standalone) + `postgres` + `caddy` (reverse-proxy + авто-SSL Let's Encrypt). Артефакты в корне: `Dockerfile`, `docker-compose.prod.yml`, `Caddyfile`, `.env.prod.example`, `docker-entrypoint.sh`. План и грабли — `task_tracker/done/prod-deploy/` (progress.md → Learnings).
+
+**Демо сейчас:** Hetzner VPS `62.238.31.95`, https://62-238-31-95.sslip.io (sslip.io — времянка; боевой `.kz` будет на PS.kz, шаг 11). Сервер: `~/tanar-site`, юзер `rm_agent`.
+
+**Ключевое:**
+- **Образ:** `node:20-slim` (НЕ alpine — sharp). Multi-stage: deps→builder→runner. `output:'standalone'` в `next.config.ts`. `build` идёт БЕЗ DATABASE_URL (db-клиент ленивый — Proxy в `src/core/db/client.ts`, throw отложен в рантайм; иначе `collect page data` падает).
+- **Фото:** named volume `product-images` → `/app/public/images/products` (**persistent — иначе редеплой сотрёт фото**). Права: entrypoint chown'ит volume от root → `gosu node`.
+- **tools-сервисы** (profile `tools`, образ = builder-стадия): `migrate` (`drizzle-kit migrate`), `seed`, `push-media`. Запуск: `docker compose -f docker-compose.prod.yml --profile tools run --rm <name>`.
+- **Сид прода — РАЗОВО:** `ALLOW_PROD_SEED=1` ТОЛЬКО inline (не в .env). Предохранитель: `seed.ts` отказывает при `count(products)>0` — повторный TRUNCATE невозможен.
+- **Секреты** в `.env` на сервере (права 600, gitignored): пароль БД (== в `DATABASE_URL`), `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET` (≥32), `DOMAIN`, `COMPOSE_PROJECT_NAME=tanar-site`.
+- **Деплой с `main`** (приведена к dev). Порядок первого деплоя: DNS→`up --build`→`migrate`→`restart web`→seed(inline). Подробный runbook — `step_7_first_deploy.md`.
+
+### Деплой-команды (на сервере, `~/tanar-site`)
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build        # собрать+поднять
+docker compose -f docker-compose.prod.yml --profile tools run --rm migrate      # миграции
+docker compose -f docker-compose.prod.yml --profile tools run --rm -e ALLOW_PROD_SEED=1 seed  # разовый сид
+docker compose -f docker-compose.prod.yml --env-file .env logs -f caddy         # смотреть выпуск cert
+docker compose -f docker-compose.prod.yml --env-file .env ps                    # статус
+```
+
 ## Структура сайта (v1)
 
 - `/` — главная: hero, категории, featured продукты, сторителлинг-блок, последние посты блога, footer

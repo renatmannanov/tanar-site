@@ -35,6 +35,14 @@ ralph.ps1
 # dev compose (prod uses docker-compose.prod.yml)
 docker-compose.yml
 
+# Product photos are runtime data living in the `product-images` named volume,
+# NOT build artifacts. Old AI demo shots committed under public/images/products/
+# would otherwise be baked into the image and seeded into the (empty) volume on
+# first `up` — orphaned files with no media_assets rows. Keep them out; real
+# photos arrive via the admin upload / push-media CLI. (Other public/ assets —
+# logo, icons — are still copied.)
+public/images/products
+
 # planning docs — excluded wholesale, EXCEPT the seed snapshot which the
 # builder stage needs (seed step). Keep these !-lines AFTER `task_tracker`.
 task_tracker

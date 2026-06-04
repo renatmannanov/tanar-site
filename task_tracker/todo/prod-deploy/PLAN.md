@@ -49,7 +49,7 @@
 | 4 | step_4_env_secrets.md — .env.prod.example + генерация секретов | [x] |
 | 5 | step_5_migrations.md — применение drizzle-миграций на проде | [x] |
 | 6 | step_6_seed_once.md — ALLOW_PROD_SEED + разовый сид каталога | [x] |
-| 7 | step_7_first_deploy.md — первый деплой на Hetzner (демо/тест клиенту) + DNS + проверка | [ ] (блокер: нужен домен/поддомен для SSL) |
+| 7 | step_7_first_deploy.md — первый деплой на Hetzner (демо/тест клиенту) + DNS + проверка | [x] (live: https://62-238-31-95.sslip.io, 12 товаров, LE-cert) |
 
 ### Фаза deploy-2 (после запуска демо)
 
