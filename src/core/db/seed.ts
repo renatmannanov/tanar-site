@@ -12,11 +12,17 @@ import { createProduct, getProductBySlug, type ProductInput } from '@/core/catal
 // Keeps the `seed.ts` name so the `db:seed` npm script (a build/e2e
 // precondition) stays unchanged.
 
-// Guard: never run against anything but the local dev/test databases.
+// Guard: by default only the local dev/test databases. Prod seeding is the
+// one-off catalog import (deploy step 6) — it requires ALLOW_PROD_SEED=1, passed
+// INLINE at run time (never stored in .env, so the flag can't linger and re-fire
+// a destructive TRUNCATE). A second, physical safety net (empty-catalog check)
+// lives in main() below — that's what actually makes a repeat run impossible.
 const url = process.env.DATABASE_URL ?? '';
-if (!/tanar_dev|tanar_test/.test(url)) {
+const allowProdSeed = process.env.ALLOW_PROD_SEED === '1';
+if (!/tanar_dev|tanar_test/.test(url) && !allowProdSeed) {
   throw new Error(
-    `DATABASE_URL must point to tanar_dev or tanar_test for seed/reset; got: ${url}`,
+    `DATABASE_URL must point to tanar_dev or tanar_test for seed/reset; got: ${url}. ` +
+      `For the one-off prod catalog import, run with ALLOW_PROD_SEED=1 (inline).`,
   );
 }
 
@@ -88,6 +94,22 @@ function toProductInput(p: SnapshotProduct): ProductInput {
 
 async function main() {
   const snapshot = loadSnapshot();
+
+  // Physical safety net for the prod path: refuse if the catalog is already
+  // populated. The dev/test flow truncates-and-reseeds freely (it runs many
+  // times), so this only applies when seeding prod via the inline flag — there
+  // it makes a repeat run (which would TRUNCATE the live catalog + media_assets)
+  // physically impossible. The inline-only flag is the soft guard; this is hard.
+  if (allowProdSeed && !/tanar_dev|tanar_test/.test(url)) {
+    const existing = await db.$count(schema.products);
+    if (existing > 0) {
+      await queryClient.end();
+      throw new Error(
+        `Refusing to seed: catalog is not empty (${existing} products). ` +
+          `The one-off prod import only runs against an empty catalog.`,
+      );
+    }
+  }
 
   // Reset only the catalog tables. CASCADE is required: order_items.sku_id and
   // inventory_log.sku_id reference skus.id (FK without onDelete), so TRUNCATE
