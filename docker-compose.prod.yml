@@ -1,0 +1,116 @@
+# Production stack — web (Next.js standalone) + postgres + caddy (auto-SSL).
+# The dev docker-compose.yml (local DB on 5442/5443) is separate; do not mix.
+#
+# Runtime services (postgres, web, caddy) start on `up`.
+# One-off tools (migrate, seed, push-media) live under profile "tools" and run
+# only via `--profile tools run --rm <name>`. They build from the `builder`
+# stage (it carries tsx + drizzle-kit + source + seed snapshot).
+#
+# Required .env (gitignored, see .env.prod.example):
+#   COMPOSE_PROJECT_NAME=tanar-site   (deterministic volume names for backups)
+#   POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB
+#   DATABASE_URL=postgres://<user>:<same password>@postgres:5432/<db>
+#   ADMIN_PASSWORD / ADMIN_SESSION_SECRET (>=32 chars)
+#   DOMAIN=<your domain>   (Caddy uses it to issue the certificate)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # no published ports — only reachable inside the compose network
+
+  web:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET}
+    volumes:
+      # persistent product photos — without this, redeploy wipes uploads
+      - product-images:/app/public/images/products
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # no published ports — caddy is the only public service
+    # web runs through docker-entrypoint.sh (chowns volume, drops to node)
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Caddyfile reads {$DOMAIN}; without this the cert won't be issued
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data       # certificates — persist to avoid LE rate limits
+      - caddy-config:/config
+    depends_on:
+      - web
+
+  # ---- one-off tools (profile: tools) -----------------------------------
+  # Built from the builder stage (has tsx, drizzle-kit, source, seed snapshot).
+
+  migrate:
+    profiles: ["tools"]
+    build:
+      context: .
+      target: builder
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    command: ["npx", "drizzle-kit", "migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  seed:
+    profiles: ["tools"]
+    build:
+      context: .
+      target: builder
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      # ALLOW_PROD_SEED is intentionally NOT set here — pass it inline at run
+      # time (`-e ALLOW_PROD_SEED=1`) so the flag can't linger and re-fire.
+    command: ["npx", "tsx", "-r", "tsconfig-paths/register", "src/core/db/seed.ts"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  push-media:
+    profiles: ["tools"]
+    build:
+      context: .
+      target: builder
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    volumes:
+      - product-images:/app/public/images/products
+    # script is created in step 9; service is declared now so compose stays the
+    # single source of truth for all tools services.
+    command: ["npx", "tsx", "-r", "tsconfig-paths/register", "scripts/apply-media-manifest.ts"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  product-images:
+  caddy-data:
+  caddy-config:

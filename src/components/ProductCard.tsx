@@ -1,14 +1,19 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import Placeholder from '@/components/Placeholder';
-import { CATEGORY_LABELS, formatPrice, getProductCardImage, type Product } from '@/lib/product';
+import { CATEGORY_LABELS, formatPrice, getProductGradient, type Product } from '@/core/catalog';
+import type { MediaAsset } from '@/core/media/client';
+import { srcSetFromUrl } from '@/core/media/client';
 
-export default function ProductCard({ product }: { product: Product }) {
-  const defaultVariant = product.variants?.[0];
-  const cardImage = defaultVariant
-    ? getProductCardImage(product.slug, defaultVariant.id, defaultVariant.models[0])
-    : null;
-  const showImage = cardImage && !product.comingSoon;
+export default function ProductCard({
+  product,
+  image,
+}: {
+  product: Product;
+  /** Primary image (first sortOrder of the first variant), if any. */
+  image?: MediaAsset;
+}) {
+  const isComingSoon = product.status === 'coming_soon';
+  const showImage = image && !isComingSoon;
 
   return (
     <Link
@@ -20,21 +25,29 @@ export default function ProductCard({ product }: { product: Product }) {
       <div className="relative">
         {showImage ? (
           <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-stone-100">
-            <Image
-              src={cardImage.md}
-              alt={`${product.name} — ${defaultVariant!.label}`}
-              fill
-              className="object-cover"
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={image.url}
+              srcSet={srcSetFromUrl(image.url)}
               sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+              alt={image.alt ?? `${product.name}`}
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover"
             />
           </div>
         ) : (
-          <Placeholder label={product.name} gradient={product.gradient} aspect="portrait" />
+          <Placeholder label={product.name} gradient={getProductGradient(product)} aspect="portrait" />
         )}
-        {product.comingSoon && (
+        {isComingSoon ? (
           <span className="absolute right-3 top-3 rounded-full bg-stone-900/80 px-3 py-1 text-xs font-medium uppercase tracking-wider text-stone-100">
             Скоро
           </span>
+        ) : (
+          product.label?.badge && (
+            <span className="absolute left-3 top-3 rounded-full bg-stone-900/80 px-3 py-1 text-xs font-medium uppercase tracking-wider text-stone-100">
+              {product.label.badge}
+            </span>
+          )
         )}
       </div>
 
@@ -46,9 +59,9 @@ export default function ProductCard({ product }: { product: Product }) {
       </h3>
       <div className="mt-1 flex items-center justify-between gap-3">
         <p className="text-sm text-stone-500">
-          {product.comingSoon ? 'Скоро в продаже' : formatPrice(product.price)}
+          {isComingSoon ? 'Скоро в продаже' : formatPrice(product.price)}
         </p>
-        {product.variants && product.variants.length > 1 && (
+        {product.variants.length > 1 && (
           <ColorDots variants={product.variants} />
         )}
       </div>
@@ -56,7 +69,7 @@ export default function ProductCard({ product }: { product: Product }) {
   );
 }
 
-function ColorDots({ variants }: { variants: NonNullable<Product['variants']> }) {
+function ColorDots({ variants }: { variants: Product['variants'] }) {
   return (
     <div className="flex items-center gap-1.5">
       {variants.map((v) => (

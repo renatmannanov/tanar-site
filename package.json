@@ -10,17 +10,31 @@
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "images": "node scripts/process-images.mjs",
-    "images:check": "tsx scripts/check-images.ts"
+    "images:check": "tsx scripts/check-images.ts",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:seed": "tsx --env-file=.env.local -r tsconfig-paths/register src/core/db/seed.ts",
+    "db:reset": "tsx --env-file=.env.local -r tsconfig-paths/register src/core/db/reset.ts"
   },
   "engines": {
     "node": ">=20 <21"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-label": "^2.1.8",
+    "drizzle-orm": "^0.45.2",
     "gray-matter": "^4.0.3",
     "next": "15.5.15",
     "next-mdx-remote": "^6.0.0",
+    "postgres": "^3.4.9",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "sharp": "^0.34.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -30,10 +44,11 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.5.0",
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "15.5.15",
     "postcss": "^8.5.10",
-    "sharp": "^0.34.5",
     "tailwindcss": "^3.4.19",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.21.0",

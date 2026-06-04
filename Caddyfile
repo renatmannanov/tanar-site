@@ -1,0 +1,27 @@
+# Caddy reverse proxy + automatic HTTPS for the Tanar storefront.
+#
+# {$DOMAIN} comes from the caddy container's DOMAIN env (set in
+# docker-compose.prod.yml). Caddy auto-provisions a Let's Encrypt certificate
+# on the first HTTPS request — this requires DNS for {$DOMAIN} to already point
+# at the VPS and ports 80/443 to be open. http -> https redirect is automatic.
+#
+# Body size: Caddy does NOT cap request bodies by default (unlike nginx), so
+# 10 MB photo uploads pass through. Next's serverActions.bodySizeLimit (10mb)
+# is the real guard; do not add request_body max_size below it.
+#
+# Debugging tip: to avoid burning the Let's Encrypt rate limit while testing,
+# temporarily switch the issuer to staging by uncommenting the `acme_ca` line
+# in the global block, then `docker compose restart caddy`. Remove it for prod.
+
+{
+	# email for Let's Encrypt expiry notices (optional but recommended)
+	# email you@example.com
+
+	# --- LE STAGING (debugging only — untrusted cert, no rate limit) ---
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+{$DOMAIN} {
+	encode gzip zstd
+	reverse_proxy web:3000
+}

@@ -1,0 +1,356 @@
+{
+  "meta": {
+    "source": "internal/docs/TANAR_Сводная_Финальная.xlsx - Сводная таблица.csv",
+    "extractedAt": "2026-05-29",
+    "stockDate": "2026-05-25",
+    "products": 12,
+    "variants": 30,
+    "skus": 109,
+    "currency": "KZT",
+    "notes": [
+      "Снапшот извлечён из CSV ОДИН раз. Источник правды для плана импорта и импорт-скрипта.",
+      "priceBase = Цена Kaspi. priceOzon/ozonGroupId/ozonSku сохранены для Фазы 5 (MarketplaceListing), в core НЕ импортируются.",
+      "stock: значения '—' и 'уточнить' в CSV → 0 (помечены stockUnknown=true на SKU).",
+      "name: предложены чисто (без цвета/размера) — ТРЕБУЕТ сверки заказчицей/пользователем.",
+      "hex: подобраны по названию цвета — приблизительные, ТРЕБУЮТ сверки.",
+      "label.badge = первая строка поля 'Название на бирке', label.sub = вторая строка.",
+      "care: null где в CSV поле пустое (шорты, брюки, футболки бесшовные/антибакт, поло).",
+      "colorId — нормализованный slug цвета; colorLabel — как в CSV (сохраняет регистр/ё)."
+    ],
+    "needsReview": ["product.name (×12)", "variant.hex (×~20 уникальных)", "product.slug (×12)"]
+  },
+  "categories": [
+    { "id": "jackets", "label": "Куртки" },
+    { "id": "pants", "label": "Брюки" },
+    { "id": "shorts", "label": "Шорты" },
+    { "id": "tshirts", "label": "Футболки" },
+    { "id": "polo", "label": "Поло" }
+  ],
+  "products": [
+    {
+      "slug": "jacket-sv7-goretex",
+      "category": "jackets",
+      "csvSection": "Куртки горные SV7",
+      "name": "Куртка мужская TANAR SV7 Gore-Tex",
+      "label": { "badge": "GORE-TEX®", "sub": "Куртка Gore-Tex" },
+      "priceBase": 80000,
+      "description": "Профессиональная штормовка с мембраной Gore-Tex от казахстанского бренда TANAR. Полная защита от дождя, снега и ветра — для гор, треккинга, альпинизма и серьёзных погодных условий. Мембрана Gore-Tex обеспечивает водонепроницаемость 28000 мм и паропроницаемость 25000 г/м²/24ч, проклеенные швы исключают протекание, регулируемый капюшон рассчитан под каску. Карманы на молнии расположены выше уровня рюкзачного пояса. Лёгкая, прочная, складывается в свой же карман.\n\nРазмерная сетка: M — 46, L — 48, XL — 50. Если вы покупаете куртку для города — размер нормальный. Если планируете идти в горы или в походы — рекомендуем взять на размер больше.\n\nПеред покупкой напишите продавцу — мы всегда на связи и сможем точно подобрать вам ваш размер.",
+      "care": "Ручная стирка до 30°C; не отбеливать; не в барабане; не гладить; хранение: повесить/сложить; химчистка запрещена",
+      "marketplace": { "ozonGroupId": "5215009472", "priceOzon": 92000 },
+      "variants": [
+        { "colorId": "black", "colorLabel": "Чёрный", "hex": "#1c1c1c", "skus": [
+          { "size": "M", "ruSize": "46", "article": "TANAR-001", "stock": 19, "marketplace": { "ozonSku": "4373879096" } },
+          { "size": "L", "ruSize": "48", "article": "TANAR-002", "stock": 19, "marketplace": { "ozonSku": "4373878476" } },
+          { "size": "XL", "ruSize": "50", "article": "TANAR-003", "stock": 19, "marketplace": { "ozonSku": "4373878283" } }
+        ]},
+        { "colorId": "white", "colorLabel": "Белый", "hex": "#f3f1ec", "skus": [
+          { "size": "M", "ruSize": "46", "article": "TANAR-004", "stock": 20, "marketplace": { "ozonSku": "4373878952" } },
+          { "size": "L", "ruSize": "48", "article": "TANAR-005", "stock": 20, "marketplace": { "ozonSku": "4373877890" } },
+          { "size": "XL", "ruSize": "50", "article": "TANAR-006", "stock": 20, "marketplace": { "ozonSku": "4373879930" } }
+        ]},
+        { "colorId": "smoke-gray", "colorLabel": "Дымчато-серый", "hex": "#8a8d8a", "skus": [
+          { "size": "M", "ruSize": "46", "article": "TANAR-007", "stock": 21, "marketplace": { "ozonSku": "4373877302" } },
+          { "size": "L", "ruSize": "48", "article": "TANAR-008", "stock": 21, "marketplace": { "ozonSku": "4373876381" } },
+          { "size": "XL", "ruSize": "50", "article": "TANAR-009", "stock": 21, "marketplace": { "ozonSku": "4373906454" } }
+        ]},
+        { "colorId": "bordeaux", "colorLabel": "Бордо", "hex": "#5c2230", "skus": [
+          { "size": "M", "ruSize": "46", "article": "TANAR-010", "stock": 4, "marketplace": { "ozonSku": "4373877228" } },
+          { "size": "L", "ruSize": "48", "article": "TANAR-011", "stock": 4, "marketplace": { "ozonSku": "4373906145" } },
+          { "size": "XL", "ruSize": "50", "article": "TANAR-012", "stock": 4, "marketplace": { "ozonSku": "4373879340" } }
+        ]},
+        { "colorId": "stone-green", "colorLabel": "Зелёный камень", "hex": "#5a6450", "skus": [
+          { "size": "M", "ruSize": "46", "article": "TANAR-013", "stock": 4, "marketplace": { "ozonSku": "4373879147" } },
+          { "size": "L", "ruSize": "48", "article": "TANAR-014", "stock": 4, "marketplace": { "ozonSku": "4373879399" } },
+          { "size": "XL", "ruSize": "50", "article": "TANAR-015", "stock": 4, "marketplace": { "ozonSku": "4373879151" } }
+        ]}
+      ]
+    },
+    {
+      "slug": "jacket-smd1115-windbreaker",
+      "category": "jackets",
+      "csvSection": "Куртки горные SMD1115",
+      "name": "Ветровка-дождевик мужская TANAR SMD1115",
+      "label": { "badge": "WINDBREAKER", "sub": "Ветровка дождевик" },
+      "priceBase": 50000,
+      "description": "Универсальная плотная ветровка от казахстанского бренда TANAR — защита от ветра и моросящего дождя на каждый день. Минималистичный дизайн подходит и мужчинам, и женщинам, четыре цвета закроют любые сценарии — от утренней пробежки до прогулок по городу. Водоотталкивающее PU-покрытие на ткани, регулируемый капюшон, центральная молния, боковые карманы на молнии. Ткань плотная, но при этом лёгкая — ветровка не сковывает движений.\n\nРазмерная сетка: M — 44, L — 46, XL — 48, 2XL — 50.\n\nПеред покупкой напишите продавцу — мы всегда на связи и сможем точно подобрать вам ваш размер.",
+      "care": "Машинная бережная 30°C; не отбеливать; бережная сушка; не гладить; химчистка запрещена",
+      "marketplace": { "ozonGroupId": "5393652700", "priceOzon": 57500 },
+      "variants": [
+        { "colorId": "milk-white", "colorLabel": "Молочно-белый", "hex": "#f0ece2", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-016", "stock": 8, "marketplace": { "ozonSku": "4373879596" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-017", "stock": 8, "marketplace": { "ozonSku": "4373877929" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-018", "stock": 8, "marketplace": { "ozonSku": "4373879282" } },
+          { "size": "2XL", "ruSize": "50", "article": "TANAR-019", "stock": 8, "marketplace": { "ozonSku": "4373879939" } }
+        ]},
+        { "colorId": "dark-blue", "colorLabel": "Тёмно-синий", "hex": "#26303f", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-020", "stock": 10, "marketplace": { "ozonSku": "4373904500" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-021", "stock": 10, "marketplace": { "ozonSku": "4373876442" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-022", "stock": 10, "marketplace": { "ozonSku": "4373876608" } },
+          { "size": "2XL", "ruSize": "50", "article": "TANAR-023", "stock": 10, "marketplace": { "ozonSku": "4373880048" } }
+        ]},
+        { "colorId": "orange", "colorLabel": "Оранжевый", "hex": "#d2691e", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-024", "stock": 10, "marketplace": { "ozonSku": "4373879153" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-025", "stock": 10, "marketplace": { "ozonSku": "4373906771" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-026", "stock": 10, "marketplace": { "ozonSku": "4373871385" } },
+          { "size": "2XL", "ruSize": "50", "article": "TANAR-027", "stock": 10, "marketplace": { "ozonSku": "4373876578" } }
+        ]},
+        { "colorId": "black", "colorLabel": "Чёрный", "hex": "#1c1c1c", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-028", "stock": 10, "marketplace": { "ozonSku": "4373876345" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-029", "stock": 10, "marketplace": { "ozonSku": "4373879599" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-030", "stock": 10, "marketplace": { "ozonSku": "4373877922" } },
+          { "size": "2XL", "ruSize": "50", "article": "TANAR-031", "stock": 10, "marketplace": { "ozonSku": "4373911145" } }
+        ]}
+      ]
+    },
+    {
+      "slug": "jacket-3107-spf-running-men",
+      "category": "jackets",
+      "csvSection": "Куртки горные 3107",
+      "name": "Куртка беговая мужская TANAR 3107 SPF",
+      "label": { "badge": "SPF RUNNING", "sub": "Куртка беговая с SPF" },
+      "priceBase": 55000,
+      "description": "Лёгкая мужская беговая куртка с SPF-защитой от казахстанского бренда TANAR. Защищает от ветра, моросящего дождя и ультрафиолетовых лучей — для бега, прогулок и активного отдыха. Ткань с DWR-пропиткой не сковывает движений и быстро сохнет, светоотражающие элементы повышают видимость в сумерках. Капюшон с регулировкой, боковые карманы на молнии, манжеты с эластичной отделкой. Куртка компактно складывается и помещается в собственный карман.\n\nРазмерная сетка: M — 46, L — 48, XL — 50, 2XL — 52.\n\nПеред покупкой напишите продавцу — мы всегда на связи и сможем точно подобрать вам ваш размер.",
+      "care": "Машинная бережная 30°C; не отбеливать; бережная сушка; не гладить; химчистка запрещена",
+      "marketplace": { "ozonGroupId": "5393654717", "priceOzon": 63250 },
+      "variants": [
+        { "colorId": "green", "colorLabel": "Зелёный", "hex": "#3e6b3e", "skus": [
+          { "size": "M", "ruSize": "46", "article": "TANAR-032", "stock": 14, "marketplace": { "ozonSku": "4373879467" } },
+          { "size": "L", "ruSize": "48", "article": "TANAR-033", "stock": 14, "marketplace": { "ozonSku": "4373905477" } },
+          { "size": "XL", "ruSize": "50", "article": "TANAR-034", "stock": 14, "marketplace": { "ozonSku": "4373876314" } },
+          { "size": "2XL", "ruSize": "52", "article": "TANAR-035", "stock": 14, "marketplace": { "ozonSku": "4373908477" } }
+        ]},
+        { "colorId": "olive", "colorLabel": "Оливковый", "hex": "#6b6b3a", "skus": [
+          { "size": "M", "ruSize": "46", "article": "TANAR-036", "stock": 14, "marketplace": { "ozonSku": "4373876154" } },
+          { "size": "L", "ruSize": "48", "article": "TANAR-037", "stock": 14, "marketplace": { "ozonSku": "4373879144" } },
+          { "size": "XL", "ruSize": "50", "article": "TANAR-038", "stock": 14, "marketplace": { "ozonSku": "4373878806" } },
+          { "size": "2XL", "ruSize": "52", "article": "TANAR-039", "stock": 14, "marketplace": { "ozonSku": "4373877870" } }
+        ]},
+        { "colorId": "light-gray", "colorLabel": "Светло-серый", "hex": "#c2c2bd", "skus": [
+          { "size": "M", "ruSize": "46", "article": "TANAR-040", "stock": 14, "marketplace": { "ozonSku": "4373878478" } },
+          { "size": "L", "ruSize": "48", "article": "TANAR-041", "stock": 14, "marketplace": { "ozonSku": "4373876569" } },
+          { "size": "XL", "ruSize": "50", "article": "TANAR-042", "stock": 14, "marketplace": { "ozonSku": "4373876402" } },
+          { "size": "2XL", "ruSize": "52", "article": "TANAR-043", "stock": 14, "marketplace": { "ozonSku": "4373879848" } }
+        ]}
+      ]
+    },
+    {
+      "slug": "jacket-3110-spf-running-women",
+      "category": "jackets",
+      "csvSection": "Куртки горные женские",
+      "name": "Куртка беговая женская TANAR 3110 SPF",
+      "label": { "badge": "SPF RUNNING", "sub": "Куртка беговая с SPF" },
+      "priceBase": 42000,
+      "description": "Лёгкая женская беговая куртка с SPF-защитой от казахстанского бренда TANAR. Защищает от ветра, моросящего дождя и ультрафиолетовых лучей — для бега, прогулок и активного отдыха. Приталенный силуэт, ткань с DWR-пропиткой не сковывает движений и быстро сохнет, светоотражающие элементы повышают видимость в сумерках. Капюшон с регулировкой, боковые карманы на молнии, манжеты с эластичной отделкой. Куртка компактно складывается и помещается в собственный карман.\n\nРазмерная сетка: M — 44, L — 46, XL — 48. Если вы покупаете куртку для города — размер нормальный. Если планируете идти в горы или в походы — рекомендуем взять на размер больше.\n\nПеред покупкой напишите продавцу — мы всегда на связи и сможем точно подобрать вам ваш размер.",
+      "care": "Машинная бережная 30°C; не отбеливать; бережная сушка; не гладить; химчистка запрещена",
+      "marketplace": { "ozonGroupId": "5393654799", "priceOzon": 48300 },
+      "variants": [
+        { "colorId": "orange-red", "colorLabel": "Оранжево-красный", "hex": "#d2452f", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-044", "stock": 8, "marketplace": { "ozonSku": "4373878582" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-045", "stock": 8, "marketplace": { "ozonSku": "4373876276" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-046", "stock": 8, "marketplace": { "ozonSku": "4373917579" } }
+        ]},
+        { "colorId": "light-pink", "colorLabel": "Светло-розовый", "hex": "#e8c4c9", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-047", "stock": 10, "marketplace": { "ozonSku": "4373877729" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-048", "stock": 10, "marketplace": { "ozonSku": "4373876480" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-049", "stock": 10, "marketplace": { "ozonSku": "4373877909" } }
+        ]}
+      ]
+    },
+    {
+      "slug": "shorts-lk2509-trekking",
+      "category": "shorts",
+      "csvSection": "Шорты",
+      "name": "Шорты летние спортивные унисекс TANAR LK2509",
+      "label": { "badge": "TREKKING", "sub": "Шорты трекинговые" },
+      "priceBase": 20000,
+      "description": "Лёгкие летние шорты унисекс TANAR LK2509 — универсальная модель для активного отдыха, треккинга и города. Быстросохнущий материал отводит влагу, пояс на резинке обеспечивает комфортную посадку. Подходят для мужчин и женщин. Казахстанский бренд горной одежды TANAR.",
+      "care": null,
+      "marketplace": { "ozonGroupId": "5410011917", "priceOzon": 24000 },
+      "variants": [
+        { "colorId": "black", "colorLabel": "Чёрный", "hex": "#1c1c1c", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-110", "stock": 0, "stockUnknown": true, "marketplace": { "ozonSku": "4398813089" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-111", "stock": 0, "stockUnknown": true, "marketplace": { "ozonSku": "4398813422" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-112", "stock": 0, "stockUnknown": true, "marketplace": { "ozonSku": "4398814933" } }
+        ]},
+        { "colorId": "dark-gray", "colorLabel": "Тёмно-серый", "hex": "#4a4a4a", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-113", "stock": 10, "marketplace": { "ozonSku": "4398813309" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-114", "stock": 10, "marketplace": { "ozonSku": "4398813413" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-115", "stock": 10, "marketplace": { "ozonSku": "4398814410" } }
+        ]}
+      ]
+    },
+    {
+      "slug": "pants-2006-winter",
+      "category": "pants",
+      "csvSection": "Брюки зимние",
+      "name": "Брюки зимние трекинговые унисекс TANAR 2006",
+      "label": { "badge": "TREKKING", "sub": "Брюки трекинговые тёплые" },
+      "priceBase": 38000,
+      "description": "Зимние треккинговые брюки TANAR модель 2006 — надёжная защита в холодную погоду. Тёплая флисовая подкладка сохраняет тепло. Ветро- и влагозащитный мембранный материал. Регулируемый пояс на резинке. Боковые карманы на молнии. Унисекс — подходит мужчинам и женщинам. Размерный ряд: M(44), L(46), XL(48), 2XL(50). Страна производства: Казахстан.",
+      "care": null,
+      "marketplace": { "ozonGroupId": "5413832673", "priceOzon": 45600 },
+      "variants": [
+        { "colorId": "black", "colorLabel": "Чёрный", "hex": "#1c1c1c", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-400", "stock": 19, "marketplace": { "ozonSku": "4404817186" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-401", "stock": 19, "marketplace": { "ozonSku": "4404812473" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-402", "stock": 19, "marketplace": { "ozonSku": "4404815161" } },
+          { "size": "2XL", "ruSize": "50", "article": "TANAR-403", "stock": 19, "marketplace": { "ozonSku": "4404815458" } }
+        ]},
+        { "colorId": "dark-blue", "colorLabel": "Тёмно-синий", "hex": "#26303f", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-404", "stock": 15, "marketplace": { "ozonSku": "4404814499" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-405", "stock": 15, "marketplace": { "ozonSku": "4404812351" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-406", "stock": 15, "marketplace": { "ozonSku": "4404816849" } },
+          { "size": "2XL", "ruSize": "50", "article": "TANAR-407", "stock": 15, "marketplace": { "ozonSku": "4404817731" } }
+        ]}
+      ]
+    },
+    {
+      "slug": "pants-1141-summer",
+      "category": "pants",
+      "csvSection": "Брюки летние",
+      "name": "Брюки летние трекинговые унисекс TANAR 1141",
+      "label": { "badge": "TREKKING", "sub": "Брюки трекинговые летние" },
+      "priceBase": 33000,
+      "description": "Летние треккинговые брюки TANAR модель 1141 с регулируемым ремешком. Лёгкий быстросохнущий полиэстер — комфорт в походе и активном отдыхе. Боковые и задние карманы. Унисекс — подходит мужчинам и женщинам. Размерный ряд: M(44), L(46), XL(48), 2XL(50). Страна производства: Казахстан.",
+      "care": null,
+      "marketplace": { "ozonGroupId": "5413832683", "priceOzon": 39600 },
+      "variants": [
+        { "colorId": "gray", "colorLabel": "Серый", "hex": "#8a8a8a", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-408", "stock": 5, "marketplace": { "ozonSku": "4404817041" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-409", "stock": 5, "marketplace": { "ozonSku": "4404814795" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-410", "stock": 5, "marketplace": { "ozonSku": "4404816046" } },
+          { "size": "2XL", "ruSize": "50", "article": "TANAR-411", "stock": 5, "marketplace": { "ozonSku": "4404812654" } }
+        ]},
+        { "colorId": "black", "colorLabel": "Чёрный", "hex": "#1c1c1c", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-412", "stock": 0, "stockUnknown": true, "marketplace": { "ozonSku": "4404817394" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-413", "stock": 0, "stockUnknown": true, "marketplace": { "ozonSku": "4404814733" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-414", "stock": 0, "stockUnknown": true, "marketplace": { "ozonSku": "4404812630" } },
+          { "size": "2XL", "ruSize": "50", "article": "TANAR-415", "stock": 0, "stockUnknown": true, "marketplace": { "ozonSku": "4404817815" } }
+        ]}
+      ]
+    },
+    {
+      "slug": "pants-1147-hydrocool-spring",
+      "category": "pants",
+      "csvSection": "Брюки весенние",
+      "name": "Брюки весенние трекинговые унисекс TANAR 1147 Hydrocool",
+      "label": { "badge": "HYDROCOOL", "sub": "Брюки трекинговые Hydrocool" },
+      "priceBase": 33000,
+      "description": "Весенне-осенние брюки TANAR модель 1147 с застёжкой-кнопкой. Плотный полиэстер, защита от ветра и лёгкая влагостойкость. Карманы для похода. Унисекс — подходит мужчинам и женщинам. Размерный ряд: M(44), L(46), XL(48), 2XL(50). Страна производства: Казахстан.",
+      "care": null,
+      "marketplace": { "ozonGroupId": "5413830547", "priceOzon": 39600 },
+      "variants": [
+        { "colorId": "black", "colorLabel": "Чёрный", "hex": "#1c1c1c", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-416", "stock": 9, "marketplace": { "ozonSku": "4404815527" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-417", "stock": 9, "marketplace": { "ozonSku": "4404815494" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-418", "stock": 9, "marketplace": { "ozonSku": "4404817974" } },
+          { "size": "2XL", "ruSize": "50", "article": "TANAR-419", "stock": 9, "marketplace": { "ozonSku": "4404812392" } }
+        ]},
+        { "colorId": "dark-blue", "colorLabel": "Тёмно-синий", "hex": "#26303f", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-420", "stock": 10, "marketplace": { "ozonSku": "4404810294" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-421", "stock": 10, "marketplace": { "ozonSku": "4404814674" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-422", "stock": 10, "marketplace": { "ozonSku": "4404814482" } },
+          { "size": "2XL", "ruSize": "50", "article": "TANAR-423", "stock": 10, "marketplace": { "ozonSku": "4404812061" } }
+        ]}
+      ]
+    },
+    {
+      "slug": "tshirt-seamless-men",
+      "category": "tshirts",
+      "csvSection": "Футболки бесшовные",
+      "name": "Футболка бесшовная мужская TANAR",
+      "label": { "badge": "SEAMLESS", "sub": "Футболка мужская бесшовная" },
+      "priceBase": 20000,
+      "description": "Мужская бесшовная футболка TANAR — комфорт без швов для активного отдыха и спорта. Лёгкий быстросохнущий полиэстер отводит влагу. Бесшовная конструкция исключает натирание. Размерный ряд: M(44), L(46), XL(48). Страна производства: Казахстан.",
+      "care": null,
+      "marketplace": { "ozonGroupId": "5414201946", "priceOzon": 24000 },
+      "variants": [
+        { "colorId": "beaver", "colorLabel": "Бобровый", "hex": "#8b7355", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-500", "stock": 0, "stockUnknown": true, "marketplace": { "ozonSku": "4405343785" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-501", "stock": 0, "stockUnknown": true, "marketplace": { "ozonSku": "4405342737" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-502", "stock": 0, "stockUnknown": true, "marketplace": { "ozonSku": "4405343708" } }
+        ]},
+        { "colorId": "graphite", "colorLabel": "Графит", "hex": "#3a3a3a", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-503", "stock": 0, "stockUnknown": true, "marketplace": { "ozonSku": "4405342798" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-504", "stock": 0, "stockUnknown": true, "marketplace": { "ozonSku": "4405343136" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-505", "stock": 0, "stockUnknown": true, "marketplace": { "ozonSku": "4405343443" } }
+        ]}
+      ]
+    },
+    {
+      "slug": "tshirt-antibacterial-men",
+      "category": "tshirts",
+      "csvSection": "Футболки антибактериальные",
+      "name": "Футболка антибактериальная мужская TANAR",
+      "label": { "badge": "ANTIBACTERIAL", "sub": "Футболка мужская антибактериальная" },
+      "priceBase": 15000,
+      "description": "Мужская антибактериальная футболка TANAR — защита от запаха и бактерий весь день. Специальная пропитка подавляет рост бактерий. Быстросохнущий полиэстер. Размерный ряд: XL(44), 2XL(46), 3XL(48), 4XL(50). Страна производства: Казахстан.",
+      "care": null,
+      "marketplace": { "ozonGroupId": "5414201901", "priceOzon": 18000 },
+      "variants": [
+        { "colorId": "mustard", "colorLabel": "Горчичный", "hex": "#c9a227", "skus": [
+          { "size": "XL", "ruSize": "44", "article": "TANAR-506", "stock": 4, "marketplace": { "ozonSku": "4405343686" } },
+          { "size": "2XL", "ruSize": "46", "article": "TANAR-507", "stock": 4, "marketplace": { "ozonSku": "4405342464" } },
+          { "size": "3XL", "ruSize": "48", "article": "TANAR-508", "stock": 4, "marketplace": { "ozonSku": "4405344015" } },
+          { "size": "4XL", "ruSize": "50", "article": "TANAR-509", "stock": 4, "marketplace": { "ozonSku": "4405347266" } }
+        ]},
+        { "colorId": "silver-gray", "colorLabel": "Серебристо-серый", "hex": "#b0b3b8", "skus": [
+          { "size": "XL", "ruSize": "44", "article": "TANAR-510", "stock": 9, "marketplace": { "ozonSku": "4405343519" } },
+          { "size": "2XL", "ruSize": "46", "article": "TANAR-511", "stock": 9, "marketplace": { "ozonSku": "4405342762" } },
+          { "size": "3XL", "ruSize": "48", "article": "TANAR-512", "stock": 9, "marketplace": { "ozonSku": "4405343614" } },
+          { "size": "4XL", "ruSize": "50", "article": "TANAR-513", "stock": 9, "marketplace": { "ozonSku": "4405343112" } }
+        ]}
+      ]
+    },
+    {
+      "slug": "tshirt-upf30-women",
+      "category": "tshirts",
+      "csvSection": "Футболки горные женские",
+      "name": "Футболка горная женская TANAR UPF 30+",
+      "label": { "badge": "UPF 30+", "sub": "Футболка горная UPF 30+" },
+      "priceBase": 15000,
+      "description": "Женская горная футболка TANAR — для активного отдыха и треккинга. Лёгкий дышащий полиэстер, быстро сохнет после нагрузки. Размерный ряд: L(44), XL(46), 2XL(48), 3XL(50). Страна производства: Казахстан.",
+      "care": "Машинная бережная 30°C; не отбеливать; бережная сушка; не гладить; химчистка запрещена",
+      "marketplace": { "ozonGroupId": "5414201827", "priceOzon": 18000 },
+      "variants": [
+        { "colorId": "blue", "colorLabel": "Голубой", "hex": "#7fb0d4", "skus": [
+          { "size": "L", "ruSize": "44", "article": "TANAR-514", "stock": 8, "marketplace": { "ozonSku": "4405344035" } },
+          { "size": "XL", "ruSize": "46", "article": "TANAR-515", "stock": 8, "marketplace": { "ozonSku": "4405342704" } },
+          { "size": "2XL", "ruSize": "48", "article": "TANAR-516", "stock": 8, "marketplace": { "ozonSku": "4405343468" } },
+          { "size": "3XL", "ruSize": "50", "article": "TANAR-517", "stock": 8, "marketplace": { "ozonSku": "4405342657" } }
+        ]},
+        { "colorId": "pink", "colorLabel": "Розовый", "hex": "#e89bb4", "skus": [
+          { "size": "L", "ruSize": "44", "article": "TANAR-518", "stock": 16, "marketplace": { "ozonSku": "4405343504" } },
+          { "size": "XL", "ruSize": "46", "article": "TANAR-519", "stock": 16, "marketplace": { "ozonSku": "4405342544" } },
+          { "size": "2XL", "ruSize": "48", "article": "TANAR-520", "stock": 16, "marketplace": { "ozonSku": "4405342639" } },
+          { "size": "3XL", "ruSize": "50", "article": "TANAR-521", "stock": 16, "marketplace": { "ozonSku": "4405343706" } }
+        ]}
+      ]
+    },
+    {
+      "slug": "polo-women",
+      "category": "polo",
+      "csvSection": "Поло",
+      "name": "Поло женское TANAR",
+      "label": { "badge": "POLO", "sub": "Футболка поло" },
+      "priceBase": 20000,
+      "description": "Женское поло TANAR — элегантный стиль для активного и повседневного образа. Лёгкий дышащий полиэстер, классический воротник-поло с пуговицами. Размерный ряд: M(44), L(46), XL(48), 2XL(50). Страна производства: Казахстан.",
+      "care": null,
+      "marketplace": { "ozonGroupId": "5414395615", "priceOzon": 24000 },
+      "variants": [
+        { "colorId": "light-pink", "colorLabel": "Светло-розовый", "hex": "#e8c4c9", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-530", "stock": 6, "marketplace": { "ozonSku": "4405633517" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-531", "stock": 6, "marketplace": { "ozonSku": "4405631240" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-532", "stock": 6, "marketplace": { "ozonSku": "4405631253" } },
+          { "size": "2XL", "ruSize": "50", "article": "TANAR-533", "stock": 6, "marketplace": { "ozonSku": "4405633027" } }
+        ]},
+        { "colorId": "milk-white", "colorLabel": "Молочно-белый", "hex": "#f0ece2", "skus": [
+          { "size": "M", "ruSize": "44", "article": "TANAR-534", "stock": 10, "marketplace": { "ozonSku": "4405630920" } },
+          { "size": "L", "ruSize": "46", "article": "TANAR-535", "stock": 10, "marketplace": { "ozonSku": "4405632620" } },
+          { "size": "XL", "ruSize": "48", "article": "TANAR-536", "stock": 10, "marketplace": { "ozonSku": "4405633009" } },
+          { "size": "2XL", "ruSize": "50", "article": "TANAR-537", "stock": 10, "marketplace": { "ozonSku": "4405633238" } }
+        ]}
+      ]
+    }
+  ]
+}

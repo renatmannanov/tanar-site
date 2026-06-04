@@ -1,0 +1,43 @@
+# Build context excludes — keep the image small and the build deterministic.
+# IMPORTANT: order matters for the task_tracker exception at the bottom.
+
+# dependencies & build artifacts (re-created inside the image)
+node_modules
+.next
+out
+build
+
+# vcs / editor / ci
+.git
+.gitignore
+.vscode
+.claude
+
+# tests (not needed in prod image)
+e2e
+playwright.config.ts
+test-results
+playwright-report
+
+# secrets — NEVER copy env files into the image
+.env*
+
+# local-only / reference material
+internal
+assets
+scratch
+logs
+review-prompts
+ralph.ps1
+.backup-location
+*.tsbuildinfo
+
+# dev compose (prod uses docker-compose.prod.yml)
+docker-compose.yml
+
+# planning docs — excluded wholesale, EXCEPT the seed snapshot which the
+# builder stage needs (seed step). Keep these !-lines AFTER `task_tracker`.
+task_tracker
+!task_tracker/done
+!task_tracker/done/real-catalog-import
+!task_tracker/done/real-catalog-import/catalog-snapshot.json

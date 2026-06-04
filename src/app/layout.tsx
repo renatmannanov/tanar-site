@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import "./globals.css";
 
 const inter = Inter({
@@ -19,6 +17,8 @@ export const metadata: Metadata = {
   description: "Одежда и снаряжение для гор. Создано в Казахстане.",
 };
 
+// Minimal root layout: html/body + font variables only. Header/Footer live in
+// (public)/layout.tsx so the admin segment does not inherit the storefront chrome.
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,9 +29,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${playfair.variable} antialiased bg-stone-50 text-stone-900`}
       >
-        <Header />
-        <main className="min-h-screen">{children}</main>
-        <Footer />
+        {children}
       </body>
     </html>
   );

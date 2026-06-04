@@ -2,10 +2,10 @@ import Link from 'next/link';
 
 const catalogLinks = [
   { label: 'Куртки', href: '/catalog?category=jackets' },
-  { label: 'Худи', href: '/catalog?category=hoodies' },
-  { label: 'Футболки', href: '/catalog?category=t-shirts' },
-  { label: 'Штаны', href: '/catalog?category=pants' },
+  { label: 'Брюки', href: '/catalog?category=pants' },
   { label: 'Шорты', href: '/catalog?category=shorts' },
+  { label: 'Футболки', href: '/catalog?category=tshirts' },
+  { label: 'Поло', href: '/catalog?category=polo' },
 ] as const;
 
 const companyLinks = [

@@ -1,0 +1,132 @@
+# Progress Log — Полный CRUD + фото (План C)
+
+## Контекст для агента
+
+### Что уже готово (проверено 2026-06-01)
+- **Write-контракт** `src/core/catalog/repository.ts` (экспорт из `@/core/catalog`):
+  - `createProduct(input)` (~276): insert с нуля через `insertVariantTree`.
+  - `updateProduct(slug, input)` (~298): СЕЙЧАС delete+insert дерева вариантов → **шаг 1 переписывает на upsert**.
+  - `deleteProduct(slug)`: каскад, throw на неизвестный slug. (Готов, шаг 4 его только зовёт.)
+  - `insertVariantTree(tx, productId, input)` (~225): хардкодит `reservedQty: 0`.
+  - `productColumns(input)` (~258): product-level колонки.
+  - Read: `getAllProducts/getProductBySlug/getProductsByCategory/getRelatedProducts` — JOIN products×variants×skus, `groupRows` (~68). **Фото в Product сейчас НЕ читаются.**
+- **Схема БД** `src/core/db/schema.ts`:
+  - `product_variants`: unique `product_variants_product_color_uq (product_id, color_id)`. → ключ upsert вариантов.
+  - `skus`: unique `skus_variant_size_uq (variant_id, size)`, `stockQty`, `reservedQty`. → ключ upsert SKU.
+  - `media_assets` (~103): `id, scope, url, sortOrder, productId (cascade), variantId (cascade), view, model, role, key, alt, createdAt`. **Уже существует — реализация media НЕ меняет схему, db:generate миграцию НЕ создаёт.**
+- **Типы:** `Product` (read, поле `price`, `variants[].id/label`), `ProductInput`/`VariantInput`/`SkuInput` (write, `z.input` из repository.ts ~218-220). `Sku.reservedQty` есть в read-типе. **Read↔write имена РАЗНЫЕ** (price↔priceBase, id↔colorId, label↔colorLabel) — маппер `productToInput` обязателен.
+- **MediaStore-контракт** `src/core/media/index.ts`: `list/upload/remove` (+ типы `MediaAsset`/`MediaUploadInput`). **Реализации НЕТ** — шаг 2 добавляет impl + метод `reorder`.
+- **Витрина строит фото ПО КОНВЕНЦИИ ИМЁН, не из БД:** `src/core/catalog/images.ts` — `getProductGalleryShots`/`getProductCardImage`/`productImagePath` вычисляют пути `{view}-{model}-...webp` из `variant.models`/`hasFlatShots`. Файлов для боевых 12 товаров нет → витрина показывает градиент. **Шаг 6 переключает на `media_assets`.**
+  - Потребители (обновить в шаге 6): `src/components/product/ProductDetail.tsx` (галерея), `src/components/ProductCard.tsx` (карточка каталога), `src/components/home/CategoriesGrid.tsx` (главная). Градиент-фолбэк: `src/core/catalog/gradient.ts`.
+
+### Что уже готово в админке (План B — `task_tracker/done/admin-editing/`)
+- `ProductForm` `src/components/admin/ProductForm.tsx`: `mode: 'create'|'edit'`, controlled `useState<ProductInput>`, submit через `useTransition` + проп `action(input)`. Кнопки «Создать»/«Удалить»/блок «Фото» — СЕЙЧАС `disabled` (заглушки). `EMPTY_INPUT` для create уже есть.
+- `ConfirmButton` `src/components/admin/ui/ConfirmButton.tsx` — Radix Dialog подтверждение (готов, шаги 4/5 переиспользуют).
+- UI-примитивы `src/components/admin/ui/`: Button/Input/Textarea/AutoTextarea/Select/Label/Dialog/cn.
+- Маппер `productToInput`: `src/app/admin/(protected)/catalog/product-mapper.ts` — СЕЙЧАС дропает `reservedQty` (шаг 1 возвращает), есть `cleanMarketplaces`.
+- Server actions: `src/app/admin/(protected)/catalog/actions.ts` (`updateProductAction`). Шаги 3/4 добавляют create/delete сюда же или рядом.
+- Edit-page: `src/app/admin/(protected)/catalog/[slug]/edit/page.tsx` (`requireAdmin`, `getProductBySlug`, `productToInput`, `.bind(null, slug)`).
+- Список: `src/app/admin/(protected)/catalog/page.tsx` (кнопка «Создать товар» disabled).
+
+### Грабли (НЕ повторить — из Плана B)
+- **Client-компоненты админки импортят `@/core/catalog/client`, НЕ barrel `@/core/catalog`** — barrel тянет `repository.ts`→postgres в client-бандл, **ломает `build`** (`Can't resolve 'tls'`). typecheck/lint это НЕ ловят → **после client-кода ГОНЯТЬ `build`**.
+- `updateProductAction` форсирует `slug` из маршрута (`{...input, slug}`). `redirect()` — ВНЕ try/catch (иначе catch проглотит). `requireAdmin()` из `@/lib/require-admin` первой строкой в каждом server action и protected page.
+- `Product.marketplaces` может нести undefined-ключи — `cleanMarketplaces` в маппере фильтрует (не сломать при правках маппера в шаге 1).
+- Маршруты админки — в группе `(protected)` (сайдбар-shell); URL без `(protected)`. Витрина — в `(public)`.
+
+### КРИТИЧНЫЕ факты
+- **PowerShell** на Windows (не bash-инлайн `VAR=val`). Пути с `/` в Bash-tool ок.
+- **Next 15.5 + Turbopack**, React 19. Server actions принимают `FormData` с `File` — это путь для **upload фото** (НЕ через controlled `ProductForm`-state; файлы и controlled-формы не дружат). `cookies()`/`params` — async (`await`).
+- Postgres порты **5442/5443**. Перед build-рантаймом/e2e: `npm run db:up && npm run db:seed`.
+- `sharp` — добавить в deps (`npm i sharp`). На Windows ставится с prebuilt-бинарём.
+- e2e: Playwright порт **3001**, `reuseExistingServer`. env `.env.local` через `@next/env` в `playwright.config.ts` (настроено в Плане B). `afterAll` → `db:seed` страховка.
+- Если меняется `schema.ts` — `npm run db:generate` + `npm run db:migrate`. **media_assets уже в схеме** — фото-реализация миграцию не требует.
+
+### Загрузка фото — как тестировать в e2e
+Playwright `setInputFiles` на `<input type="file">`. Готовить тестовый файл-картинку (маленький webp/png в `e2e/fixtures/`). `afterAll` чистит загруженные файлы из `public/images/products/<test-slug>/` + `db:seed`.
+
+## Learnings
+
+### Шаг 1 (updateProduct → upsert) — done
+- `updateProduct` переписан на SELECT+diff upsert (`upsertVariantTree`/`upsertSkus` в `repository.ts`). Ключи: вариант по `colorId`, SKU по `size`. `onConflictDoUpdate` НЕ используется (мог бы обнулить `reservedQty`). При UPDATE существующего SKU `reservedQty` НЕ в `.set()` → сохраняется; новые SKU — `reservedQty:0`.
+- Инвариант проверен tsx-тестом (удалён): сохранение боевого товара (правка name + новый размер) сохраняет `variantId`, `skuId` существующих, `reservedQty=7`; новый размер вставлен. ✅
+- **Orphan-файлы (отложенный долг, НЕ чинить сейчас):** когда `colorId` исчезает из формы → `upsertVariantTree` делает DELETE варианта → каскад сносит строки `media_assets`, но ФАЙЛЫ в `public/images/products/<slug>/` остаются на диске. Тот же остаток, что и при `deleteProduct` (шаг 4). Чистка файлов — отдельный пункт (хук в deleteProduct / `MediaStore.removeByProduct` / `removeByVariant`) на потом. Диск дёшев, не блокер.
+- `tsx`-скрипты для dev-БД требуют `--env-file=.env.local` (как `db:seed`), иначе `DATABASE_URL is not set`.
+- `npm run db:seed` печатает Postgres NOTICE `truncate cascades to "inventory_log"/"order_items"` — это норма (reset через TRUNCATE CASCADE), НЕ ошибка.
+
+### Шаг 2 (MediaStore) — done
+- `sharp@0.34.5` в `dependencies` (перемещён из devDependencies вручную — npm i поставил его в dev).
+- **HEIC НЕ поддерживается** prebuilt-sharp на Windows (проверено: `heifsave: Unsupported compression`). **Принимаемые форматы входа: JPG / PNG / WEBP.** AVIF технически декодится, но в UI не афишируем. Детект формата — по MIME + `sharp().metadata().format` (magic bytes), расширение файла не используем.
+- Структура media-модуля (грабля client-бандла соблюдена):
+  - `types.ts` — чистые типы (`MediaAsset`/`MediaUploadInput`/`MediaStore`), без node-deps.
+  - `client.ts` — реэкспорт ТОЛЬКО типов (для `'use client'`).
+  - `index.ts` — server: типы + read (`listProductImages(productId)`, `listProductImagesForProducts(ids)`). **НЕ реэкспортит store.**
+  - `store.ts` — `mediaStore` impl (sharp+fs+db). Импортить НАПРЯМУЮ `@/core/media/store` из server-actions, НЕ через index.
+- `MediaUploadInput` финальная: `{ scope:'product', slug, productId, variantId, alt? }`. Pipeline: `rotate()`(EXIF) → resize max 2000 (inside, withoutEnlargement) → 3×WEBP (1600/800/400, q82) → `public/images/products/<slug>/<uuid>-{w}.webp`. `url` в БД = 1600-версия; меньшие по конвенции (`urlForWidth` подменяет `-1600`→`-800`/`-400`). `sortOrder` = max(variant)+1. alt авто `Фото N`.
+- `remove(id)` удаляет все 3 файла + строку (идемпотентно). `reorder(items)` — UPDATE sortOrder в транзакции.
+- Read-тип обогащён: `Product.id` (=products.id) и `ProductColor.variantId` (=product_variants.id, линк к media_assets.variantId). `mapProduct`/`mapVariant` прокидывают. Маппер `productToInput` новые поля игнорит (не сломан).
+- Проверено tsx-тестом (удалён): upload реального JPG → 3 webp + строка, 2-й asset sortOrder+1, remove чистит файлы+строку. `npm run build` зелёный (sharp/fs НЕ в client).
+- **Demo-фолбэк-картинки** в `public/images/products/{hoodie-alatau,hoodie-turgen,light-jacket-tengri,shell-jacket-khan,tshirt-tanar}/` — старая конвенция имён (НЕ боевые slug'и, на витрине не подтягиваются). Оставлены, шаг 6 не трогает.
+
+### Шаг 3 (admin create) — done
+- `createProductAction(input)` в `actions.ts`: `requireAdmin` → `createProduct` (try/catch) → ВНЕ catch revalidate + `redirect('/admin/catalog/<slug>/edit')`.
+- Страница `new/page.tsx`: `<ProductForm mode="create" action={createProductAction}/>` (без initial → EMPTY_INPUT).
+- Кнопка «Создать товар» в списке → `<Link href="/admin/catalog/new">` (стилизован под кнопку; `Button` не поддерживает asChild, использован голый Link). Импорт Button из page.tsx убран.
+- slug-паттерн `^[a-z0-9-]+$` добавлен в `productInputSchema` (repository.ts).
+- **Баг Плана B пофикшен:** в `ProductForm` поле `#slug` на create было `readOnly={false}` НО без `onChange` → ввести slug было нельзя. Теперь на create редактируемо с `onChange` + подсказка по charset. На edit — readOnly как было.
+- e2e admin.spec: ассерт «Создать товар disabled» → `toHaveAttribute('href','/admin/catalog/new')`. Все 6 admin e2e зелёные.
+
+### Шаг 4 (admin delete) — done
+- `deleteProductAction(slug)` в `actions.ts`: `requireAdmin` → `deleteProduct` (try/catch) → ВНЕ catch revalidate + `redirect('/admin/catalog')`. Каскад сносит variants/skus/media_assets-строки.
+- `ProductForm` получил опц. проп `deleteAction?: () => Promise<{error?}>`. Кнопка «Удалить товар» рендерится ТОЛЬКО при наличии пропа (на create не передаётся → кнопки нет) через `ConfirmButton` (title «Удалить товар?»). `onDelete` зовёт action в `startTransition`, при `{error}` показывает ошибку.
+- Edit-page передаёт `deleteAction={deleteProductAction.bind(null, product.slug)}`.
+- e2e: ассерт «Удалить товар disabled» → `toBeEnabled()`. Ассерт про заглушку «Загрузка фото — Доступно в Плане C» УБРАН (шаг 5 заменит заглушку). 6 admin e2e зелёные.
+- **Orphan-файлы при delete (отложенный долг):** `deleteProduct` сносит строки media_assets каскадом, но файлы в `public/images/products/<slug>/` остаются. Тот же остаток, что в шаге 1. Чистка — на потом (хук `MediaStore.removeByProduct` в deleteProduct).
+- **Git-грабля (важно):** коммит через Bash-tool с `@'...'@` here-string на Windows ломается — лидирующий/закрывающий `@` попадает в subject. Первые 3 коммита пришлось reword'ить через неинтерактивный rebase. **Коммитить через PowerShell-tool** (там here-string корректен), причём `git add` и `git commit` — РАЗНЫМИ вызовами (в одной строке через `;` here-string привязывается не туда).
+
+### Шаг 5 (фото-блок) — done
+- `media-actions.ts` (`'use server'`): `uploadVariantImageAction(FormData)` (читает file/slug/productId/variantId, валидирует, `mediaStore.upload`, БЕЗ redirect, revalidate edit+catalog), `removeVariantImageAction(id, slug)`, `reorderVariantImagesAction(items, slug)`. Импорт `mediaStore` НАПРЯМУЮ из `@/core/media/store`.
+- `VariantPhotos.tsx` (`'use client'`): тип `MediaAsset` из `@/core/media/client`. Сетка превью (`<img object-cover>`, aspect-square), бейдж «Главное» на первом, ←/→ reorder (swap+renumber sortOrder 0..n), × удаление через ConfirmButton, мягкие лимиты (<3 подсветка amber, ≥8 «Добавить» disabled), слот «✨ Сгенерировать на белом фоне» disabled. `router.refresh()` после действий. accept `image/jpeg,image/png,image/webp`.
+- Если `variantId` пустой (create-режим ИЛИ новый цвет ещё не сохранён) → плашка «Сначала сохраните товар».
+- `ProductForm` получил пропы `productId?`, `variantMedia?: Record<colorId, {variantId, images}>`, `mediaActions?`. `VariantPhotos` рендерится в блоке каждого варианта (по colorId сопоставляется variantId+images).
+- Edit-page: `listProductImages(product.id)` → группировка по variantId → `variantMedia` keyed by colorId → пробрасывает + `mediaActions`.
+- **ESLint граница:** добавил `!@/core/media/store` в whitelist `no-restricted-imports` (eslint.config.mjs, block 1) — store это ОСОЗНАННЫЙ второй публичный server-only вход (index НЕ реэкспортит sharp/fs). По аналогии с `/client`.
+- `typecheck`+`lint`+`build` зелёные (sharp/fs НЕ в client-бандле — build бы упал). 6 admin e2e зелёные (edit-страница с фото-блоком рендерится).
+- **Орфография pending:** полный upload/remove/reorder UI-цикл покрывается e2e в шаге 7.
+
+### Шаг 6 (витрина из media_assets) — done
+- `@/core/media/client` дополнен pure-хелперами `urlForWidth`/`srcSetFromUrl` (строят srcset 400/800/1600w из 1600-url подменой). Безопасны для client.
+- `ProductCard` (server): новый проп `image?: MediaAsset` (главное фото). Есть → `<img srcSet object-cover loading=lazy>`; нет/coming_soon → градиент. Старая логика `getProductCardImage`/`hasModels`/`models[0]` убрана.
+- `ProductDetail` (client): новый проп `images?: MediaAsset[]` (все фото товара). Фильтр по `activeVariant.variantId` → галерея из media (главное + thumbnails, srcset); нет фото у цвета → градиент. `getProductGalleryShots`/`next/image` убраны, перешёл на `<img>`.
+- **Анти-N+1:** `src/lib/product-images.ts` → `primaryImagesFor(products)` грузит media для ВСЕХ товаров ОДНИМ `listProductImagesForProducts(ids)`, индексирует productId→главное фото (первое фото первого варианта с фото). Используют: `catalog/page.tsx`, `[slug]/page.tsx` (related), `FeaturedProducts.tsx`. Деталь товара грузит `listProductImages(product.id)` (1 товар — ок).
+- `CategoriesGrid` НЕ тронут (категорийные плашки, не потребитель медиа).
+- `images.ts` помечен `@deprecated` (конвенция имён, потребителей на витрине нет; файл оставлен — demo-папки + тип GalleryShot).
+- `typecheck`+`lint`+`build` зелёные. Все 45 витринных e2e + 6 admin зелёные (товары без фото → градиент, витрина не сломана).
+
+### Шаг 7 (e2e CRUD+media) — done
+- Фикстура `e2e/fixtures/sample.png` (120×160, сгенерирована sharp).
+- `e2e/admin-crud-media.spec.ts` (`describe.serial`, 6 тестов): create→edit-redirect, upload (превью + «Главное»), 2-е фото + reorder (←), remove (ConfirmButton), витрина показывает `<img src*=/images/products/...>`, delete→редирект→`/catalog/<slug>` 404.
+- `afterAll`: `db:seed` + `rmSync(public/images/products/e2e-test-product, recursive)`. Проверено: после прогона папка удалена, БД=12 товаров, media_assets=0.
+- Селекторы-грабли: variant-инпуты по позиции (`input:not([type])`, нет htmlFor у Label); confirm-кнопка delete — внутри `getByRole('dialog')` (триггер и confirmLabel совпадают по имени «Удалить товар»).
+- **Всего e2e: 51 зелёных** (39 витринных + 6 admin + 6 crud-media). `workers:1, fullyParallel:false` — гонок db:seed между spec нет.
+
+### Багфиксы после ручной проверки (2026-06-01)
+- **Лимит 1 МБ на upload (критичный):** Server Actions по умолчанию режут тело на 1 МБ → обычные фото с телефона падали `Body exceeded 1 MB limit`. Фикс: `next.config.ts` → `experimental.serverActions.bodySizeLimit: '10mb'` (под `MAX_BYTES` store). **`next.config` подхватывается ТОЛЬКО при рестарте dev.**
+- Кнопка «Отмена» на create+edit (Link → `/admin/catalog`); кнопка «Удалить» отодвинута вправо (`ml-auto`).
+- Убрана оставшаяся заглушка «Загрузка фото — Доступно в Плане C» внизу `ProductForm` (per-variant фото-блоки её заменили, но общая секция осталась — мой недочёт шага 5).
+- **Дефолтный цвет на витрине** = первый вариант с фото (а не первый по списку) — покупатель сразу видит галерею, не градиент. Явный `?color=` приоритетнее.
+- Админ-список сортируется по имени (`localeCompare 'ru'`) — отредактированный товар не уезжает вниз (порядок БД нестабилен после update).
+
+### Отложенные пункты (передача дальше)
+- **Автоген slug** (решение пользователя): полный автоген из названия с транслитерацией кириллицы, поле видимое read-only. НЕ сделано — отдельная мелкая задача.
+- **Orphan-файлы** при delete товара/варианта: строки media_assets каскадятся, файлы в `public/` остаются. Хук `MediaStore.removeByProduct`/`removeByVariant` — позже.
+- **Фильтрация витрины по статусу** (draft/archived сейчас ВИДНЫ покупателям) — в бэклоге `storefront-status-and-photo-tools.md`. → Решить в Фазе 2 или отдельно.
+- **AI-инструменты фото**: генератор на белом фоне (слот disabled готов) + перекраска фото в другой цвет — бэклог `storefront-status-and-photo-tools.md`.
+- **Ручной alt** для фото — SEO-фаза (сейчас авто `Фото N`).
+- **DnD-reorder** вместо стрелок ←/→ — улучшение UX.
+
+### Git-грабли (Windows, важно)
+- Коммит через **Bash-tool** с `@'...'@` here-string → лидирующий/закрывающий `@` попадает в subject. Использовать **PowerShell-tool**, `git add` и `git commit` — РАЗНЫМИ вызовами.
+- В PowerShell here-string `@'...'@` нельзя **двойные кавычки** внутри (`"Plan C"`) — ломают парсинг multiline-аргумента. Писать без внутренних кавычек.
+- **НЕ запускать `npm run build` пока работает `npm run dev`** — build перезаписывает `.next` под dev-сервером → dev падает `ENOENT _buildManifest.js.tmp`. Останавливать dev перед build.
+---

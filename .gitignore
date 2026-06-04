@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+!.env.prod.example
 
 # vercel
 .vercel
@@ -54,3 +56,6 @@ test-results
 
 # Scratch — temporary files for image iterations
 /scratch/
+
+# Internal reference / AI-context (real catalog data, client docs — not for repo)
+/internal/
