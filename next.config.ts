@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Build a self-contained server bundle for the Docker prod image. The runner
+  // stage copies .next/standalone (+ public, .next/static, content) — see
+  // Dockerfile. Note: standalone omits public/ and static/, they're copied
+  // manually. Does not affect `next dev`.
+  output: 'standalone',
   images: {
     // Our webp/png assets are pre-optimized via scripts/process-images.mjs
     // and brand book exports. Next/Image optimization adds no value here and
