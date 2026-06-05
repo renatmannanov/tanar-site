@@ -2,7 +2,25 @@
 // Phase-A experiments (internal/docs/nano-banana-recipes.md) — these exact
 // wordings are what worked; do not "improve" them without re-testing. nano-banana
 // is conservative: short, head-on prompts beat long "keep everything" caveats.
-import type { PhotoView } from './types';
+import type { PhotoView, RecolorLock } from './types';
+
+// Geometry-preservation clause appended to recolor prompts. 'soft' is one line
+// (safe — keeps the recolor working); 'hard' piles on pixel-faithful language
+// (stronger preservation, but Phase-A warns long "keep identical" caveats can
+// make nano-banana skip the recolor — A/B before trusting). recolor-lifestyle
+// drifts more (it resynthesizes the whole scene), so it's the main target.
+const SOFT_LOCK =
+  'Keep the exact same shape, cut, volume, seams, stitching, zippers and the ' +
+  'folds/wrinkles — change ONLY the fabric hue.';
+const HARD_LOCK =
+  'Recolor ONLY. Keep the garment pixel-identical: same silhouette, volume, cut, ' +
+  'seams, stitching, zippers, hardware, pockets, and every fold and wrinkle in the ' +
+  'exact same place. Do NOT redraw, restyle, reshape, or re-pose the garment. ' +
+  'The ONLY change is the fabric hue.';
+
+function lockClause(lock: RecolorLock): string {
+  return lock === 'hard' ? HARD_LOCK : SOFT_LOCK;
+}
 
 // front removes the person cleanly with "remove the person"; side/back leave the
 // head/hands behind unless every body part is named explicitly (Phase-A lesson).
@@ -31,10 +49,27 @@ export function flatPrompt(view: PhotoView): string {
       'Centered composition. Do NOT generate a front view. Do NOT add any logo or text on the back.',
     ].join(' ');
   }
-  // front and side share the same prompt; the model infers the angle from input.
-  const removal = view === 'side' ? BODY_REMOVAL : FRONT_BODY_REMOVAL;
+  if (view === 'side') {
+    // Without an explicit "side view" signal nano-banana regenerates a FRONT
+    // (same failure mode that back had). Pin the profile angle hard and forbid
+    // turning the garment to face the camera.
+    return [
+      'This is a SIDE (PROFILE) VIEW of the garment.',
+      BODY_REMOVAL,
+      'Show only the garment from the side as a flat product shot, worn by an invisible',
+      'body to keep its natural shape and proportions. Keep the EXACT same profile angle',
+      'as the input — one sleeve facing the camera, the front edge (zipper) on one side',
+      'and the back panel on the other. Do NOT rotate the garment to face the camera.',
+      'Do NOT generate a front view. The full front zipper must NOT be shown flat-on;',
+      'only its edge is visible in profile.',
+      'Pure white seamless studio background. Soft even lighting, no harsh shadows.',
+      'Keep exactly the same color, fabric texture, zippers, logo, seams, cuffs, hood —',
+      'pixel-faithful. Centered composition.',
+    ].join(' ');
+  }
+  // front: the model infers the head-on angle from the input.
   return [
-    removal,
+    FRONT_BODY_REMOVAL,
     'Show only the garment as a flat product shot, worn by an invisible body to keep',
     'its natural shape and proportions. The garment has a STRAIGHT, RELAXED, UNISEX cut —',
     'NOT tapered or fitted at the waist; roughly the same width at chest, waist and hem.',
@@ -50,26 +85,38 @@ export function flatPrompt(view: PhotoView): string {
  * "keep everything identical" caveats make nano-banana leave the color unchanged.
  * back: don't mention "back view" (already in the image) — just guard the trim.
  */
-export function recolorFlatPrompt(hex: string, view: PhotoView): string {
+export function recolorFlatPrompt(
+  hex: string,
+  view: PhotoView,
+  lock: RecolorLock = 'soft',
+): string {
   if (view === 'back') {
     return [
       `Change the garment fabric color to hex ${hex}.`,
       'Hood lining and cuffs stay as they are.',
+      lockClause(lock),
     ].join('\n');
   }
   return [
     `Change the garment fabric color to hex ${hex}.`,
     'Logo and zippers stay their original color.',
+    lockClause(lock),
   ].join('\n');
 }
 
 /**
  * Recipe 3 — recolor the garment directly on the lifestyle shot, keeping the
  * person, pose, and background. Tighter recrop is fine (better for a card).
+ * This recipe drifts the most (whole scene resynthesized) — the lock clause
+ * matters here above all.
  */
-export function recolorLifestylePrompt(hex: string): string {
+export function recolorLifestylePrompt(
+  hex: string,
+  lock: RecolorLock = 'soft',
+): string {
   return [
     `Change only the garment fabric color to hex ${hex}.`,
     'Keep the person, face, pose, other clothing, and the background exactly as they are.',
+    lockClause(lock),
   ].join('\n');
 }

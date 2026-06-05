@@ -11,5 +11,14 @@ export type PhotoView = 'front' | 'side' | 'back';
 /** The three proven recipes (see internal/docs/nano-banana-recipes.md). */
 export type RecipeKind = 'flat' | 'recolor-flat' | 'recolor-lifestyle';
 
+/**
+ * How hard a recolor prompt tries to freeze the garment geometry.
+ * - 'soft': short prompt + one "keep shape/seams, change only hue" line.
+ * - 'hard': strong pixel-faithful lock (more preservation, but Phase-A warns it
+ *   can make nano-banana ignore the recolor entirely — A/B test before trusting).
+ * Default is resolved from PHOTOGEN_RECOLOR_LOCK at the index layer.
+ */
+export type RecolorLock = 'soft' | 'hard';
+
 /** Raw image bytes. Input accepts any byte view; output is always a Buffer. */
 export type ImageBytes = Uint8Array;

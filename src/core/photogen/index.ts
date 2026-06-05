@@ -14,11 +14,22 @@ import {
   recolorFlatPrompt,
   recolorLifestylePrompt,
 } from './recipes';
-import type { ImageBytes, PhotoView } from './types';
+import type { ImageBytes, PhotoView, RecolorLock } from './types';
 
 export type { ImageGenProvider } from './provider';
-export type { PhotoView, RecipeKind, ImageBytes } from './types';
+export type { PhotoView, RecipeKind, ImageBytes, RecolorLock } from './types';
 export { GeminiProvider } from './gemini';
+
+/**
+ * Default recolor geometry-lock strength, from PHOTOGEN_RECOLOR_LOCK ('soft' |
+ * 'hard'). Default is 'hard' — A/B (2026-06-05) found soft≈hard in quality but
+ * hard holds geometry a touch better on close-hue recolors, and the real driver
+ * of glitches is source→target contrast, not lock strength (see recipes doc).
+ * Set PHOTOGEN_RECOLOR_LOCK=soft to override. Anything but 'soft' → 'hard'.
+ */
+function defaultLock(): RecolorLock {
+  return process.env.PHOTOGEN_RECOLOR_LOCK === 'soft' ? 'soft' : 'hard';
+}
 
 /**
  * Lazily construct the default provider so importing this module never throws.
@@ -43,17 +54,24 @@ export function lifestyleToFlat(
 /** Recipe 2: an existing flat → the same flat recolored to `hex`. */
 export function recolorFlat(
   src: ImageBytes,
-  opts: { hex: string; view: PhotoView; provider?: ImageGenProvider },
+  opts: {
+    hex: string;
+    view: PhotoView;
+    lock?: RecolorLock;
+    provider?: ImageGenProvider;
+  },
 ): Promise<Buffer> {
   const provider = opts.provider ?? defaultProvider();
-  return provider.editImage(src, recolorFlatPrompt(opts.hex, opts.view));
+  const lock = opts.lock ?? defaultLock();
+  return provider.editImage(src, recolorFlatPrompt(opts.hex, opts.view, lock));
 }
 
 /** Recipe 3: a lifestyle shot recolored to `hex`, keeping person/pose/bg. */
 export function recolorLifestyle(
   src: ImageBytes,
-  opts: { hex: string; provider?: ImageGenProvider },
+  opts: { hex: string; lock?: RecolorLock; provider?: ImageGenProvider },
 ): Promise<Buffer> {
   const provider = opts.provider ?? defaultProvider();
-  return provider.editImage(src, recolorLifestylePrompt(opts.hex));
+  const lock = opts.lock ?? defaultLock();
+  return provider.editImage(src, recolorLifestylePrompt(opts.hex, lock));
 }
