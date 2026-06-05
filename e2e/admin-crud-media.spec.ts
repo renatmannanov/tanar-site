@@ -105,8 +105,18 @@ test.describe.serial('product CRUD + variant photos', () => {
     await page.goto(`/admin/catalog/${TEST_SLUG}/edit`);
 
     await expect(page.locator('ul li')).toHaveCount(2);
-    await page.getByRole('button', { name: 'Сделать на белом' }).first().click();
+    // The flat_front slot offers "✨ Сделать на белом" (recipe 1 from its own
+    // life_front). Button text carries an emoji prefix → match as substring.
+    await page
+      .getByRole('button', { name: 'Сделать на белом', exact: false })
+      .first()
+      .click();
     await expect(page.locator('ul li')).toHaveCount(3);
+
+    // The generated flat must land in flat_front with view='front' (NOT a
+    // back-flat with a logo). The occupied slot shows the "На белом · спереди"
+    // label badge.
+    await expect(page.getByText('На белом · спереди')).toBeVisible();
   });
 
   test('remove a photo via confirm', async ({ page }) => {
@@ -151,5 +161,98 @@ test.describe.serial('product CRUD + variant photos', () => {
 
     const res = await page.goto(`/catalog/${TEST_SLUG}`);
     expect(res?.status()).toBe(404);
+  });
+});
+
+// Recolor from a sibling color: a flat of color A is the source for color B's
+// empty flat_front slot (recipe 2). Separate product so it doesn't entangle the
+// main flow. Cleaned up by deleting the product at the end.
+const RECOLOR_SLUG = 'e2e-recolor-product';
+const RECOLOR_DIR = path.join(
+  process.cwd(),
+  'public',
+  'images',
+  'products',
+  RECOLOR_SLUG,
+);
+
+test.describe.serial('slot-bound recolor from a sibling color', () => {
+  test.afterAll(() => {
+    try {
+      rmSync(RECOLOR_DIR, { recursive: true, force: true });
+    } catch {
+      /* nothing uploaded */
+    }
+  });
+
+  test('create a 2-color product', async ({ page }) => {
+    await login(page);
+    await page.goto('/admin/catalog/new');
+
+    await page.locator('#name').fill('E2E Recolor Product');
+    await page.locator('#priceBase').fill('9999');
+    await page.locator('#description').fill('E2E recolor description.');
+
+    // Variant blocks are DIRECT children of the "Цвета и размеры" section; the
+    // photo block nested inside also has rounded-md/border, so scope with `>`.
+    const variantsSection = page.locator('section', { hasText: 'Цвета и размеры' });
+    const variantBlocks = variantsSection.locator(':scope > div.rounded-md.border');
+
+    // First color: green.
+    const blockA = variantBlocks.first();
+    const inputsA = blockA.locator('input[type="text"], input:not([type])');
+    await inputsA.nth(0).fill('green');
+    await inputsA.nth(1).fill('Зелёный');
+    await blockA.locator('table tbody tr').first().locator('input').first().fill('M');
+
+    // Add a second color: blue.
+    await page.getByRole('button', { name: '+ Цвет' }).click();
+    const blockB = variantBlocks.nth(1);
+    const inputsB = blockB.locator('input[type="text"], input:not([type])');
+    await inputsB.nth(0).fill('blue');
+    await inputsB.nth(1).fill('Синий');
+    await blockB.locator('table tbody tr').first().locator('input').first().fill('M');
+
+    await page.getByRole('button', { name: 'Создать' }).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/admin/catalog/${RECOLOR_SLUG}/edit$`),
+    );
+  });
+
+  test('upload a flat to color A; color B offers recolor → generates a flat', async ({
+    page,
+  }) => {
+    await login(page);
+    await page.goto(`/admin/catalog/${RECOLOR_SLUG}/edit`);
+
+    // Color A's photo block is the first; its flat_front empty slot uploads a
+    // flat directly. There are two "Загрузить: На белом · спереди" tiles (one
+    // per color) — .first() targets color A.
+    const [chooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.getByTitle('Загрузить: На белом · спереди').first().click(),
+    ]);
+    await chooser.setFiles(FIXTURE);
+
+    await expect(page.locator('ul li')).toHaveCount(1);
+
+    // Color B's flat_front slot now has a sibling flat source → it offers
+    // "✨ Перекрасить из другого цвета". Click it → B gets a flat (count 1→2).
+    await page
+      .getByRole('button', { name: 'Перекрасить из другого цвета', exact: false })
+      .first()
+      .click();
+    await expect(page.locator('ul li')).toHaveCount(2);
+  });
+
+  test('delete the recolor product', async ({ page }) => {
+    await login(page);
+    await page.goto(`/admin/catalog/${RECOLOR_SLUG}/edit`);
+    await page.getByRole('button', { name: 'Удалить товар' }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Удалить товар' })
+      .click();
+    await expect(page).toHaveURL(/\/admin\/catalog$/);
   });
 });

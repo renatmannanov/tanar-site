@@ -149,6 +149,14 @@ type GenTarget = {
   sourceId: string;
   /** Variant the NEW photo attaches to (same as source for flat). */
   variantId: string;
+  /**
+   * Target slot's view — the angle the RESULT gets, taken from the slot the
+   * owner clicked (NOT inferred from the source). This is the fix for the
+   * back-flat logo bug: a back slot drives flatPrompt('back'), which removes the
+   * logo. Source and target view should match (the UI only offers same-angle
+   * sources), but the target slot is the source of truth.
+   */
+  view: PhotoView;
   slug: string;
   productId: string;
 };
@@ -162,6 +170,21 @@ async function loadSource(sourceId: string) {
 }
 
 /**
+ * Guard against writing two photos into one (variantId, role, view) slot.
+ * The UI only shows a gen button on an EMPTY slot, but a double-click or race
+ * could slip a second write through. Replace goes through the step-6 flow.
+ */
+async function slotGuard(
+  variantId: string,
+  role: 'lifestyle' | 'flat',
+  view: PhotoView,
+): Promise<{ error: string } | null> {
+  return (await mediaStore.slotTaken(variantId, role, view))
+    ? { error: 'Слот уже занят' }
+    : null;
+}
+
+/**
  * Recipe 1 — lifestyle shot of this variant → studio flat on white, same view.
  * Source must be a lifestyle photo of the SAME variant.
  */
@@ -170,9 +193,12 @@ export async function generateFlatAction(
 ): Promise<{ error?: string }> {
   await requireAdmin();
   try {
+    const { view } = target; // angle comes from the target slot, not the source
+    const taken = await slotGuard(target.variantId, 'flat', view);
+    if (taken) return taken;
+
     const loaded = await loadSource(target.sourceId);
     if ('error' in loaded) return loaded;
-    const view = (loaded.source.view ?? 'front') as PhotoView;
 
     const result = await lifestyleToFlat(loaded.bytes, { view });
     await mediaStore.upload(new Uint8Array(result), {
@@ -201,9 +227,12 @@ export async function recolorFlatAction(
 ): Promise<{ error?: string }> {
   await requireAdmin();
   try {
+    const { view } = target; // angle comes from the target slot, not the source
+    const taken = await slotGuard(target.variantId, 'flat', view);
+    if (taken) return taken;
+
     const loaded = await loadSource(target.sourceId);
     if ('error' in loaded) return loaded;
-    const view = (loaded.source.view ?? 'front') as PhotoView;
 
     const result = await recolorFlat(loaded.bytes, { hex: target.hex, view });
     await mediaStore.upload(new Uint8Array(result), {
@@ -232,10 +261,14 @@ export async function recolorLifestyleAction(
 ): Promise<{ error?: string }> {
   await requireAdmin();
   try {
+    const { view } = target; // angle comes from the target slot, not the source
+    const taken = await slotGuard(target.variantId, 'lifestyle', view);
+    if (taken) return taken;
+
     const loaded = await loadSource(target.sourceId);
     if ('error' in loaded) return loaded;
-    const view = (loaded.source.view ?? 'front') as PhotoView;
 
+    // Recipe 3 keeps person/pose/bg; the view is metadata for the target slot.
     const result = await recolorLifestyle(loaded.bytes, { hex: target.hex });
     await mediaStore.upload(new Uint8Array(result), {
       scope: 'product',

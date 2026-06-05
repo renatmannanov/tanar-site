@@ -4,20 +4,23 @@ import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   type MediaAsset,
+  type PhotoSlot,
   type PhotoSlotKey,
   PHOTO_SLOTS,
   assetsBySlot,
   assetsOutsideGrid,
 } from '@/core/media/client';
-import { Button } from './ui/Button';
+import type { ProductImageView } from '@/core/contracts';
 import { ConfirmButton } from './ui/ConfirmButton';
 
 const SOFT_MAX = 8;
 
-/** Target identifying where a generated photo lands (matches media-actions). */
+/** Where a generated photo lands. view = the TARGET slot's angle (fix for the
+ *  back-flat logo bug). Matches GenTarget in media-actions. */
 type GenTarget = {
   sourceId: string;
   variantId: string;
+  view: ProductImageView;
   slug: string;
   productId: string;
 };
@@ -48,11 +51,21 @@ type Props = {
   slug?: string;
   productId?: string;
   variant: { variantId: string; colorLabel: string; hex: string };
-  /** Images for THIS variant, already sorted by sortOrder. */
+  /** Images for THIS variant. */
   images: MediaAsset[];
   /** Photos of OTHER variants of the same product — recolor sources. */
   siblingImages?: MediaAsset[];
   actions?: MediaActions;
+};
+
+/** A generation option offered for one empty slot. */
+type GenOption = {
+  /** Which recipe to run. */
+  kind: 'flat' | 'recolorFlat' | 'recolorLifestyle';
+  /** Source asset feeding the recipe. */
+  source: MediaAsset;
+  /** Button text shown on the slot. */
+  label: string;
 };
 
 export function VariantPhotos({
@@ -121,49 +134,76 @@ export function VariantPhotos({
   const outside = assetsOutsideGrid(images);
   const atMax = images.length >= SOFT_MAX;
 
-  // ── AI generation sources (step 5: first valid source; slot-bound source +
-  // preview/approve come in steps 5.2/6) ──────────────────────────────────────
-  const flatSource = images.find((i) => (i.role ?? 'lifestyle') === 'lifestyle');
-  const recolorFlatSource = siblingImages.find((i) => i.role === 'flat');
-  const recolorLifestyleSource = siblingImages.find(
-    (i) => (i.role ?? 'lifestyle') === 'lifestyle',
-  );
-  const target: GenTarget = {
-    sourceId: '', // filled per-action below
-    variantId: variant.variantId,
-    slug: slug!,
-    productId: productId!,
-  };
+  // Sibling assets indexed by (role, view) → first match wins (deterministic by
+  // the order they arrive, i.e. variant order). Explicit source picking with
+  // thumbnails is step 5.3; here we pick the highest-priority candidate.
+  function siblingFor(
+    role: 'lifestyle' | 'flat',
+    view: ProductImageView,
+  ): MediaAsset | undefined {
+    return siblingImages.find(
+      (i) => (i.role ?? 'lifestyle') === role && i.view === view,
+    );
+  }
 
-  function genFlat() {
-    if (!flatSource) return;
-    run(() => actions!.generateFlat({ ...target, sourceId: flatSource.id }));
+  /**
+   * The generation option for an EMPTY slot, or null if no valid source exists.
+   * Priority (step 5.2): recipe 1 (own life, same angle) > recolor from a
+   * sibling of the right role/angle. The target view is fixed by the slot.
+   */
+  function genOptionFor(slot: PhotoSlot): GenOption | null {
+    if (slot.role === 'flat') {
+      // 1) own lifestyle of the same angle → flat (recipe 1).
+      const ownLife = bySlot[`life_${slot.view}` as PhotoSlotKey]?.[0];
+      if (ownLife) {
+        return { kind: 'flat', source: ownLife, label: 'Сделать на белом' };
+      }
+      // 2) a sibling flat of the same angle → recolor (recipe 2).
+      const sibFlat = siblingFor('flat', slot.view);
+      if (sibFlat) {
+        return {
+          kind: 'recolorFlat',
+          source: sibFlat,
+          label: `Перекрасить из другого цвета`,
+        };
+      }
+      return null;
+    }
+    // lifestyle slot: only a sibling lifestyle of the same angle → recolor (3).
+    const sibLife = siblingFor('lifestyle', slot.view);
+    if (sibLife) {
+      return {
+        kind: 'recolorLifestyle',
+        source: sibLife,
+        label: `Перекрасить из другого цвета`,
+      };
+    }
+    return null;
   }
-  function genRecolorFlat() {
-    if (!recolorFlatSource) return;
-    run(() =>
-      actions!.recolorFlat({
-        ...target,
-        sourceId: recolorFlatSource.id,
-        hex: variant.hex,
-      }),
-    );
-  }
-  function genRecolorLifestyle() {
-    if (!recolorLifestyleSource) return;
-    run(() =>
-      actions!.recolorLifestyle({
-        ...target,
-        sourceId: recolorLifestyleSource.id,
-        hex: variant.hex,
-      }),
-    );
+
+  /** Run the chosen generation for a slot. */
+  function generate(slot: PhotoSlot, opt: GenOption) {
+    const base: GenTarget = {
+      sourceId: opt.source.id,
+      variantId: variant.variantId,
+      view: slot.view,
+      slug: slug!,
+      productId: productId!,
+    };
+    if (opt.kind === 'flat') {
+      run(() => actions!.generateFlat(base));
+    } else if (opt.kind === 'recolorFlat') {
+      run(() => actions!.recolorFlat({ ...base, hex: variant.hex }));
+    } else {
+      run(() => actions!.recolorLifestyle({ ...base, hex: variant.hex }));
+    }
   }
 
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-gray-500">
         6 слотов: живое фото и «на белом» для каждого ракурса (спереди / сбоку / сзади).
+        В пустом слоте можно загрузить фото или сгенерировать ИИ из подходящего источника.
       </p>
 
       {/* Single hidden picker, reused by every slot tile. The target slot is
@@ -213,31 +253,53 @@ export function VariantPhotos({
               </ul>
             );
           }
-          // Empty slot: an "+ upload" tile. Generation buttons bind to slots in
-          // step 5.2; for now this only uploads into the slot's role/view.
+
+          // Empty slot: offer generation (if a source exists) + manual upload.
+          const opt = genOptionFor(slot);
           return (
-            <button
+            <div
               key={slot.key}
-              type="button"
-              disabled={pending || atMax}
-              onClick={() => pickInto(slot.key)}
-              title={atMax ? `Достаточно (макс ${SOFT_MAX})` : `Загрузить: ${slot.label}`}
-              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-md border border-dashed border-gray-300 p-2 text-center text-[11px] text-gray-400 hover:border-gray-400 hover:text-gray-600 disabled:opacity-50"
+              className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-gray-300 p-2 text-center"
             >
-              <span className="text-lg leading-none">+</span>
-              <span>{slot.label}</span>
-            </button>
+              <span className="text-[11px] font-medium text-gray-500">
+                {slot.label}
+              </span>
+              {opt ? (
+                <button
+                  type="button"
+                  disabled={pending || atMax}
+                  onClick={() => generate(slot, opt)}
+                  title={
+                    opt.kind === 'flat'
+                      ? 'Сгенерировать студийное фото на белом из живого кадра этого цвета'
+                      : 'Перекрасить фото подходящего ракурса из другого цвета'
+                  }
+                  className="rounded bg-gray-900/85 px-2 py-1 text-[11px] font-medium text-white hover:bg-gray-900 disabled:opacity-50"
+                >
+                  ✨ {opt.label}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                disabled={pending || atMax}
+                onClick={() => pickInto(slot.key)}
+                title={atMax ? `Достаточно (макс ${SOFT_MAX})` : `Загрузить: ${slot.label}`}
+                className="text-[11px] text-gray-400 hover:text-gray-600 disabled:opacity-50"
+              >
+                + загрузить
+              </button>
+            </div>
           );
         })}
       </div>
 
       {/* Out-of-grid assets: legacy / hand-uploaded photos with no view that
           don't fit a slot. Shown ONLY when present so a clean catalog has no
-          clutter. The owner can delete or (later) assign them a slot. */}
+          clutter. The owner can delete them here. */}
       {outside.length > 0 ? (
         <div className="flex flex-col gap-2 rounded-md border border-amber-200 bg-amber-50/50 p-3">
           <p className="text-xs text-amber-700">
-            Фото без ракурса (вне сетки) — назначьте ракурс или удалите:
+            Фото без ракурса (вне сетки) — удалите или перезагрузите в нужный слот:
           </p>
           <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4">
             {outside.map((img) => (
@@ -269,53 +331,6 @@ export function VariantPhotos({
               </li>
             ))}
           </ul>
-        </div>
-      ) : null}
-
-      {/* AI generation — each button appears only when a valid source exists.
-          flat uses this color's lifestyle shot; recolor-* pull a source from
-          another color and tint to this color's hex. Slot-bound generation and
-          preview/approve come in steps 5.2/6. */}
-      {flatSource || recolorFlatSource || recolorLifestyleSource ? (
-        <div className="flex flex-col gap-2 rounded-md border border-dashed border-gray-200 p-3">
-          <p className="text-xs text-gray-500">
-            ✨ Генерация фото ИИ. Результат добавится в галерею — проверьте глазами.
-          </p>
-          <div className="flex flex-wrap items-center gap-2">
-            {flatSource ? (
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={pending || atMax}
-                title="Сделать студийное фото на белом фоне из живого кадра этого цвета"
-                onClick={genFlat}
-              >
-                Сделать на белом
-              </Button>
-            ) : null}
-            {recolorFlatSource ? (
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={pending || atMax}
-                title="Перекрасить готовое фото на белом из другого цвета в этот"
-                onClick={genRecolorFlat}
-              >
-                Перекрасить фото на белом
-              </Button>
-            ) : null}
-            {recolorLifestyleSource ? (
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={pending || atMax}
-                title="Перекрасить живой кадр из другого цвета в этот"
-                onClick={genRecolorLifestyle}
-              >
-                Перекрасить живое фото
-              </Button>
-            ) : null}
-          </div>
         </div>
       ) : null}
 
