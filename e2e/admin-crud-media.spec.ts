@@ -17,6 +17,20 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/admin\/catalog$/);
 }
 
+/**
+ * Upload a photo into a specific empty slot. Each empty slot is a tile with
+ * title="Загрузить: <label>"; clicking it opens the (hidden) file picker, so we
+ * catch the filechooser and feed it the fixture. The photo lands in the slot's
+ * role/view.
+ */
+async function uploadIntoSlot(page: Page, slotTitle: string) {
+  const [chooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    page.getByTitle(slotTitle).click(),
+  ]);
+  await chooser.setFiles(FIXTURE);
+}
+
 test.beforeAll(() => {
   if (!PASSWORD) {
     throw new Error('ADMIN_PASSWORD is not set in the test environment (.env.local)');
@@ -34,7 +48,9 @@ test.afterAll(() => {
   }
 });
 
-// One serial flow: create -> upload -> reorder -> remove -> storefront -> delete.
+// One serial flow: create -> upload into slots -> generate flat -> remove ->
+// storefront -> delete. Photos live in a 6-slot grid (life/flat × front/side/
+// back); occupied slots render as `ul li`, so counts below track stored photos.
 test.describe.serial('product CRUD + variant photos', () => {
   test('create a product and land on its edit page', async ({ page }) => {
     await login(page);
@@ -58,43 +74,39 @@ test.describe.serial('product CRUD + variant photos', () => {
     await expect(page).toHaveURL(new RegExp(`/admin/catalog/${TEST_SLUG}/edit$`));
   });
 
-  test('upload a photo — preview + "Главное" badge', async ({ page }) => {
+  test('upload a lifestyle photo into the life_front slot', async ({ page }) => {
     await login(page);
     await page.goto(`/admin/catalog/${TEST_SLUG}/edit`);
 
-    const fileInput = page.locator('input[type="file"]').first();
-    await fileInput.setInputFiles(FIXTURE);
+    await uploadIntoSlot(page, 'Загрузить: Живое · спереди');
 
-    // The uploaded image preview appears, with the "Главное" badge on the first.
-    const previews = page.locator('ul li img');
-    await expect(previews.first()).toBeVisible();
-    await expect(page.getByText('Главное')).toBeVisible();
+    // The occupied slot renders as `ul li` with the slot label badge.
+    await expect(page.locator('ul li img')).toHaveCount(1);
+    await expect(page.getByText('Живое · спереди')).toBeVisible();
   });
 
-  test('upload a second photo and reorder', async ({ page }) => {
+  test('upload a second lifestyle photo into the life_side slot', async ({ page }) => {
     await login(page);
     await page.goto(`/admin/catalog/${TEST_SLUG}/edit`);
 
-    const fileInput = page.locator('input[type="file"]').first();
-    await fileInput.setInputFiles(FIXTURE);
+    await expect(page.locator('ul li')).toHaveCount(1);
+    await uploadIntoSlot(page, 'Загрузить: Живое · сбоку');
+    await expect(page.locator('ul li')).toHaveCount(2);
+  });
 
-    const previews = page.locator('ul li');
-    await expect(previews).toHaveCount(2);
+  test('generate a flat photo from a lifestyle source (mocked Gemini)', async ({
+    page,
+  }) => {
+    // Uploaded photos are lifestyle, so the "Сделать на белом" (flat) button is
+    // offered. PHOTOGEN_FAKE=1 (playwright.config webServer.env) swaps in a
+    // no-op provider — no real Gemini call. The action runs the full upload
+    // pipeline, so a 3rd occupied slot appears.
+    await login(page);
+    await page.goto(`/admin/catalog/${TEST_SLUG}/edit`);
 
-    // Capture the first image's src, move the 2nd left, expect the order to swap.
-    const firstSrcBefore = await previews.first().locator('img').getAttribute('src');
-    // Hover the second to reveal controls, click its "←".
-    await previews.nth(1).hover();
-    await previews.nth(1).getByRole('button', { name: 'Левее' }).click();
-
-    await expect(async () => {
-      const firstSrcAfter = await page
-        .locator('ul li')
-        .first()
-        .locator('img')
-        .getAttribute('src');
-      expect(firstSrcAfter).not.toBe(firstSrcBefore);
-    }).toPass();
+    await expect(page.locator('ul li')).toHaveCount(2);
+    await page.getByRole('button', { name: 'Сделать на белом' }).first().click();
+    await expect(page.locator('ul li')).toHaveCount(3);
   });
 
   test('remove a photo via confirm', async ({ page }) => {
@@ -102,13 +114,13 @@ test.describe.serial('product CRUD + variant photos', () => {
     await page.goto(`/admin/catalog/${TEST_SLUG}/edit`);
 
     const previews = page.locator('ul li');
-    await expect(previews).toHaveCount(2);
+    await expect(previews).toHaveCount(3);
 
     await previews.first().hover();
     await previews.first().getByRole('button', { name: '×' }).click();
     await page.getByRole('button', { name: 'Удалить фото' }).click();
 
-    await expect(page.locator('ul li')).toHaveCount(1);
+    await expect(page.locator('ul li')).toHaveCount(2);
   });
 
   test('storefront shows the uploaded image (not a gradient)', async ({ page }) => {

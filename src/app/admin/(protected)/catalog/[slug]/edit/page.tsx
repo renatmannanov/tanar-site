@@ -9,6 +9,10 @@ import {
   uploadVariantImageAction,
   removeVariantImageAction,
   reorderVariantImagesAction,
+  setVariantImageRoleAction,
+  generateFlatAction,
+  recolorFlatAction,
+  recolorLifestyleAction,
 } from '../../media-actions';
 
 export const dynamic = 'force-dynamic';
@@ -52,6 +56,10 @@ export default async function EditProductPage({
     upload: uploadVariantImageAction,
     remove: removeVariantImageAction,
     reorder: reorderVariantImagesAction,
+    setRole: setVariantImageRoleAction,
+    generateFlat: generateFlatAction,
+    recolorFlat: recolorFlatAction,
+    recolorLifestyle: recolorLifestyleAction,
   };
 
   return (

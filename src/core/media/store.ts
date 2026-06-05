@@ -106,20 +106,85 @@ export const mediaStore: MediaStore = {
     const nextSort = existing.reduce((m, r) => Math.max(m, r.sortOrder), -1) + 1;
 
     const alt = input.alt ?? `Фото ${nextSort + 1}`;
+    const role = input.role ?? 'lifestyle';
 
-    const [row] = await db
-      .insert(schema.mediaAssets)
-      .values({
-        scope: 'product',
-        url,
-        sortOrder: nextSort,
-        productId: input.productId,
-        variantId: input.variantId,
-        role: 'lifestyle',
-        alt,
-      })
-      .returning();
+    // Insert the asset row and (for a flat shot) flip the variant's
+    // hasFlatShots flag in ONE transaction — a flat photo and "this color has
+    // flats" must never disagree.
+    const row = await db.transaction(async (tx) => {
+      const [inserted] = await tx
+        .insert(schema.mediaAssets)
+        .values({
+          scope: 'product',
+          url,
+          sortOrder: nextSort,
+          productId: input.productId,
+          variantId: input.variantId,
+          role,
+          view: input.view,
+          model: input.model,
+          alt,
+        })
+        .returning();
+
+      if (role === 'flat') {
+        await tx
+          .update(schema.productVariants)
+          .set({ hasFlatShots: true })
+          .where(eq(schema.productVariants.id, input.variantId));
+      }
+      return inserted;
+    });
     return mapAssetRow(row);
+  },
+
+  async get(id) {
+    const [row] = await db
+      .select()
+      .from(schema.mediaAssets)
+      .where(eq(schema.mediaAssets.id, id));
+    return row ? mapAssetRow(row) : null;
+  },
+
+  async readFile(id) {
+    const asset = await this.get(id);
+    if (!asset) throw new Error('Исходное фото не найдено');
+    // url is the public path of the 1600 webp; map it to the file on disk.
+    const filePath = path.join(process.cwd(), 'public', asset.url);
+    return fs.readFile(filePath);
+  },
+
+  async slotTaken(variantId, role, view) {
+    const rows = await db
+      .select({ id: schema.mediaAssets.id })
+      .from(schema.mediaAssets)
+      .where(
+        and(
+          eq(schema.mediaAssets.variantId, variantId),
+          eq(schema.mediaAssets.role, role),
+          eq(schema.mediaAssets.view, view),
+        ),
+      )
+      .limit(1);
+    return rows.length > 0;
+  },
+
+  async setRole(id, role) {
+    await db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(schema.mediaAssets)
+        .set({ role, ...(role === 'flat' ? { model: 'flat' } : {}) })
+        .where(eq(schema.mediaAssets.id, id))
+        .returning();
+      // Marking a flat ensures the variant flag is set. (We don't auto-clear it
+      // on lifestyle: other flats may still exist for the variant.)
+      if (row && role === 'flat' && row.variantId) {
+        await tx
+          .update(schema.productVariants)
+          .set({ hasFlatShots: true })
+          .where(eq(schema.productVariants.id, row.variantId));
+      }
+    });
   },
 
   async remove(id) {

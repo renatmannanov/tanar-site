@@ -434,8 +434,12 @@ export default function ProductForm({
                 variant={{
                   variantId: variantMedia?.[v.colorId]?.variantId ?? '',
                   colorLabel: v.colorLabel,
+                  hex: v.hex,
                 }}
                 images={variantMedia?.[v.colorId]?.images ?? []}
+                siblingImages={Object.entries(variantMedia ?? {})
+                  .filter(([colorId]) => colorId !== v.colorId)
+                  .flatMap(([, m]) => m.images)}
                 actions={mode === 'edit' ? mediaActions : undefined}
               />
             </div>
