@@ -5,6 +5,14 @@ import { sql } from 'drizzle-orm';
 import { db, queryClient } from './client';
 import * as schema from './schema';
 import { createProduct, getProductBySlug, type ProductInput } from '@/core/catalog';
+import {
+  countSiteSettings,
+  countFaqItems,
+  updateSiteSettings,
+  createFaqItem,
+} from '@/core/site';
+import { SITE_CONTACTS } from '@/lib/site-contacts';
+import { FAQ_ITEMS } from '@/lib/faq';
 
 // Import script for the real TANAR catalog. Reads the verified snapshot and
 // populates the DB THROUGH the catalog write contract (createProduct) — the
@@ -92,6 +100,50 @@ function toProductInput(p: SnapshotProduct): ProductInput {
   };
 }
 
+/**
+ * Seed editable site content (settings + FAQ) from the iteration-1 constants.
+ * IDEMPOTENT and non-destructive: inserts only when a table is empty, so a
+ * repeat `db:seed` never overwrites edits the owner made through the admin.
+ * These tables are NOT part of the catalog TRUNCATE above (no FK to products).
+ */
+async function seedSiteContent() {
+  if ((await countSiteSettings()) === 0) {
+    const c = SITE_CONTACTS;
+    await updateSiteSettings({
+      phone1: c.phones[0]?.value ?? null,
+      phone1Name: c.phones[0]?.label ?? null,
+      phone2: c.phones[1]?.value ?? null,
+      phone2Name: c.phones[1]?.label ?? null,
+      instagram: c.instagram.url,
+      email: null, // owner adds later; empty → not shown on storefront
+      city: c.city,
+      address: c.address,
+      pickupInfo: c.pickup,
+      ipName: c.legal.ipName,
+      bin: c.legal.bin,
+      bankName: null, // IBAN/bank not published until Phase 3
+      iban: null,
+    });
+    console.log('seed: site_settings inserted');
+  } else {
+    console.log('seed: site_settings already present — skipped');
+  }
+
+  if ((await countFaqItems()) === 0) {
+    let order = 0;
+    for (const item of FAQ_ITEMS) {
+      await createFaqItem({
+        question: item.question,
+        answer: item.answer,
+        sortOrder: order++,
+      });
+    }
+    console.log(`seed: ${FAQ_ITEMS.length} faq_items inserted`);
+  } else {
+    console.log('seed: faq_items already present — skipped');
+  }
+}
+
 async function main() {
   const snapshot = loadSnapshot();
 
@@ -160,6 +212,10 @@ async function main() {
   }
 
   console.log('import OK:', actual);
+
+  // Editable site content (settings + FAQ) — idempotent, separate from catalog.
+  await seedSiteContent();
+
   await queryClient.end();
 }
 

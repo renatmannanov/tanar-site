@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getSiteSettings } from '@/core/site';
 
 const catalogLinks = [
   { label: 'Куртки', href: '/catalog?category=jackets' },
@@ -9,35 +10,65 @@ const catalogLinks = [
 ] as const;
 
 const companyLinks = [
-  { label: 'О нас', href: '#' },
+  { label: 'О бренде', href: '/blog/o-brende-tanar' },
   { label: 'Блог', href: '/blog' },
-  { label: 'Контакты', href: '#' },
+  { label: 'Контакты', href: '/contacts' },
 ] as const;
 
-const supportLinks = [
-  { label: 'Доставка', href: '#' },
-  { label: 'Возврат', href: '#' },
-  { label: 'FAQ', href: '#' },
-] as const;
+const supportLinks = [{ label: 'FAQ', href: '/faq' }] as const;
 
-const socialLinks = [
-  { label: 'Instagram', href: '#' },
-  { label: 'Telegram', href: '#' },
-] as const;
+type FooterLink = { label: string; href: string; external?: boolean };
 
 type FooterSection = {
   title: string;
-  links: ReadonlyArray<{ label: string; href: string }>;
+  links: ReadonlyArray<FooterLink>;
 };
 
-const sections: FooterSection[] = [
-  { title: 'Каталог', links: catalogLinks },
-  { title: 'Компания', links: companyLinks },
-  { title: 'Поддержка', links: supportLinks },
-  { title: 'Связь', links: socialLinks },
-];
+/** tel: href from a display phone string (strip everything but digits/+). */
+function telHref(phone: string): string {
+  return `tel:${phone.replace(/[^\d+]/g, '')}`;
+}
 
-export default function Footer() {
+export default async function Footer() {
+  const settings = await getSiteSettings();
+
+  // «Связь»: phones as tel: links + Instagram (external). Empty fields skipped.
+  const contactLinks: FooterLink[] = [];
+  for (const phone of [
+    { value: settings.phone1, name: settings.phone1Name },
+    { value: settings.phone2, name: settings.phone2Name },
+  ]) {
+    if (phone.value) {
+      contactLinks.push({
+        label: phone.name ? `${phone.value} · ${phone.name}` : phone.value,
+        href: telHref(phone.value),
+        external: true,
+      });
+    }
+  }
+  if (settings.instagram) {
+    contactLinks.push({
+      label: 'Instagram',
+      href: settings.instagram,
+      external: true,
+    });
+  }
+
+  const sections: FooterSection[] = [
+    { title: 'Каталог', links: catalogLinks },
+    { title: 'Компания', links: companyLinks },
+    { title: 'Поддержка', links: supportLinks },
+    ...(contactLinks.length
+      ? [{ title: 'Связь', links: contactLinks } satisfies FooterSection]
+      : []),
+  ];
+
+  // Bottom-bar address line: «<address>, <city>, Казахстан», skipping empties.
+  // «Казахстан» stays as a literal so the location is always present.
+  const locationParts = [settings.address, settings.city, 'Казахстан'].filter(
+    Boolean,
+  );
+
   return (
     <footer
       id="footer"
@@ -55,12 +86,24 @@ export default function Footer() {
               <ul className="space-y-2">
                 {section.links.map((link) => (
                   <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-stone-300 transition-colors hover:text-white"
-                    >
-                      {link.label}
-                    </Link>
+                    {link.external ? (
+                      <a
+                        href={link.href}
+                        {...(link.href.startsWith('http')
+                          ? { target: '_blank', rel: 'noopener noreferrer' }
+                          : {})}
+                        className="text-sm text-stone-300 transition-colors hover:text-white"
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        href={link.href}
+                        className="text-sm text-stone-300 transition-colors hover:text-white"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -70,10 +113,17 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-stone-700 pt-8 sm:flex-row">
-          <p className="text-sm text-stone-400">
-            © 2026 Tanar. Все права защищены.
-          </p>
-          <p className="text-sm text-stone-400">Алматы, Казахстан</p>
+          <div className="text-center text-sm text-stone-400 sm:text-left">
+            <p>© 2026 Tanar. Все права защищены.</p>
+            {settings.ipName && (
+              <p className="mt-1 text-xs text-stone-500">
+                {settings.ipName}
+                {settings.bin ? ` · БИН ${settings.bin}` : ''}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-stone-600">made by raymann</p>
+          </div>
+          <p className="text-sm text-stone-400">{locationParts.join(', ')}</p>
         </div>
       </div>
     </footer>

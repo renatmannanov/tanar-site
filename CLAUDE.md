@@ -1,6 +1,6 @@
 # CLAUDE.md — tanar-site
 
-Маркетинговый сайт казахстанского outdoor-бренда **Tanar** (каз. "встречающая рассвет"). Логотип — силуэт горы Хан Тенгри. Вдохновение: Patagonia, Arc'teryx.
+Маркетинговый сайт казахстанского outdoor-бренда **Tanar** (каз. "тот, кто встречает рассвет"). Логотип — силуэт горы Хан Тенгри. Вдохновение: Patagonia, Arc'teryx.
 
 ## Стек
 
@@ -80,7 +80,9 @@ docker compose -f docker-compose.prod.yml --env-file .env ps                    
 - `/catalog/[slug]` — карточка товара: галерея, название, цена, описание, tech specs, кнопка "Узнать о наличии" (заглушка)
 - `/blog` — листинг постов
 - `/blog/[slug]` — страница поста
-- Шапка (лого, навигация), футер (ссылки, соц-сети — заглушки)
+- `/contacts` — контакты (телефоны+имена, Instagram, адрес, самовывоз) — из БД
+- `/faq` — частые вопросы (аккордеон `<details>`) — из БД
+- Шапка (лого, навигация: «Контакты» → `/contacts`, «О бренде» → `/#story`), футер — живые ссылки (контакты/FAQ/блог/Instagram, tel:, ИП+БИН) из БД
 
 ## Модульная структура (modular monolith, начало — Фаза 0)
 
@@ -93,14 +95,16 @@ src/
     inventory/         (заглушка, Фаза 2)
     orders/            (заглушка, Фаза 3)
     media/             (заглушка, Фаза 1 — admin-загрузка)
+    site/              site_settings (синглтон) + faq_items: @/core/site (server:
+                       read/write, DB-error-safe дефолты), @/core/site/client (типы).
     db/                Drizzle: schema, client, migrations, seed (real-catalog import)
     contracts/         общие union-типы домена (ProductCategory, OrderSource, ...)
   marketplace/
     contract/          (Фаза 5) MarketplaceModule интерфейс
   app/                 Next.js App Router
-    (public)/          витрина (Header/Footer layout): page, catalog/, blog/, icon
+    (public)/          витрина (Header/Footer layout): page, catalog/, blog/, contacts/, faq/, icon
     admin/             админка (Фаза 1, План B): login/ (вне сайдбара),
-                       (protected)/ (сайдбар-shell + requireAdmin): catalog/ edit
+                       (protected)/ (сайдбар-shell + requireAdmin): catalog/ edit, settings/, faq/
   components/, lib/     UI и общие утилиты (lib/blog, lib/gradients, lib/admin-auth, lib/require-admin)
   middleware.ts        guard на /admin/* (nodejs-runtime), redirect на /admin/login
 ```
@@ -120,7 +124,10 @@ ESLint (`eslint.config.mjs`) запрещает: импорт внутренно
   - **specs/care/label на витрине (Фаза 1.5):** specs (характеристики) редактируются в `ProductForm` и рендерятся таблицей; на странице товара также показываются размеры активного цвета (size + ruSize), блок «Уход» (care) и бейдж `label.badge`; бейдж — и на карточке каталога.
 - **Фото товаров**: в таблице `media_assets`, привязка к **варианту-цвету** (`variantId`). Загрузка — админка (Фаза 1, План C): `MediaStore` (`@/core/media/store`) гоняет `sharp` → 3×WEBP (1600/800/400, макс 2000px) в `public/images/products/<slug>/`. Приём JPG/PNG/WEBP (HEIC не поддержан prebuilt-sharp на Windows). Чтение для витрины — `@/core/media` (`listProductImages`/`listProductImagesForProducts`). Витрина: фото есть → галерея (object-cover, srcset); нет → CSS-градиент-фолбэк.
   - **Прод-требование:** `public/images/products/` на VPS должна быть **persistent volume** — иначе редеплой сотрёт загруженные фото.
-- **Посты блога**: 6 файлов в `content/blog/*.mdx` с frontmatter (title, slug, date, excerpt, cover gradient)
+  - **ИИ-генерация фото (photo-pipeline, done):** в админке заказчик заполняет **сетку 6 слотов** на цвет — `life_{front,side,back}` + `flat_{front,side,back}` (helpers в `@/core/media/client`: `PHOTO_SLOTS`/`slotOf`/`assetsBySlot`/`hexDistance`). Движок генерации — домен-агностик модуль `@/core/photogen` (server-only: `GeminiProvider` через `@google/genai`, `FakeProvider` для e2e, `recipes.ts` промпты 1–3). 3 рецепта: **flat** (живое→на белом, ракурс из целевого слота — фикс лого на спине), **recolor-flat**, **recolor-lifestyle** (перекраска в hex цвета из соседнего цвета, источник выбирается с миниатюрами, сортировка по близости hex). **Поток:** генерация → превью (base64, держит клиент) → апрув «Оставить» → `approveGeneratedAction` грузит через `mediaStore.upload`. Ничего не сохраняется без апрува. «Сделать все на белом» — пакет с подтверждением + общим превью. Сгенерированные → `media_assets.ai_generated=true`, бейдж «ИИ» в админке + метка на витрине. Env: `GEMINI_API_KEY` (обязателен для кнопок), `PHOTOGEN_RECOLOR_LOCK` (`hard` дефолт), `PHOTOGEN_DAILY_LIMIT` (выкл), `PHOTOGEN_FAKE=1` (e2e). Уроки промптов — `internal/docs/nano-banana-recipes.md` (gitignored). **swap (надеть товар) ОТКЛОНЁН; генерация-с-нуля по тексту НЕ делаем.**
+    - **Client-компоненты НЕ импортят `@/core/photogen` и `@/core/media/store`** (sharp/genai → ломают build). Превью-`<img>` рендерить ВНЕ слот-`<ul>` (иначе e2e посчитает его сохранённым).
+- **Контент сайта (site-content, done):** контакты и FAQ — в БД (`site_settings` синглтон + `faq_items`), редактируются в админке («Настройки сайта» / «FAQ»). Витрина (`/contacts`, `/faq`, футер) читает через `@/core/site` (`getSiteSettings`/`listFaqItems`) — **force-dynamic**; чтение обёрнуто в try/catch → дефолт (build без DATABASE_URL не падает, как и каталог). Константы `src/lib/site-contacts.ts` + `src/lib/faq.ts` — теперь ТОЛЬКО источник для сида (витрина их не импортит). PII (телефоны+имена Айман/Милена, Instagram, адрес, ИП+БИН) публикуется сознательно (решение владельца). IBAN/банк — в `site_settings`, но НЕ на витрине до Фазы 3. Перевод «Таңар» = «тот, кто встречает рассвет»; происхождение названия = Хан-Тенгри (не «Тенгри/Небо»). Редактирование блог-статей — отложено в бэклог (Фаза 6, `admin-content-management.md` 6b).
+- **Посты блога**: 3 файла в `content/blog/*.mdx` (о бренде / основатель / история) с frontmatter (title, slug, date, excerpt, gradient, author). Правятся вручную (БД-редактор — Фаза 6). e2e `smoke.spec.ts` пинит число постов (3) и `POST_SLUG='o-brende-tanar'`.
 - **Язык**: только русский
 - **Картинки-фолбэк**: для товаров без фото — CSS-градиенты из мягкой outdoor-палитры (земляные, пыльно-синие, серо-зелёные) + текст-метка с названием. Блог — пока на градиентах.
 

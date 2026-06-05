@@ -18,12 +18,14 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx --env-file=.env.local -r tsconfig-paths/register src/core/db/seed.ts",
+    "db:seed-site": "tsx --env-file=.env.local -r tsconfig-paths/register src/core/db/seed-site.ts",
     "db:reset": "tsx --env-file=.env.local -r tsconfig-paths/register src/core/db/reset.ts"
   },
   "engines": {
     "node": ">=20 <21"
   },
   "dependencies": {
+    "@google/genai": "^2.8.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
     "drizzle-orm": "^0.45.2",

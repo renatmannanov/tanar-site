@@ -17,6 +17,20 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/admin\/catalog$/);
 }
 
+/**
+ * Upload a photo into a specific empty slot. Each empty slot is a tile with
+ * title="Загрузить: <label>"; clicking it opens the (hidden) file picker, so we
+ * catch the filechooser and feed it the fixture. The photo lands in the slot's
+ * role/view.
+ */
+async function uploadIntoSlot(page: Page, slotTitle: string) {
+  const [chooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    page.getByTitle(slotTitle).click(),
+  ]);
+  await chooser.setFiles(FIXTURE);
+}
+
 test.beforeAll(() => {
   if (!PASSWORD) {
     throw new Error('ADMIN_PASSWORD is not set in the test environment (.env.local)');
@@ -34,7 +48,9 @@ test.afterAll(() => {
   }
 });
 
-// One serial flow: create -> upload -> reorder -> remove -> storefront -> delete.
+// One serial flow: create -> upload into slots -> generate flat -> remove ->
+// storefront -> delete. Photos live in a 6-slot grid (life/flat × front/side/
+// back); occupied slots render as `ul li`, so counts below track stored photos.
 test.describe.serial('product CRUD + variant photos', () => {
   test('create a product and land on its edit page', async ({ page }) => {
     await login(page);
@@ -58,43 +74,81 @@ test.describe.serial('product CRUD + variant photos', () => {
     await expect(page).toHaveURL(new RegExp(`/admin/catalog/${TEST_SLUG}/edit$`));
   });
 
-  test('upload a photo — preview + "Главное" badge', async ({ page }) => {
+  test('upload a lifestyle photo into the life_front slot', async ({ page }) => {
     await login(page);
     await page.goto(`/admin/catalog/${TEST_SLUG}/edit`);
 
-    const fileInput = page.locator('input[type="file"]').first();
-    await fileInput.setInputFiles(FIXTURE);
+    await uploadIntoSlot(page, 'Загрузить: Живое · спереди');
 
-    // The uploaded image preview appears, with the "Главное" badge on the first.
-    const previews = page.locator('ul li img');
-    await expect(previews.first()).toBeVisible();
-    await expect(page.getByText('Главное')).toBeVisible();
+    // The occupied slot renders as `ul li` with the slot label badge.
+    await expect(page.locator('ul li img')).toHaveCount(1);
+    await expect(page.getByText('Живое · спереди')).toBeVisible();
   });
 
-  test('upload a second photo and reorder', async ({ page }) => {
+  test('upload a second lifestyle photo into the life_side slot', async ({ page }) => {
     await login(page);
     await page.goto(`/admin/catalog/${TEST_SLUG}/edit`);
 
-    const fileInput = page.locator('input[type="file"]').first();
-    await fileInput.setInputFiles(FIXTURE);
+    await expect(page.locator('ul li')).toHaveCount(1);
+    await uploadIntoSlot(page, 'Загрузить: Живое · сбоку');
+    await expect(page.locator('ul li')).toHaveCount(2);
+  });
 
-    const previews = page.locator('ul li');
-    await expect(previews).toHaveCount(2);
+  test('generate a flat photo from a lifestyle source (mocked Gemini)', async ({
+    page,
+  }) => {
+    // Uploaded photos are lifestyle, so the "Сделать на белом" (flat) button is
+    // offered. PHOTOGEN_FAKE=1 (playwright.config webServer.env) swaps in a
+    // no-op provider — no real Gemini call. The action runs the full upload
+    // pipeline, so a 3rd occupied slot appears.
+    await login(page);
+    await page.goto(`/admin/catalog/${TEST_SLUG}/edit`);
 
-    // Capture the first image's src, move the 2nd left, expect the order to swap.
-    const firstSrcBefore = await previews.first().locator('img').getAttribute('src');
-    // Hover the second to reveal controls, click its "←".
-    await previews.nth(1).hover();
-    await previews.nth(1).getByRole('button', { name: 'Левее' }).click();
+    await expect(page.locator('ul li')).toHaveCount(2);
+    // Empty slots show a "✨ Сгенерировать" button → candidate popover. Pick the
+    // recipe-1 candidate. PHOTOGEN_FAKE=1 swaps in a no-op provider (no Gemini).
+    await page
+      .getByRole('button', { name: 'Сгенерировать', exact: false })
+      .first()
+      .click();
+    await page
+      .getByRole('button', { name: 'Сделать на белом', exact: false })
+      .first()
+      .click();
 
-    await expect(async () => {
-      const firstSrcAfter = await page
-        .locator('ul li')
-        .first()
-        .locator('img')
-        .getAttribute('src');
-      expect(firstSrcAfter).not.toBe(firstSrcBefore);
-    }).toPass();
+    // Generation now yields a PREVIEW — nothing is saved yet (still 2 stored),
+    // and the preview <img> lives outside the slot <ul>.
+    await expect(page.getByTestId('gen-preview')).toBeVisible();
+    await expect(page.locator('ul li')).toHaveCount(2);
+
+    // "Оставить" persists it → 3rd slot occupied, with view=front and the ИИ
+    // badge (aiGenerated=true).
+    await page.getByRole('button', { name: 'Оставить', exact: true }).click();
+    await expect(page.locator('ul li')).toHaveCount(3);
+    await expect(page.getByText('На белом · спереди')).toBeVisible();
+    await expect(page.getByText('ИИ', { exact: true }).first()).toBeVisible();
+  });
+
+  test('generate then cancel does not save (mocked Gemini)', async ({ page }) => {
+    await login(page);
+    await page.goto(`/admin/catalog/${TEST_SLUG}/edit`);
+
+    // After the previous test there are 3 stored photos. Generating into the
+    // empty flat_side slot and cancelling must NOT change the count.
+    await expect(page.locator('ul li')).toHaveCount(3);
+    await page
+      .getByRole('button', { name: 'Сгенерировать', exact: false })
+      .first()
+      .click();
+    await page
+      .getByRole('button', { name: 'Сделать на белом', exact: false })
+      .first()
+      .click();
+    await expect(page.getByTestId('gen-preview')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Отмена', exact: true }).click();
+    await expect(page.getByTestId('gen-preview')).toHaveCount(0);
+    await expect(page.locator('ul li')).toHaveCount(3);
   });
 
   test('remove a photo via confirm', async ({ page }) => {
@@ -102,13 +156,13 @@ test.describe.serial('product CRUD + variant photos', () => {
     await page.goto(`/admin/catalog/${TEST_SLUG}/edit`);
 
     const previews = page.locator('ul li');
-    await expect(previews).toHaveCount(2);
+    await expect(previews).toHaveCount(3);
 
     await previews.first().hover();
     await previews.first().getByRole('button', { name: '×' }).click();
     await page.getByRole('button', { name: 'Удалить фото' }).click();
 
-    await expect(page.locator('ul li')).toHaveCount(1);
+    await expect(page.locator('ul li')).toHaveCount(2);
   });
 
   test('storefront shows the uploaded image (not a gradient)', async ({ page }) => {
@@ -139,5 +193,191 @@ test.describe.serial('product CRUD + variant photos', () => {
 
     const res = await page.goto(`/catalog/${TEST_SLUG}`);
     expect(res?.status()).toBe(404);
+  });
+});
+
+// Recolor from a sibling color: a flat of color A is the source for color B's
+// empty flat_front slot (recipe 2). Separate product so it doesn't entangle the
+// main flow. Cleaned up by deleting the product at the end.
+const RECOLOR_SLUG = 'e2e-recolor-product';
+const RECOLOR_DIR = path.join(
+  process.cwd(),
+  'public',
+  'images',
+  'products',
+  RECOLOR_SLUG,
+);
+
+test.describe.serial('slot-bound recolor from a sibling color', () => {
+  test.afterAll(() => {
+    try {
+      rmSync(RECOLOR_DIR, { recursive: true, force: true });
+    } catch {
+      /* nothing uploaded */
+    }
+  });
+
+  test('create a 2-color product', async ({ page }) => {
+    await login(page);
+    await page.goto('/admin/catalog/new');
+
+    await page.locator('#name').fill('E2E Recolor Product');
+    await page.locator('#priceBase').fill('9999');
+    await page.locator('#description').fill('E2E recolor description.');
+
+    // Variant blocks are DIRECT children of the "Цвета и размеры" section; the
+    // photo block nested inside also has rounded-md/border, so scope with `>`.
+    const variantsSection = page.locator('section', { hasText: 'Цвета и размеры' });
+    const variantBlocks = variantsSection.locator(':scope > div.rounded-md.border');
+
+    // First color: green.
+    const blockA = variantBlocks.first();
+    const inputsA = blockA.locator('input[type="text"], input:not([type])');
+    await inputsA.nth(0).fill('green');
+    await inputsA.nth(1).fill('Зелёный');
+    await blockA.locator('table tbody tr').first().locator('input').first().fill('M');
+
+    // Add a second color: blue.
+    await page.getByRole('button', { name: '+ Цвет' }).click();
+    const blockB = variantBlocks.nth(1);
+    const inputsB = blockB.locator('input[type="text"], input:not([type])');
+    await inputsB.nth(0).fill('blue');
+    await inputsB.nth(1).fill('Синий');
+    await blockB.locator('table tbody tr').first().locator('input').first().fill('M');
+
+    await page.getByRole('button', { name: 'Создать' }).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/admin/catalog/${RECOLOR_SLUG}/edit$`),
+    );
+  });
+
+  test('upload a flat to color A; color B offers recolor → generates a flat', async ({
+    page,
+  }) => {
+    await login(page);
+    await page.goto(`/admin/catalog/${RECOLOR_SLUG}/edit`);
+
+    // Color A's photo block is the first; its flat_front empty slot uploads a
+    // flat directly. There are two "Загрузить: На белом · спереди" tiles (one
+    // per color) — .first() targets color A.
+    const [chooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.getByTitle('Загрузить: На белом · спереди').first().click(),
+    ]);
+    await chooser.setFiles(FIXTURE);
+
+    await expect(page.locator('ul li')).toHaveCount(1);
+
+    // Color B's flat_front slot now has a sibling flat source (color A "Зелёный")
+    // → it offers a "✨ Сгенерировать" button. Open it and pick the recolor
+    // candidate ("Перекрасить из «Зелёный»"). B gets a flat (count 1→2).
+    await page
+      .getByRole('button', { name: 'Сгенерировать', exact: false })
+      .first()
+      .click();
+    await page
+      .getByRole('button', { name: 'Перекрасить из «Зелёный»', exact: false })
+      .first()
+      .click();
+    // Preview first, then keep → B gets a flat (count 1→2).
+    await expect(page.getByTestId('gen-preview')).toBeVisible();
+    await page.getByRole('button', { name: 'Оставить', exact: true }).click();
+    await expect(page.locator('ul li')).toHaveCount(2);
+  });
+
+  test('delete the recolor product', async ({ page }) => {
+    await login(page);
+    await page.goto(`/admin/catalog/${RECOLOR_SLUG}/edit`);
+    await page.getByRole('button', { name: 'Удалить товар' }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Удалить товар' })
+      .click();
+    await expect(page).toHaveURL(/\/admin\/catalog$/);
+  });
+});
+
+// Batch "make all flats": upload two lifestyle shots, click one button, get a
+// flat for each in one go (recipe 1, sequential). Separate product.
+const BATCH_SLUG = 'e2e-batch-product';
+const BATCH_DIR = path.join(process.cwd(), 'public', 'images', 'products', BATCH_SLUG);
+
+test.describe.serial('batch make-all-flats', () => {
+  test.afterAll(() => {
+    try {
+      rmSync(BATCH_DIR, { recursive: true, force: true });
+    } catch {
+      /* nothing uploaded */
+    }
+  });
+
+  test('create product, upload two life shots', async ({ page }) => {
+    await login(page);
+    await page.goto('/admin/catalog/new');
+    await page.locator('#name').fill('E2E Batch Product');
+    await page.locator('#priceBase').fill('5555');
+    await page.locator('#description').fill('E2E batch description.');
+    const block = page.locator('section div.rounded-md.border').first();
+    const inputs = block.locator('input[type="text"], input:not([type])');
+    await inputs.nth(0).fill('green');
+    await inputs.nth(1).fill('Зелёный');
+    await block.locator('table tbody tr').first().locator('input').first().fill('M');
+    await page.getByRole('button', { name: 'Создать' }).click();
+    await expect(page).toHaveURL(new RegExp(`/admin/catalog/${BATCH_SLUG}/edit$`));
+
+    await uploadIntoSlot(page, 'Загрузить: Живое · спереди');
+    await expect(page.locator('ul li')).toHaveCount(1);
+    await uploadIntoSlot(page, 'Загрузить: Живое · сбоку');
+    await expect(page.locator('ul li')).toHaveCount(2);
+  });
+
+  test('batch all-flats shows a preview then saves on approve', async ({ page }) => {
+    await login(page);
+    await page.goto(`/admin/catalog/${BATCH_SLUG}/edit`);
+    await expect(page.locator('ul li')).toHaveCount(2);
+
+    // 2 life shots with empty paired flats → "✨ Сделать все на белом (2)".
+    // Clicking it asks to confirm (guards an accidental batch of paid calls).
+    await page
+      .getByRole('button', { name: 'Сделать все на белом', exact: false })
+      .click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Сгенерировать', exact: true })
+      .click();
+
+    // Then ONE approval: a preview with both photos; nothing saved until keep.
+    await expect(page.getByTestId('gen-preview')).toBeVisible();
+    await expect(page.locator('ul li')).toHaveCount(2); // not saved yet
+
+    await page.getByRole('button', { name: 'Оставить', exact: true }).click();
+    // Both flats persisted (2 life + 2 flat = 4 occupied slots).
+    await expect(page.locator('ul li')).toHaveCount(4);
+  });
+
+  test('clicking a slot photo opens the full-size lightbox', async ({ page }) => {
+    await login(page);
+    await page.goto(`/admin/catalog/${BATCH_SLUG}/edit`);
+    await expect(page.locator('ul li')).toHaveCount(4);
+
+    // Click the first occupied slot's photo → a lightbox dialog opens with the
+    // full image; the × button closes it.
+    await page.locator('ul li button[title="Открыть в полный размер"]').first().click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('img')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Закрыть' }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+
+  test('delete the batch product', async ({ page }) => {
+    await login(page);
+    await page.goto(`/admin/catalog/${BATCH_SLUG}/edit`);
+    await page.getByRole('button', { name: 'Удалить товар' }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Удалить товар' })
+      .click();
+    await expect(page).toHaveURL(/\/admin\/catalog$/);
   });
 });

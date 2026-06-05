@@ -120,6 +120,9 @@ export const mediaAssets = pgTable(
     model: text('model'),
     // 'lifestyle' | 'flat'
     role: text('role'),
+    // true when produced by photogen (AI). Drives the "ИИ" badge in admin and
+    // the storefront marker. Default false — only new generations set it.
+    aiGenerated: boolean('ai_generated').notNull().default(false),
     // for scope=site/blog: 'home.hero', 'story.1', 'blog:post-slug', ...
     key: text('key'),
     alt: text('alt'),
@@ -131,6 +134,45 @@ export const mediaAssets = pgTable(
     index('media_assets_product_id_idx').on(t.productId),
     index('media_assets_scope_key_idx').on(t.scope, t.key),
   ],
+);
+
+// Editable brand settings — a singleton (one row). The storefront footer and
+// /contacts read it; the admin "Настройки сайта" form upserts it. All fields
+// nullable so an empty install renders sensible defaults (see @/core/site).
+export const siteSettings = pgTable('site_settings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  phone1: text('phone1'),
+  phone1Name: text('phone1_name'),
+  phone2: text('phone2'),
+  phone2Name: text('phone2_name'),
+  instagram: text('instagram'),
+  email: text('email'),
+  city: text('city'),
+  address: text('address'),
+  pickupInfo: text('pickup_info'),
+  ipName: text('ip_name'),
+  bin: text('bin'),
+  // bankName/iban stored but NOT shown on the storefront until Phase 3 (payment).
+  bankName: text('bank_name'),
+  iban: text('iban'),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// FAQ entries, ordered by sortOrder. /faq renders them; admin "FAQ" does CRUD.
+export const faqItems = pgTable(
+  'faq_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    question: text('question').notNull(),
+    answer: text('answer').notNull(),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index('faq_items_sort_order_idx').on(t.sortOrder)],
 );
 
 export const orders = pgTable(

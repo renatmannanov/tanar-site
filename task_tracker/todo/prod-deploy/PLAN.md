@@ -55,7 +55,7 @@
 
 | # | Файл | Статус |
 |---|------|--------|
-| 8 | step_8_backups.md — согласованный бэкап (pg_dump + tar фото) + cron | [ ] |
+| 8 | step_8_backups.md — согласованный бэкап (pg_dump + tar фото) + cron | [x] (backup.sh+restore.sh, cron 3:30, тест-restore ✓) |
 | 9 | step_9_push_media_cli.md — CLI массовой заливки фото на прод | [ ] |
 | 11 | step_11_migrate_to_pskz.md — переезд Hetzner→PS.kz (боевой, после согласования с заказчицей) | [ ] |
 | 10 | step_10_completion.md — завершение плана | [ ] |

@@ -11,7 +11,7 @@ if (!/tanar_dev|tanar_test/.test(url)) {
 
 async function main() {
   await db.execute(
-    sql`TRUNCATE products, product_variants, skus, media_assets, orders, order_items, inventory_log CASCADE`,
+    sql`TRUNCATE products, product_variants, skus, media_assets, orders, order_items, inventory_log, site_settings, faq_items CASCADE`,
   );
   console.log('reset OK: all tables truncated');
   await queryClient.end();

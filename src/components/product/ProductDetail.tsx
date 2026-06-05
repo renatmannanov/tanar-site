@@ -77,6 +77,11 @@ export default function ProductDetail({
               alt={activeShot.alt ?? product.name}
               className="absolute inset-0 h-full w-full object-cover"
             />
+            {activeShot.aiGenerated ? (
+              <span className="absolute bottom-2 left-2 rounded bg-black/45 px-2 py-0.5 text-[10px] font-medium text-white/90 backdrop-blur-sm">
+                Изображение создано ИИ
+              </span>
+            ) : null}
           </div>
         ) : (
           // No photos for this color → gradient fallback (real catalog default).
