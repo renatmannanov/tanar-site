@@ -23,5 +23,17 @@
 
 {$DOMAIN} {
 	encode gzip zstd
+
+	# Product photos are uploaded at RUNTIME into the product-images volume.
+	# Next's standalone server only serves public/ files present at build time,
+	# so runtime uploads 404 through the proxy. Caddy serves them directly off
+	# the same volume (mounted read-only at /srv/product-images in compose).
+	# `handle_path` strips the /images/products prefix, then file_server resolves
+	# <slug>/<uuid>-<width>.webp under the volume root.
+	handle_path /images/products/* {
+		root * /srv/product-images
+		file_server
+	}
+
 	reverse_proxy web:3000
 }
