@@ -330,16 +330,17 @@ export function VariantPhotos({
       />
 
       {flatableViews.length > 0 ? (
-        <Button
-          type="button"
+        <ConfirmButton
           variant="secondary"
           disabled={pending || atMax || !!preview}
           className="self-start"
-          title="Сгенерировать «на белом» для всех ракурсов, где есть живое фото и пустой слот"
-          onClick={makeAllFlats}
+          title={`Сгенерировать ${flatableViews.length} фото «на белом»?`}
+          description={`ИИ создаст «на белом» для всех ракурсов с живым фото (${flatableViews.length} шт.). Результат покажем для проверки перед сохранением.`}
+          confirmLabel="Сгенерировать"
+          onConfirm={makeAllFlats}
         >
           ✨ Сделать все на белом ({flatableViews.length})
-        </Button>
+        </ConfirmButton>
       ) : null}
 
       {/* Preview panel — rendered OUTSIDE the slot <ul> so its <img> is never

@@ -336,12 +336,17 @@ test.describe.serial('batch make-all-flats', () => {
     await page.goto(`/admin/catalog/${BATCH_SLUG}/edit`);
     await expect(page.locator('ul li')).toHaveCount(2);
 
-    // 2 life shots with empty paired flats → "✨ Сделать все на белом (2)". The
-    // batch now goes through ONE approval: a preview with both photos appears
-    // and nothing is saved until "Оставить".
+    // 2 life shots with empty paired flats → "✨ Сделать все на белом (2)".
+    // Clicking it asks to confirm (guards an accidental batch of paid calls).
     await page
       .getByRole('button', { name: 'Сделать все на белом', exact: false })
       .click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Сгенерировать', exact: true })
+      .click();
+
+    // Then ONE approval: a preview with both photos; nothing saved until keep.
     await expect(page.getByTestId('gen-preview')).toBeVisible();
     await expect(page.locator('ul li')).toHaveCount(2); // not saved yet
 
