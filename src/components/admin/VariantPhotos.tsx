@@ -332,14 +332,59 @@ export function VariantPhotos({
               </span>
 
               {candidates.length > 0 ? (
-                <button
-                  type="button"
-                  disabled={pending || atMax}
-                  onClick={() => setOpenSlot(isOpen ? null : slot.key)}
-                  className="rounded bg-gray-900/85 px-2 py-1 text-[11px] font-medium text-white hover:bg-gray-900 disabled:opacity-50"
-                >
-                  ✨ Сгенерировать{candidates.length > 1 ? ' ▾' : ''}
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    disabled={pending || atMax}
+                    onClick={() => setOpenSlot(isOpen ? null : slot.key)}
+                    className="rounded bg-gray-900/85 px-2 py-1 text-[11px] font-medium text-white hover:bg-gray-900 disabled:opacity-50"
+                  >
+                    ✨ Сгенерировать ▾
+                  </button>
+
+                  {/* Candidate popover, absolute right under the button: every
+                      valid source with a thumbnail, sorted (recipe 1, then
+                      recolor nearest-hex). The owner sees what they generate
+                      from instead of a silent first-match. */}
+                  {isOpen ? (
+                    <div className="absolute left-1/2 top-full z-10 mt-1 w-56 -translate-x-1/2 rounded-md border border-gray-200 bg-white p-2 text-left shadow-lg">
+                      <p className="mb-1 px-1 text-[10px] uppercase tracking-wide text-gray-400">
+                        Источник для «{slot.label}»
+                      </p>
+                      <ul className="flex flex-col gap-1">
+                        {candidates.map((c) => (
+                          <li key={`${c.kind}-${c.source.id}`}>
+                            <button
+                              type="button"
+                              disabled={pending}
+                              onClick={() => generate(slot, c)}
+                              className="flex w-full items-center gap-2 rounded px-1 py-1 text-left hover:bg-gray-100 disabled:opacity-50"
+                            >
+                              <span className="h-9 w-9 shrink-0 overflow-hidden rounded bg-gray-100">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={c.source.url}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
+                              </span>
+                              <span className="text-[11px] leading-tight text-gray-700">
+                                {c.label}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                      <button
+                        type="button"
+                        onClick={() => setOpenSlot(null)}
+                        className="mt-1 w-full rounded px-1 py-0.5 text-[10px] text-gray-400 hover:text-gray-600"
+                      >
+                        отмена
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
               ) : null}
 
               <button
@@ -351,48 +396,6 @@ export function VariantPhotos({
               >
                 + загрузить
               </button>
-
-              {/* Candidate popover: thumbnails of every valid source, sorted
-                  (recipe 1, then recolor nearest-hex). The owner sees what
-                  they generate from instead of a silent first-match. */}
-              {isOpen && candidates.length > 0 ? (
-                <div className="absolute left-1/2 top-full z-10 mt-1 w-56 -translate-x-1/2 rounded-md border border-gray-200 bg-white p-2 text-left shadow-lg">
-                  <p className="mb-1 px-1 text-[10px] uppercase tracking-wide text-gray-400">
-                    Источник для «{slot.label}»
-                  </p>
-                  <ul className="flex flex-col gap-1">
-                    {candidates.map((c) => (
-                      <li key={`${c.kind}-${c.source.id}`}>
-                        <button
-                          type="button"
-                          disabled={pending}
-                          onClick={() => generate(slot, c)}
-                          className="flex w-full items-center gap-2 rounded px-1 py-1 text-left hover:bg-gray-100 disabled:opacity-50"
-                        >
-                          <span className="h-9 w-9 shrink-0 overflow-hidden rounded bg-gray-100">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={c.source.url}
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
-                          </span>
-                          <span className="text-[11px] leading-tight text-gray-700">
-                            {c.label}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    type="button"
-                    onClick={() => setOpenSlot(null)}
-                    className="mt-1 w-full rounded px-1 py-0.5 text-[10px] text-gray-400 hover:text-gray-600"
-                  >
-                    отмена
-                  </button>
-                </div>
-              ) : null}
             </div>
           );
         })}
