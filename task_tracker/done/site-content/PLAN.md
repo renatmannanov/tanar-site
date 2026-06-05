@@ -1,6 +1,6 @@
 # Раздел «О компании» — контентные страницы Tanar
 
-> Статус: pending
+> Статус: done (2026-06-05)
 > Дата: 2026-06-05
 > Тип: фича (контент + страницы + позже админка)
 
@@ -29,7 +29,7 @@
 | 8 | step_8_storefront_from_db.md | `/contacts`, `/faq`, футер читают из БД вместо констант | [x] |
 | 9 | step_9_admin_settings.md | Админка «Настройки сайта» (форма site_settings) | [x] |
 | 10 | step_10_admin_faq.md | Админка «FAQ» (CRUD вопрос-ответ) | [x] |
-| 11 | step_11_completion.md | Завершение плана (чеклист, smoke, todo→done) | [ ] |
+| 11 | step_11_completion.md | Завершение плана (чеклист, smoke, todo→done) | [x] |
 
 ## Критерии готовности
 
@@ -40,12 +40,12 @@
 - [x] Header + MobileNav: «Контакты» ведёт на `/contacts`; «О бренде» — на `/#story` (зафиксировано в шаге 5)
 - [x] `npm run build && npm run typecheck && npm run lint && npm run test:e2e` зелёные (75 passed)
 
-### Итерация 2
-- [ ] Миграция `site_settings` + `faq_items` применяется на чистой БД; seed заполняет их значениями из итерации 1
-- [ ] `/contacts`, `/faq`, футер показывают данные из БД (правка в БД → меняется на витрине)
-- [ ] В админке заказчик редактирует контакты (форма) и FAQ (добавить/изменить/удалить/порядок) под `requireAdmin`
-- [ ] client-бандл чист от серверных импортов (граница как `@/core/media/client`)
-- [ ] `npm run build && npm run typecheck && npm run lint && npm run test:e2e` зелёные
+### Итерация 2 — ✅ DONE (2026-06-05)
+- [x] Миграция `site_settings` + `faq_items` применяется на чистой БД (`db:reset`→`migrate`→`seed`); seed заполняет их значениями из итерации 1 (idempotent). Миграции 0003 + 0004 (phone names).
+- [x] `/contacts`, `/faq`, футер показывают данные из БД (правка в БД → меняется на витрине; проверено e2e `site-admin.spec.ts`)
+- [x] В админке заказчик редактирует контакты (форма + имена телефонов) и FAQ (добавить/изменить/удалить/порядок) под `requireAdmin`
+- [x] client-бандл чист от серверных импортов (типы из `@/core/site/client`; build зелёный)
+- [x] `npm run build && npm run typecheck && npm run lint && npm run test:e2e` зелёные (77 passed)
 
 ## Решение по PII (зафиксировано с пользователем 2026-06-05)
 
