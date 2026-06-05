@@ -22,6 +22,13 @@
       "when": 1780651190522,
       "tag": "0002_thick_joseph",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1780660604489,
+      "tag": "0003_dazzling_reaper",
+      "breakpoints": true
     }
   ]
 }
