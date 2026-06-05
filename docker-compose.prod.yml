@@ -61,6 +61,9 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data       # certificates — persist to avoid LE rate limits
       - caddy-config:/config
+      # product photos served directly by Caddy (Next standalone won't serve
+      # runtime uploads from public/). Read-only — only web writes here.
+      - product-images:/srv/product-images:ro
     depends_on:
       - web
 
