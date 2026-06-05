@@ -10,6 +10,8 @@ export type AdminSection = {
 // one entry here. Active in Plan B: catalog (edit only).
 export const adminSections: AdminSection[] = [
   { id: 'catalog', label: 'Каталог', href: '/admin/catalog', enabled: true },
+  { id: 'settings', label: 'Настройки сайта', href: '/admin/settings', enabled: true },
+  { id: 'faq', label: 'FAQ', href: '/admin/faq', enabled: true },
   { id: 'inventory', label: 'Остатки', href: '/admin/inventory', enabled: false },
   { id: 'orders', label: 'Заказы', href: '/admin/orders', enabled: false },
   { id: 'site-media', label: 'Медиа сайта', href: '/admin/site-media', enabled: false },
