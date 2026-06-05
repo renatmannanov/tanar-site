@@ -54,6 +54,10 @@ test.describe.serial('site admin', () => {
     await page.locator('#new-a').fill('E2E ответ.');
     await page.getByRole('button', { name: 'Добавить' }).click();
 
+    // onAdd clears the draft fields only after the server action resolves —
+    // wait for that so we don't race the goto below against the revalidate.
+    await expect(page.locator('#new-q')).toHaveValue('');
+
     // Storefront shows it (answer lives in a collapsed <details>).
     await page.goto('/faq');
     await expect(page.getByText('E2E вопрос?')).toBeVisible();
