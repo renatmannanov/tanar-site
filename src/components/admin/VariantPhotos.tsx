@@ -14,6 +14,7 @@ import {
 import type { ProductImageView } from '@/core/contracts';
 import { Button } from './ui/Button';
 import { ConfirmButton } from './ui/ConfirmButton';
+import { Lightbox } from './ui/Lightbox';
 
 const SOFT_MAX = 8;
 
@@ -110,6 +111,8 @@ export function VariantPhotos({
   const pendingSlot = useRef<PhotoSlotKey | null>(null);
   const [openSlot, setOpenSlot] = useState<PhotoSlotKey | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
+  // Full-size image shown in the lightbox (slot thumbnail or generation preview).
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [error, setError] = useState<string | undefined>();
   const [pending, startTransition] = useTransition();
 
@@ -350,15 +353,20 @@ export function VariantPhotos({
             Превью генерации для «{preview.slot.label}» — проверьте, прежде чем сохранить.
           </p>
           <div className="flex items-start gap-3">
-            <div className="h-32 w-32 shrink-0 overflow-hidden rounded border border-gray-200 bg-white">
+            <button
+              type="button"
+              onClick={() => setLightboxSrc(preview.dataUrl)}
+              title="Открыть в полный размер"
+              className="h-32 w-32 shrink-0 overflow-hidden rounded border border-gray-200 bg-white"
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={preview.dataUrl}
                 alt="превью"
                 data-testid="gen-preview"
-                className="h-full w-full object-cover"
+                className="h-full w-full cursor-zoom-in object-cover"
               />
-            </div>
+            </button>
             <div className="flex flex-col gap-2">
               {preview.confirmingReplace ? (
                 <>
@@ -417,14 +425,19 @@ export function VariantPhotos({
             return (
               <ul key={slot.key} className="contents">
                 <li className="group relative overflow-hidden rounded-md border border-gray-200">
-                  <div className="aspect-square w-full bg-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => setLightboxSrc(asset.url)}
+                    title="Открыть в полный размер"
+                    className="block aspect-square w-full bg-gray-100"
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={asset.url}
                       alt={asset.alt ?? ''}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full cursor-zoom-in object-cover"
                     />
-                  </div>
+                  </button>
                   <span className="absolute left-1 top-1 rounded bg-gray-900/80 px-1.5 py-0.5 text-[10px] font-medium text-white">
                     {slot.label}
                   </span>
@@ -577,6 +590,8 @@ export function VariantPhotos({
           {error}
         </p>
       ) : null}
+
+      <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 }

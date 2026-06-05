@@ -380,6 +380,21 @@ test.describe.serial('batch make-all-flats', () => {
     }).toPass();
   });
 
+  test('clicking a slot photo opens the full-size lightbox', async ({ page }) => {
+    await login(page);
+    await page.goto(`/admin/catalog/${BATCH_SLUG}/edit`);
+    await expect(page.locator('ul li')).toHaveCount(4);
+
+    // Click the first occupied slot's photo → a lightbox dialog opens with the
+    // full image; the × button closes it.
+    await page.locator('ul li button[title="Открыть в полный размер"]').first().click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('img')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Закрыть' }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+
   test('delete the batch product', async ({ page }) => {
     await login(page);
     await page.goto(`/admin/catalog/${BATCH_SLUG}/edit`);
