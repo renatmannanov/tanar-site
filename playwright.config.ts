@@ -22,6 +22,11 @@ export default defineConfig({
     timeout: 120_000,
     stdout: 'ignore',
     stderr: 'pipe',
+    // PHOTOGEN_FAKE=1 makes photogen use a no-op provider so the photo-
+    // generation e2e never calls (or pays for) Gemini. webServer.env is merged
+    // into the spawned dev server's environment (cross-platform). NOTE: a
+    // reused server (reuseExistingServer) must already have this set.
+    env: { PHOTOGEN_FAKE: '1' },
   },
   projects: [
     { name: 'chromium', use: { channel: 'chromium' } },

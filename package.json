@@ -24,6 +24,7 @@
     "node": ">=20 <21"
   },
   "dependencies": {
+    "@google/genai": "^2.8.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
     "drizzle-orm": "^0.45.2",
