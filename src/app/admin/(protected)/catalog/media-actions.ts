@@ -135,30 +135,34 @@ export async function setVariantImageRoleAction(
   return {};
 }
 
-// ── AI photo generation (photogen) ──────────────────────────────────────────
-// Each action is the Tanar-specific glue: read a source media_asset off disk →
-// run a photogen recipe (domain-agnostic engine) → upload the result bound to
-// the TARGET variant with the correct role/view. The view is inherited from the
-// source asset — the admin never picks an angle, so a front can't be passed off
-// as a back. revalidate refreshes the gallery; nothing publishes automatically
-// (preview/approve is layered on in step 6).
+// ── AI photo generation (photogen) — two-phase: generate → approve ───────────
+// Step 6 splits generation in two so NOTHING is written until the owner approves
+// (the main guard against bad AI photos): generate* reads the source, runs a
+// photogen recipe, and returns the result as a base64 data-URL — no disk/DB
+// write. The client holds the preview; on "Оставить" it calls approveGenerated*
+// which decodes the bytes and uploads (aiGenerated=true). "Отмена" = the client
+// drops the data-URL; nothing was persisted. The view is taken from the TARGET
+// slot (back-flat logo fix), not the source.
 
-/** Shared params identifying where the generated photo lands. */
+/** Shared params identifying what to generate and where it will land. */
 type GenTarget = {
   /** Source media_asset id to feed the recipe. */
   sourceId: string;
   /** Variant the NEW photo attaches to (same as source for flat). */
   variantId: string;
-  /**
-   * Target slot's view — the angle the RESULT gets, taken from the slot the
-   * owner clicked (NOT inferred from the source). This is the fix for the
-   * back-flat logo bug: a back slot drives flatPrompt('back'), which removes the
-   * logo. Source and target view should match (the UI only offers same-angle
-   * sources), but the target slot is the source of truth.
-   */
+  /** Target slot's view — drives the recipe angle (back-flat logo fix). */
   view: PhotoView;
   slug: string;
   productId: string;
+};
+
+/** Result of a generate* action: a preview to show, plus role to persist. */
+type GenPreview = {
+  error?: string;
+  /** data:image/webp;base64,… — held by the client, never written until approve. */
+  previewDataUrl?: string;
+  /** Role the approved photo gets (recipe 1/2 → flat, recipe 3 → lifestyle). */
+  role?: 'lifestyle' | 'flat';
 };
 
 /** Resolve the source asset + its file bytes, with a friendly error. */
@@ -169,119 +173,124 @@ async function loadSource(sourceId: string) {
   return { source, bytes };
 }
 
-/**
- * Guard against writing two photos into one (variantId, role, view) slot.
- * The UI only shows a gen button on an EMPTY slot, but a double-click or race
- * could slip a second write through. Replace goes through the step-6 flow.
- */
-async function slotGuard(
-  variantId: string,
-  role: 'lifestyle' | 'flat',
-  view: PhotoView,
-): Promise<{ error: string } | null> {
-  return (await mediaStore.slotTaken(variantId, role, view))
-    ? { error: 'Слот уже занят' }
-    : null;
+// ── Generation limit (off by default) ────────────────────────────────────────
+// A soft ceiling on Gemini calls, controlled by PHOTOGEN_DAILY_LIMIT. Unset or
+// non-positive → unlimited (the default). This is a per-process counter (resets
+// on restart) — a minimal brake, not a billing-grade quota. To enable, set the
+// env var (e.g. PHOTOGEN_DAILY_LIMIT=50). Kept here so it wraps every recipe.
+let generationCount = 0;
+function generationLimitReached(): boolean {
+  const raw = Number(process.env.PHOTOGEN_DAILY_LIMIT);
+  if (!Number.isFinite(raw) || raw <= 0) return false; // disabled
+  return generationCount >= raw;
 }
 
-/**
- * Recipe 1 — lifestyle shot of this variant → studio flat on white, same view.
- * Source must be a lifestyle photo of the SAME variant.
- */
-export async function generateFlatAction(
-  target: GenTarget,
-): Promise<{ error?: string }> {
+/** Run a recipe to bytes → return a base64 data-URL preview (no persistence). */
+function toDataUrl(buf: Buffer): string {
+  return `data:image/webp;base64,${buf.toString('base64')}`;
+}
+
+/** Recipe 1 — lifestyle of this variant → studio flat on white, same view. */
+export async function generateFlatAction(target: GenTarget): Promise<GenPreview> {
   await requireAdmin();
   try {
-    const { view } = target; // angle comes from the target slot, not the source
-    const taken = await slotGuard(target.variantId, 'flat', view);
-    if (taken) return taken;
-
+    if (generationLimitReached()) return { error: 'Достигнут лимит генераций' };
     const loaded = await loadSource(target.sourceId);
     if ('error' in loaded) return loaded;
-
-    const result = await lifestyleToFlat(loaded.bytes, { view });
-    await mediaStore.upload(new Uint8Array(result), {
-      scope: 'product',
-      slug: target.slug,
-      productId: target.productId,
-      variantId: target.variantId,
-      role: 'flat',
-      view,
-      model: 'flat',
-    });
+    const result = await lifestyleToFlat(loaded.bytes, { view: target.view });
+    generationCount++;
+    return { previewDataUrl: toDataUrl(result), role: 'flat' };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Ошибка генерации' };
   }
-  revalidatePath(`/admin/catalog/${target.slug}/edit`);
-  revalidatePath(`/catalog/${target.slug}`);
-  return {};
 }
 
-/**
- * Recipe 2 — an existing flat (of ANOTHER variant) recolored to this variant's
- * hex. Source must be a flat photo; result is a flat of the target variant.
- */
+/** Recipe 2 — an existing flat (another variant) recolored to this hex. */
 export async function recolorFlatAction(
   target: GenTarget & { hex: string },
-): Promise<{ error?: string }> {
+): Promise<GenPreview> {
   await requireAdmin();
   try {
-    const { view } = target; // angle comes from the target slot, not the source
-    const taken = await slotGuard(target.variantId, 'flat', view);
-    if (taken) return taken;
-
+    if (generationLimitReached()) return { error: 'Достигнут лимит генераций' };
     const loaded = await loadSource(target.sourceId);
     if ('error' in loaded) return loaded;
-
-    const result = await recolorFlat(loaded.bytes, { hex: target.hex, view });
-    await mediaStore.upload(new Uint8Array(result), {
-      scope: 'product',
-      slug: target.slug,
-      productId: target.productId,
-      variantId: target.variantId,
-      role: 'flat',
-      view,
-      model: 'flat',
+    const result = await recolorFlat(loaded.bytes, {
+      hex: target.hex,
+      view: target.view,
     });
+    generationCount++;
+    return { previewDataUrl: toDataUrl(result), role: 'flat' };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Ошибка генерации' };
   }
-  revalidatePath(`/admin/catalog/${target.slug}/edit`);
-  revalidatePath(`/catalog/${target.slug}`);
-  return {};
+}
+
+/** Recipe 3 — a lifestyle (another variant) recolored to this hex. */
+export async function recolorLifestyleAction(
+  target: GenTarget & { hex: string },
+): Promise<GenPreview> {
+  await requireAdmin();
+  try {
+    if (generationLimitReached()) return { error: 'Достигнут лимит генераций' };
+    const loaded = await loadSource(target.sourceId);
+    if ('error' in loaded) return loaded;
+    const result = await recolorLifestyle(loaded.bytes, { hex: target.hex });
+    generationCount++;
+    return { previewDataUrl: toDataUrl(result), role: 'lifestyle' };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Ошибка генерации' };
+  }
 }
 
 /**
- * Recipe 3 — a lifestyle shot (of ANOTHER variant) recolored to this variant's
- * hex, keeping person/pose/background. Result is a lifestyle of the target.
+ * Persist an approved generation. Called ONLY on "Оставить": decodes the preview
+ * data-URL and uploads it as an AI photo into the target slot.
+ *  - replaceId set → replace flow: upload new, then remove the old asset (new
+ *    first so a failure never leaves the slot empty).
+ *  - replaceId absent → empty-slot flow: slotTaken guard rejects a duplicate
+ *    (double-click / race).
  */
-export async function recolorLifestyleAction(
-  target: GenTarget & { hex: string },
-): Promise<{ error?: string }> {
+export async function approveGeneratedAction(input: {
+  previewDataUrl: string;
+  variantId: string;
+  view: PhotoView;
+  role: 'lifestyle' | 'flat';
+  slug: string;
+  productId: string;
+  /** When replacing an occupied slot, the asset id to delete after upload. */
+  replaceId?: string;
+}): Promise<{ error?: string }> {
   await requireAdmin();
   try {
-    const { view } = target; // angle comes from the target slot, not the source
-    const taken = await slotGuard(target.variantId, 'lifestyle', view);
-    if (taken) return taken;
+    const m = /^data:image\/\w+;base64,([\s\S]+)$/.exec(input.previewDataUrl);
+    if (!m) return { error: 'Некорректное превью' };
+    const bytes = new Uint8Array(Buffer.from(m[1], 'base64'));
 
-    const loaded = await loadSource(target.sourceId);
-    if ('error' in loaded) return loaded;
+    if (!input.replaceId) {
+      const taken = await mediaStore.slotTaken(
+        input.variantId,
+        input.role,
+        input.view,
+      );
+      if (taken) return { error: 'Слот уже занят' };
+    }
 
-    // Recipe 3 keeps person/pose/bg; the view is metadata for the target slot.
-    const result = await recolorLifestyle(loaded.bytes, { hex: target.hex });
-    await mediaStore.upload(new Uint8Array(result), {
+    await mediaStore.upload(bytes, {
       scope: 'product',
-      slug: target.slug,
-      productId: target.productId,
-      variantId: target.variantId,
-      role: 'lifestyle',
-      view,
+      slug: input.slug,
+      productId: input.productId,
+      variantId: input.variantId,
+      role: input.role,
+      view: input.view,
+      aiGenerated: true,
+      ...(input.role === 'flat' ? { model: 'flat' as const } : {}),
     });
+
+    if (input.replaceId) await mediaStore.remove(input.replaceId);
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Ошибка генерации' };
+    return { error: e instanceof Error ? e.message : 'Ошибка сохранения' };
   }
-  revalidatePath(`/admin/catalog/${target.slug}/edit`);
-  revalidatePath(`/catalog/${target.slug}`);
+  revalidatePath(`/admin/catalog/${input.slug}/edit`);
+  revalidatePath(`/catalog/${input.slug}`);
   return {};
 }

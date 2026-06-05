@@ -17,14 +17,20 @@ import { ConfirmButton } from './ui/ConfirmButton';
 
 const SOFT_MAX = 8;
 
-/** Where a generated photo lands. view = the TARGET slot's angle (fix for the
- *  back-flat logo bug). Matches GenTarget in media-actions. */
+/** Where a generated photo lands. view = the TARGET slot's angle. */
 type GenTarget = {
   sourceId: string;
   variantId: string;
   view: ProductImageView;
   slug: string;
   productId: string;
+};
+
+/** A generate* result: a base64 preview held by the client until approved. */
+type GenPreview = {
+  error?: string;
+  previewDataUrl?: string;
+  role?: 'lifestyle' | 'flat';
 };
 
 export type MediaActions = {
@@ -39,13 +45,18 @@ export type MediaActions = {
     role: 'lifestyle' | 'flat',
     slug: string,
   ) => Promise<{ error?: string }>;
-  generateFlat: (target: GenTarget) => Promise<{ error?: string }>;
-  recolorFlat: (
-    target: GenTarget & { hex: string },
-  ) => Promise<{ error?: string }>;
-  recolorLifestyle: (
-    target: GenTarget & { hex: string },
-  ) => Promise<{ error?: string }>;
+  generateFlat: (target: GenTarget) => Promise<GenPreview>;
+  recolorFlat: (target: GenTarget & { hex: string }) => Promise<GenPreview>;
+  recolorLifestyle: (target: GenTarget & { hex: string }) => Promise<GenPreview>;
+  approveGenerated: (input: {
+    previewDataUrl: string;
+    variantId: string;
+    view: ProductImageView;
+    role: 'lifestyle' | 'flat';
+    slug: string;
+    productId: string;
+    replaceId?: string;
+  }) => Promise<{ error?: string }>;
 };
 
 /** Another color of the same product — a source pool for recolor. */
@@ -57,31 +68,33 @@ export type SiblingVariant = {
 };
 
 type Props = {
-  /** Edit-mode identifiers. Absent in create mode → "save first" placeholder. */
   slug?: string;
   productId?: string;
   variant: { variantId: string; colorLabel: string; hex: string };
-  /** Images for THIS variant. */
   images: MediaAsset[];
-  /** Other colors of this product — recolor sources (with color metadata). */
   siblings?: SiblingVariant[];
   actions?: MediaActions;
 };
 
-/**
- * A generation candidate for one empty slot: the recipe, the source photo, and
- * (for recolor) which sibling color it comes from. Rendered with a thumbnail so
- * the owner sees what they're generating from.
- */
+/** A generation candidate for one slot: recipe + source + label/sort. */
 type Candidate = {
   kind: 'flat' | 'recolorFlat' | 'recolorLifestyle';
   source: MediaAsset;
-  /** Short button/row label. */
   label: string;
-  /** Source color label (for recolor candidates), e.g. "Синий". */
   fromLabel?: string;
-  /** Sort key: lower = preferred (recipe 1 first, then nearest hex). */
   rank: number;
+};
+
+/** Pending preview held client-side until the owner approves it. */
+type Preview = {
+  slot: PhotoSlot;
+  candidate: Candidate;
+  dataUrl: string;
+  role: 'lifestyle' | 'flat';
+  /** Asset id being replaced (occupied-slot flow), else undefined. */
+  replaceId?: string;
+  /** True once the owner clicked "Оставить" on a replace — awaiting confirm. */
+  confirmingReplace?: boolean;
 };
 
 export function VariantPhotos({
@@ -94,15 +107,12 @@ export function VariantPhotos({
 }: Props) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
-  // The slot a pending file upload targets (role/view to write).
   const pendingSlot = useRef<PhotoSlotKey | null>(null);
-  // Which empty slot has its candidate popover open (null = none).
   const [openSlot, setOpenSlot] = useState<PhotoSlotKey | null>(null);
+  const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState<string | undefined>();
   const [pending, startTransition] = useTransition();
 
-  // No persisted variantId yet — either create mode (no productId) or a color
-  // freshly added to the form but not saved.
   if (!slug || !productId || !actions || !variant.variantId) {
     return (
       <div className="rounded-md border border-dashed border-gray-300 p-4 text-center text-sm text-gray-400">
@@ -149,7 +159,6 @@ export function VariantPhotos({
   const outside = assetsOutsideGrid(images);
   const atMax = images.length >= SOFT_MAX;
 
-  /** Sibling photo of the given role+view, paired with its color, if any. */
   function siblingCandidates(
     role: 'lifestyle' | 'flat',
     view: ProductImageView,
@@ -164,24 +173,14 @@ export function VariantPhotos({
     return out;
   }
 
-  /**
-   * All generation candidates for an EMPTY slot, sorted by preference:
-   *   1. recipe 1 (own life of the same angle) — rank 0,
-   *   2. recolor from a sibling of the same role+angle — ranked by hex distance
-   *      to this variant's color (nearest first; closer recolors glitch less).
-   * Single candidate is still returned (shown, not auto-run). Empty → [].
-   */
+  /** Candidates for a slot (empty OR occupied). For flat: own life (recipe 1)
+   *  then recolor from siblings (by hex). For lifestyle: recolor from siblings. */
   function candidatesFor(slot: PhotoSlot): Candidate[] {
     const list: Candidate[] = [];
     if (slot.role === 'flat') {
       const ownLife = bySlot[`life_${slot.view}` as PhotoSlotKey]?.[0];
       if (ownLife) {
-        list.push({
-          kind: 'flat',
-          source: ownLife,
-          label: 'Сделать на белом',
-          rank: 0,
-        });
+        list.push({ kind: 'flat', source: ownLife, label: 'Сделать на белом', rank: 0 });
       }
       for (const { asset, sib } of siblingCandidates('flat', slot.view)) {
         list.push({
@@ -206,9 +205,10 @@ export function VariantPhotos({
     return list.sort((a, b) => a.rank - b.rank);
   }
 
-  /** Run a chosen candidate for a slot. */
-  function generate(slot: PhotoSlot, c: Candidate) {
+  /** Call the recipe → on success show a preview (NOT persisted yet). */
+  function generate(slot: PhotoSlot, c: Candidate, replaceId?: string) {
     setOpenSlot(null);
+    setError(undefined);
     const base: GenTarget = {
       sourceId: c.source.id,
       variantId: variant.variantId,
@@ -216,18 +216,67 @@ export function VariantPhotos({
       slug: slug!,
       productId: productId!,
     };
-    if (c.kind === 'flat') {
-      run(() => actions!.generateFlat(base));
-    } else if (c.kind === 'recolorFlat') {
-      run(() => actions!.recolorFlat({ ...base, hex: variant.hex }));
-    } else {
-      run(() => actions!.recolorLifestyle({ ...base, hex: variant.hex }));
-    }
+    startTransition(async () => {
+      let res: GenPreview;
+      if (c.kind === 'flat') res = await actions!.generateFlat(base);
+      else if (c.kind === 'recolorFlat')
+        res = await actions!.recolorFlat({ ...base, hex: variant.hex });
+      else res = await actions!.recolorLifestyle({ ...base, hex: variant.hex });
+
+      if (res.error || !res.previewDataUrl || !res.role) {
+        setError(res.error ?? 'Пустой результат генерации');
+        return;
+      }
+      setPreview({
+        slot,
+        candidate: c,
+        dataUrl: res.previewDataUrl,
+        role: res.role,
+        replaceId,
+      });
+    });
   }
 
-  // ── Batch "make all flats": for every life_<view> whose paired flat_<view> is
-  // empty, generate a flat (recipe 1). Sequential (cost / rate limits). Approval
-  // per result is step 6. Shown only when there's at least one such pair.
+  /** "Оставить": for an empty slot persist immediately; for a replace, ask to
+   *  confirm first (two approvals: result, then replacement). */
+  function keepPreview() {
+    if (!preview) return;
+    if (preview.replaceId && !preview.confirmingReplace) {
+      setPreview({ ...preview, confirmingReplace: true });
+      return;
+    }
+    const p = preview;
+    setError(undefined);
+    startTransition(async () => {
+      const res = await actions!.approveGenerated({
+        previewDataUrl: p.dataUrl,
+        variantId: variant.variantId,
+        view: p.slot.view,
+        role: p.role,
+        slug: slug!,
+        productId: productId!,
+        replaceId: p.replaceId,
+      });
+      if (res?.error) {
+        setError(res.error);
+        return;
+      }
+      setPreview(null);
+      router.refresh();
+    });
+  }
+
+  function regenerate() {
+    if (!preview) return;
+    generate(preview.slot, preview.candidate, preview.replaceId);
+  }
+
+  function cancelPreview() {
+    setPreview(null);
+    setError(undefined);
+  }
+
+  // Batch "make all flats": every life_<view> with an empty paired flat → flat.
   const flatableViews = PHOTO_SLOTS.filter(
     (s) => s.role === 'flat' && bySlot[`life_${s.view}` as PhotoSlotKey]?.[0] && !bySlot[s.key][0],
   );
@@ -237,10 +286,22 @@ export function VariantPhotos({
     startTransition(async () => {
       for (const slot of flatableViews) {
         const life = bySlot[`life_${slot.view}` as PhotoSlotKey][0];
-        const res = await actions!.generateFlat({
+        const gen = await actions!.generateFlat({
           sourceId: life.id,
           variantId: variant.variantId,
           view: slot.view,
+          slug: slug!,
+          productId: productId!,
+        });
+        if (gen.error || !gen.previewDataUrl || !gen.role) {
+          setError(gen.error ?? 'Ошибка генерации');
+          break;
+        }
+        const res = await actions!.approveGenerated({
+          previewDataUrl: gen.previewDataUrl,
+          variantId: variant.variantId,
+          view: slot.view,
+          role: gen.role,
           slug: slug!,
           productId: productId!,
         });
@@ -272,7 +333,7 @@ export function VariantPhotos({
         <Button
           type="button"
           variant="secondary"
-          disabled={pending || atMax}
+          disabled={pending || atMax || !!preview}
           className="self-start"
           title="Сгенерировать «на белом» для всех ракурсов, где есть живое фото и пустой слот"
           onClick={makeAllFlats}
@@ -281,12 +342,78 @@ export function VariantPhotos({
         </Button>
       ) : null}
 
+      {/* Preview panel — rendered OUTSIDE the slot <ul> so its <img> is never
+          counted as a stored photo. Nothing is persisted until "Оставить". */}
+      {preview ? (
+        <div className="flex flex-col gap-2 rounded-md border border-indigo-200 bg-indigo-50/40 p-3">
+          <p className="text-xs font-medium text-indigo-700">
+            Превью генерации для «{preview.slot.label}» — проверьте, прежде чем сохранить.
+          </p>
+          <div className="flex items-start gap-3">
+            <div className="h-32 w-32 shrink-0 overflow-hidden rounded border border-gray-200 bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={preview.dataUrl}
+                alt="превью"
+                data-testid="gen-preview"
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              {preview.confirmingReplace ? (
+                <>
+                  <p className="text-xs text-amber-700">
+                    Заменить текущее фото в слоте «{preview.slot.label}»? Старое будет удалено.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button type="button" disabled={pending} onClick={keepPreview}>
+                      Заменить
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={pending}
+                      onClick={cancelPreview}
+                    >
+                      Отмена
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" disabled={pending} onClick={keepPreview}>
+                    Оставить
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={pending}
+                    onClick={regenerate}
+                  >
+                    Перегенерировать
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={pending}
+                    onClick={cancelPreview}
+                  >
+                    Отмена
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* 2×3 slot grid. Occupied slots render as <ul><li> so e2e counts of
           stored photos stay on `ul li`; empty tiles live outside the <ul>. */}
       <div className="grid grid-cols-3 gap-3">
         {PHOTO_SLOTS.map((slot) => {
           const asset = bySlot[slot.key][0];
           if (asset) {
+            const regenCandidates = candidatesFor(slot);
             return (
               <ul key={slot.key} className="contents">
                 <li className="group relative overflow-hidden rounded-md border border-gray-200">
@@ -301,7 +428,28 @@ export function VariantPhotos({
                   <span className="absolute left-1 top-1 rounded bg-gray-900/80 px-1.5 py-0.5 text-[10px] font-medium text-white">
                     {slot.label}
                   </span>
-                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-end bg-black/40 px-1 py-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                  {asset.aiGenerated ? (
+                    <span
+                      className="absolute right-1 top-1 rounded bg-indigo-600/90 px-1.5 py-0.5 text-[10px] font-medium text-white"
+                      title="Изображение создано ИИ"
+                    >
+                      ИИ
+                    </span>
+                  ) : null}
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/40 px-1 py-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    {regenCandidates.length > 0 ? (
+                      <button
+                        type="button"
+                        disabled={pending || !!preview}
+                        onClick={() => generate(slot, regenCandidates[0], asset.id)}
+                        title="Перегенерировать ИИ (с заменой после подтверждения)"
+                        className="rounded px-1 text-[10px] text-white hover:bg-white/20 disabled:opacity-40"
+                      >
+                        ✨ замена
+                      </button>
+                    ) : (
+                      <span />
+                    )}
                     <ConfirmButton
                       variant="ghost"
                       disabled={pending}
@@ -319,7 +467,6 @@ export function VariantPhotos({
             );
           }
 
-          // Empty slot: candidate picker (popover) + manual upload.
           const candidates = candidatesFor(slot);
           const isOpen = openSlot === slot.key;
           return (
@@ -327,25 +474,19 @@ export function VariantPhotos({
               key={slot.key}
               className="relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-gray-300 p-2 text-center"
             >
-              <span className="text-[11px] font-medium text-gray-500">
-                {slot.label}
-              </span>
+              <span className="text-[11px] font-medium text-gray-500">{slot.label}</span>
 
               {candidates.length > 0 ? (
                 <div className="relative">
                   <button
                     type="button"
-                    disabled={pending || atMax}
+                    disabled={pending || atMax || !!preview}
                     onClick={() => setOpenSlot(isOpen ? null : slot.key)}
                     className="rounded bg-gray-900/85 px-2 py-1 text-[11px] font-medium text-white hover:bg-gray-900 disabled:opacity-50"
                   >
                     ✨ Сгенерировать ▾
                   </button>
 
-                  {/* Candidate popover, absolute right under the button: every
-                      valid source with a thumbnail, sorted (recipe 1, then
-                      recolor nearest-hex). The owner sees what they generate
-                      from instead of a silent first-match. */}
                   {isOpen ? (
                     <div className="absolute left-1/2 top-full z-10 mt-1 w-56 -translate-x-1/2 rounded-md border border-gray-200 bg-white p-2 text-left shadow-lg">
                       <p className="mb-1 px-1 text-[10px] uppercase tracking-wide text-gray-400">
@@ -362,11 +503,7 @@ export function VariantPhotos({
                             >
                               <span className="h-9 w-9 shrink-0 overflow-hidden rounded bg-gray-100">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={c.source.url}
-                                  alt=""
-                                  className="h-full w-full object-cover"
-                                />
+                                <img src={c.source.url} alt="" className="h-full w-full object-cover" />
                               </span>
                               <span className="text-[11px] leading-tight text-gray-700">
                                 {c.label}
@@ -389,7 +526,7 @@ export function VariantPhotos({
 
               <button
                 type="button"
-                disabled={pending || atMax}
+                disabled={pending || atMax || !!preview}
                 onClick={() => pickInto(slot.key)}
                 title={atMax ? `Достаточно (макс ${SOFT_MAX})` : `Загрузить: ${slot.label}`}
                 className="text-[11px] text-gray-400 hover:text-gray-600 disabled:opacity-50"
@@ -401,8 +538,6 @@ export function VariantPhotos({
         })}
       </div>
 
-      {/* Out-of-grid assets: legacy / hand-uploaded photos with no view. Shown
-          only when present so a clean catalog has no clutter. */}
       {outside.length > 0 ? (
         <div className="flex flex-col gap-2 rounded-md border border-amber-200 bg-amber-50/50 p-3">
           <p className="text-xs text-amber-700">
@@ -416,11 +551,7 @@ export function VariantPhotos({
               >
                 <div className="aspect-square w-full bg-gray-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={img.url}
-                    alt={img.alt ?? ''}
-                    className="h-full w-full object-cover"
-                  />
+                  <img src={img.url} alt={img.alt ?? ''} className="h-full w-full object-cover" />
                 </div>
                 <div className="absolute inset-x-0 bottom-0 flex items-center justify-end bg-black/40 px-1 py-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                   <ConfirmButton

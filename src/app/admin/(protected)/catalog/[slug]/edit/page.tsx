@@ -13,6 +13,7 @@ import {
   generateFlatAction,
   recolorFlatAction,
   recolorLifestyleAction,
+  approveGeneratedAction,
 } from '../../media-actions';
 
 export const dynamic = 'force-dynamic';
@@ -60,6 +61,7 @@ export default async function EditProductPage({
     generateFlat: generateFlatAction,
     recolorFlat: recolorFlatAction,
     recolorLifestyle: recolorLifestyleAction,
+    approveGenerated: approveGeneratedAction,
   };
 
   return (

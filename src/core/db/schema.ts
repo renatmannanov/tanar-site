@@ -120,6 +120,9 @@ export const mediaAssets = pgTable(
     model: text('model'),
     // 'lifestyle' | 'flat'
     role: text('role'),
+    // true when produced by photogen (AI). Drives the "ИИ" badge in admin and
+    // the storefront marker. Default false — only new generations set it.
+    aiGenerated: boolean('ai_generated').notNull().default(false),
     // for scope=site/blog: 'home.hero', 'story.1', 'blog:post-slug', ...
     key: text('key'),
     alt: text('alt'),

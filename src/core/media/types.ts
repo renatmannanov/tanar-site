@@ -18,6 +18,8 @@ export type MediaAsset = {
   view?: ProductImageView;
   model?: ProductImageModel | 'flat';
   role?: 'lifestyle' | 'flat';
+  /** True when produced by photogen (AI) — drives the "ИИ" badge/marker. */
+  aiGenerated?: boolean;
   key?: string; // for site/blog scope
   alt?: string;
 };
@@ -40,6 +42,8 @@ export type MediaUploadInput = {
   role?: 'lifestyle' | 'flat';
   view?: ProductImageView;
   model?: ProductImageModel | 'flat';
+  /** True for AI-generated photos (photogen). Manual uploads omit / pass false. */
+  aiGenerated?: boolean;
 };
 
 /**

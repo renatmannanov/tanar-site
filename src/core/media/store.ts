@@ -32,6 +32,7 @@ function mapAssetRow(row: typeof schema.mediaAssets.$inferSelect): MediaAsset {
     view: (row.view as MediaAsset['view']) ?? undefined,
     model: (row.model as MediaAsset['model']) ?? undefined,
     role: (row.role as MediaAsset['role']) ?? undefined,
+    aiGenerated: row.aiGenerated,
     key: row.key ?? undefined,
     alt: row.alt ?? undefined,
   };
@@ -123,6 +124,7 @@ export const mediaStore: MediaStore = {
           role,
           view: input.view,
           model: input.model,
+          aiGenerated: input.aiGenerated ?? false,
           alt,
         })
         .returning();

@@ -105,11 +105,8 @@ test.describe.serial('product CRUD + variant photos', () => {
     await page.goto(`/admin/catalog/${TEST_SLUG}/edit`);
 
     await expect(page.locator('ul li')).toHaveCount(2);
-    // Empty slots show a "✨ Сгенерировать" button that opens a candidate
-    // popover. flat_front's only candidate is recipe 1 from its own life_front.
-    // Click the slot's generate button (first one = flat_front), then the
-    // "Сделать на белом" row in the popover. PHOTOGEN_FAKE=1 swaps in a no-op
-    // provider — no real Gemini call.
+    // Empty slots show a "✨ Сгенерировать" button → candidate popover. Pick the
+    // recipe-1 candidate. PHOTOGEN_FAKE=1 swaps in a no-op provider (no Gemini).
     await page
       .getByRole('button', { name: 'Сгенерировать', exact: false })
       .first()
@@ -118,12 +115,40 @@ test.describe.serial('product CRUD + variant photos', () => {
       .getByRole('button', { name: 'Сделать на белом', exact: false })
       .first()
       .click();
-    await expect(page.locator('ul li')).toHaveCount(3);
 
-    // The generated flat must land in flat_front with view='front' (NOT a
-    // back-flat with a logo). The occupied slot shows the "На белом · спереди"
-    // label badge.
+    // Generation now yields a PREVIEW — nothing is saved yet (still 2 stored),
+    // and the preview <img> lives outside the slot <ul>.
+    await expect(page.getByTestId('gen-preview')).toBeVisible();
+    await expect(page.locator('ul li')).toHaveCount(2);
+
+    // "Оставить" persists it → 3rd slot occupied, with view=front and the ИИ
+    // badge (aiGenerated=true).
+    await page.getByRole('button', { name: 'Оставить', exact: true }).click();
+    await expect(page.locator('ul li')).toHaveCount(3);
     await expect(page.getByText('На белом · спереди')).toBeVisible();
+    await expect(page.getByText('ИИ', { exact: true }).first()).toBeVisible();
+  });
+
+  test('generate then cancel does not save (mocked Gemini)', async ({ page }) => {
+    await login(page);
+    await page.goto(`/admin/catalog/${TEST_SLUG}/edit`);
+
+    // After the previous test there are 3 stored photos. Generating into the
+    // empty flat_side slot and cancelling must NOT change the count.
+    await expect(page.locator('ul li')).toHaveCount(3);
+    await page
+      .getByRole('button', { name: 'Сгенерировать', exact: false })
+      .first()
+      .click();
+    await page
+      .getByRole('button', { name: 'Сделать на белом', exact: false })
+      .first()
+      .click();
+    await expect(page.getByTestId('gen-preview')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Отмена', exact: true }).click();
+    await expect(page.getByTestId('gen-preview')).toHaveCount(0);
+    await expect(page.locator('ul li')).toHaveCount(3);
   });
 
   test('remove a photo via confirm', async ({ page }) => {
@@ -254,6 +279,9 @@ test.describe.serial('slot-bound recolor from a sibling color', () => {
       .getByRole('button', { name: 'Перекрасить из «Зелёный»', exact: false })
       .first()
       .click();
+    // Preview first, then keep → B gets a flat (count 1→2).
+    await expect(page.getByTestId('gen-preview')).toBeVisible();
+    await page.getByRole('button', { name: 'Оставить', exact: true }).click();
     await expect(page.locator('ul li')).toHaveCount(2);
   });
 
@@ -314,6 +342,42 @@ test.describe.serial('batch make-all-flats', () => {
       .click();
     // Both flats appear (2 life + 2 flat = 4 occupied slots).
     await expect(page.locator('ul li')).toHaveCount(4);
+  });
+
+  test('regenerate an occupied slot replaces it after double confirm', async ({
+    page,
+  }) => {
+    await login(page);
+    await page.goto(`/admin/catalog/${BATCH_SLUG}/edit`);
+    await expect(page.locator('ul li')).toHaveCount(4);
+
+    // flat_front is occupied and has a source (own life_front) → its hover
+    // controls expose "✨ замена". Capture the current flat_front url to prove
+    // it changes after replace.
+    const flatFrontLi = page
+      .locator('ul li', { hasText: 'На белом · спереди' })
+      .first();
+    const before = await flatFrontLi.locator('img').getAttribute('src');
+
+    await flatFrontLi.hover();
+    await flatFrontLi.getByRole('button', { name: 'замена', exact: false }).click();
+
+    // Preview → "Оставить" → replace-confirm → "Заменить". Count stays 4.
+    await expect(page.getByTestId('gen-preview')).toBeVisible();
+    await page.getByRole('button', { name: 'Оставить', exact: true }).click();
+    await page.getByRole('button', { name: 'Заменить', exact: true }).click();
+    await expect(page.getByTestId('gen-preview')).toHaveCount(0);
+    await expect(page.locator('ul li')).toHaveCount(4);
+
+    // The old asset is gone — flat_front now has a different url (new uuid).
+    await expect(async () => {
+      const after = await page
+        .locator('ul li', { hasText: 'На белом · спереди' })
+        .first()
+        .locator('img')
+        .getAttribute('src');
+      expect(after).not.toBe(before);
+    }).toPass();
   });
 
   test('delete the batch product', async ({ page }) => {

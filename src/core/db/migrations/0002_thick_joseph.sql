@@ -1,0 +1,1 @@
+ALTER TABLE "media_assets" ADD COLUMN "ai_generated" boolean DEFAULT false NOT NULL;
