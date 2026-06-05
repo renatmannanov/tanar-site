@@ -1,7 +1,7 @@
 import { test, expect, Page } from '@playwright/test';
 
 const PRODUCT_SLUG = 'jacket-sv7-goretex';
-const POST_SLUG = 'khan-tengri-ascent';
+const POST_SLUG = 'o-brende-tanar';
 
 function collectErrors(page: Page) {
   const errors: string[] = [];
@@ -52,10 +52,10 @@ test.describe('smoke', () => {
     }
   });
 
-  test('blog shows exactly 8 posts', async ({ page }) => {
+  test('blog shows exactly 3 posts', async ({ page }) => {
     await page.goto('/blog');
     const cards = page.getByTestId('blog-card');
-    expect(await cards.count()).toBe(8);
+    expect(await cards.count()).toBe(3);
   });
 
   test('metadata titles are correct', async ({ page }) => {

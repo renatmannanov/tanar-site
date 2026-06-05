@@ -96,6 +96,7 @@ export default function Footer() {
             <p className="mt-1 text-xs text-stone-500">
               {SITE_CONTACTS.legal.ipName} · БИН {SITE_CONTACTS.legal.bin}
             </p>
+            <p className="mt-1 text-xs text-stone-600">made by raymann</p>
           </div>
           <p className="text-sm text-stone-400">
             {SITE_CONTACTS.address}, {SITE_CONTACTS.city}, Казахстан
