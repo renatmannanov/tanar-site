@@ -111,7 +111,9 @@ async function seedSiteContent() {
     const c = SITE_CONTACTS;
     await updateSiteSettings({
       phone1: c.phones[0]?.value ?? null,
+      phone1Name: c.phones[0]?.label ?? null,
       phone2: c.phones[1]?.value ?? null,
+      phone2Name: c.phones[1]?.label ?? null,
       instagram: c.instagram.url,
       email: null, // owner adds later; empty → not shown on storefront
       city: c.city,

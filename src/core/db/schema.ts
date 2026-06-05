@@ -142,7 +142,9 @@ export const mediaAssets = pgTable(
 export const siteSettings = pgTable('site_settings', {
   id: uuid('id').primaryKey().defaultRandom(),
   phone1: text('phone1'),
+  phone1Name: text('phone1_name'),
   phone2: text('phone2'),
+  phone2Name: text('phone2_name'),
   instagram: text('instagram'),
   email: text('email'),
   city: text('city'),

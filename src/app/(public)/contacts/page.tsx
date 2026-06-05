@@ -10,7 +10,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function ContactsPage() {
   const s = await getSiteSettings();
-  const phones = [s.phone1, s.phone2].filter((p): p is string => Boolean(p));
+  const phones = [
+    { value: s.phone1, name: s.phone1Name },
+    { value: s.phone2, name: s.phone2Name },
+  ].filter((p): p is { value: string; name: string | null } => Boolean(p.value));
   const location = [s.city, s.address].filter(Boolean).join(', ');
 
   return (
@@ -30,13 +33,18 @@ export default async function ContactsPage() {
             </h2>
             <ul className="mt-3 space-y-2">
               {phones.map(phone => (
-                <li key={phone}>
+                <li key={phone.value}>
                   <a
-                    href={`tel:${phone.replace(/[^\d+]/g, '')}`}
+                    href={`tel:${phone.value.replace(/[^\d+]/g, '')}`}
                     className="text-lg text-stone-900 hover:text-stone-600"
                   >
-                    {phone}
+                    {phone.value}
                   </a>
+                  {phone.name && (
+                    <span className="ml-2 text-sm text-stone-400">
+                      {phone.name}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

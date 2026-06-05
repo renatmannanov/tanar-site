@@ -34,9 +34,16 @@ export default async function Footer() {
 
   // «Связь»: phones as tel: links + Instagram (external). Empty fields skipped.
   const contactLinks: FooterLink[] = [];
-  for (const phone of [settings.phone1, settings.phone2]) {
-    if (phone) {
-      contactLinks.push({ label: phone, href: telHref(phone), external: true });
+  for (const phone of [
+    { value: settings.phone1, name: settings.phone1Name },
+    { value: settings.phone2, name: settings.phone2Name },
+  ]) {
+    if (phone.value) {
+      contactLinks.push({
+        label: phone.name ? `${phone.value} · ${phone.name}` : phone.value,
+        href: telHref(phone.value),
+        external: true,
+      });
     }
   }
   if (settings.instagram) {

@@ -19,7 +19,9 @@ const GROUPS: { title: string; fields: Field[] }[] = [
     title: 'Контакты',
     fields: [
       { key: 'phone1', label: 'Телефон 1' },
+      { key: 'phone1Name', label: 'Имя при телефоне 1', hint: 'напр. Айман' },
       { key: 'phone2', label: 'Телефон 2' },
+      { key: 'phone2Name', label: 'Имя при телефоне 2', hint: 'напр. Милена' },
       { key: 'instagram', label: 'Instagram (URL)', hint: 'https://instagram.com/...' },
       { key: 'email', label: 'Email', hint: 'пустой — не показывается на сайте' },
     ],

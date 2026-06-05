@@ -23,7 +23,9 @@ function mapSettingsRow(
 ): SiteSettings {
   return {
     phone1: row.phone1,
+    phone1Name: row.phone1Name,
     phone2: row.phone2,
+    phone2Name: row.phone2Name,
     instagram: row.instagram,
     email: row.email,
     city: row.city,

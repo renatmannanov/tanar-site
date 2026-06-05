@@ -4,7 +4,9 @@
 
 export type SiteSettings = {
   phone1: string | null;
+  phone1Name: string | null;
   phone2: string | null;
+  phone2Name: string | null;
   instagram: string | null;
   email: string | null;
   city: string | null;
@@ -31,7 +33,9 @@ export type SiteSettingsInput = SiteSettings;
 // without crashing; empty fields are simply not shown.
 export const EMPTY_SITE_SETTINGS: SiteSettings = {
   phone1: null,
+  phone1Name: null,
   phone2: null,
+  phone2Name: null,
   instagram: null,
   email: null,
   city: null,
