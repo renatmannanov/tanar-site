@@ -92,10 +92,6 @@ type Preview = {
   candidate: Candidate;
   dataUrl: string;
   role: 'lifestyle' | 'flat';
-  /** Asset id being replaced (occupied-slot flow), else undefined. */
-  replaceId?: string;
-  /** True once the owner clicked "Оставить" on a replace — awaiting confirm. */
-  confirmingReplace?: boolean;
 };
 
 export function VariantPhotos({
@@ -209,7 +205,7 @@ export function VariantPhotos({
   }
 
   /** Call the recipe → on success show a preview (NOT persisted yet). */
-  function generate(slot: PhotoSlot, c: Candidate, replaceId?: string) {
+  function generate(slot: PhotoSlot, c: Candidate) {
     setOpenSlot(null);
     setError(undefined);
     const base: GenTarget = {
@@ -230,24 +226,14 @@ export function VariantPhotos({
         setError(res.error ?? 'Пустой результат генерации');
         return;
       }
-      setPreview({
-        slot,
-        candidate: c,
-        dataUrl: res.previewDataUrl,
-        role: res.role,
-        replaceId,
-      });
+      setPreview({ slot, candidate: c, dataUrl: res.previewDataUrl, role: res.role });
     });
   }
 
-  /** "Оставить": for an empty slot persist immediately; for a replace, ask to
-   *  confirm first (two approvals: result, then replacement). */
+  /** "Оставить": persist the previewed photo into its (empty) slot. To redo a
+   *  slot the owner deletes the photo and generates again — no in-place replace. */
   function keepPreview() {
     if (!preview) return;
-    if (preview.replaceId && !preview.confirmingReplace) {
-      setPreview({ ...preview, confirmingReplace: true });
-      return;
-    }
     const p = preview;
     setError(undefined);
     startTransition(async () => {
@@ -258,7 +244,6 @@ export function VariantPhotos({
         role: p.role,
         slug: slug!,
         productId: productId!,
-        replaceId: p.replaceId,
       });
       if (res?.error) {
         setError(res.error);
@@ -271,7 +256,7 @@ export function VariantPhotos({
 
   function regenerate() {
     if (!preview) return;
-    generate(preview.slot, preview.candidate, preview.replaceId);
+    generate(preview.slot, preview.candidate);
   }
 
   function cancelPreview() {
@@ -368,48 +353,27 @@ export function VariantPhotos({
               />
             </button>
             <div className="flex flex-col gap-2">
-              {preview.confirmingReplace ? (
-                <>
-                  <p className="text-xs text-amber-700">
-                    Заменить текущее фото в слоте «{preview.slot.label}»? Старое будет удалено.
-                  </p>
-                  <div className="flex gap-2">
-                    <Button type="button" disabled={pending} onClick={keepPreview}>
-                      Заменить
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={pending}
-                      onClick={cancelPreview}
-                    >
-                      Отмена
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" disabled={pending} onClick={keepPreview}>
-                    Оставить
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={pending}
-                    onClick={regenerate}
-                  >
-                    Перегенерировать
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={pending}
-                    onClick={cancelPreview}
-                  >
-                    Отмена
-                  </Button>
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" disabled={pending} onClick={keepPreview}>
+                  Оставить
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={pending}
+                  onClick={regenerate}
+                >
+                  Перегенерировать
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={pending}
+                  onClick={cancelPreview}
+                >
+                  Отмена
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -421,7 +385,6 @@ export function VariantPhotos({
         {PHOTO_SLOTS.map((slot) => {
           const asset = bySlot[slot.key][0];
           if (asset) {
-            const regenCandidates = candidatesFor(slot);
             return (
               <ul key={slot.key} className="contents">
                 <li className="group relative overflow-hidden rounded-md border border-gray-200">
@@ -449,20 +412,7 @@ export function VariantPhotos({
                       ИИ
                     </span>
                   ) : null}
-                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/40 px-1 py-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                    {regenCandidates.length > 0 ? (
-                      <button
-                        type="button"
-                        disabled={pending || !!preview}
-                        onClick={() => generate(slot, regenCandidates[0], asset.id)}
-                        title="Перегенерировать ИИ (с заменой после подтверждения)"
-                        className="rounded px-1 text-[10px] text-white hover:bg-white/20 disabled:opacity-40"
-                      >
-                        ✨ замена
-                      </button>
-                    ) : (
-                      <span />
-                    )}
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-end bg-black/40 px-1 py-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                     <ConfirmButton
                       variant="ghost"
                       disabled={pending}

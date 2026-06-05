@@ -344,42 +344,6 @@ test.describe.serial('batch make-all-flats', () => {
     await expect(page.locator('ul li')).toHaveCount(4);
   });
 
-  test('regenerate an occupied slot replaces it after double confirm', async ({
-    page,
-  }) => {
-    await login(page);
-    await page.goto(`/admin/catalog/${BATCH_SLUG}/edit`);
-    await expect(page.locator('ul li')).toHaveCount(4);
-
-    // flat_front is occupied and has a source (own life_front) → its hover
-    // controls expose "✨ замена". Capture the current flat_front url to prove
-    // it changes after replace.
-    const flatFrontLi = page
-      .locator('ul li', { hasText: 'На белом · спереди' })
-      .first();
-    const before = await flatFrontLi.locator('img').getAttribute('src');
-
-    await flatFrontLi.hover();
-    await flatFrontLi.getByRole('button', { name: 'замена', exact: false }).click();
-
-    // Preview → "Оставить" → replace-confirm → "Заменить". Count stays 4.
-    await expect(page.getByTestId('gen-preview')).toBeVisible();
-    await page.getByRole('button', { name: 'Оставить', exact: true }).click();
-    await page.getByRole('button', { name: 'Заменить', exact: true }).click();
-    await expect(page.getByTestId('gen-preview')).toHaveCount(0);
-    await expect(page.locator('ul li')).toHaveCount(4);
-
-    // The old asset is gone — flat_front now has a different url (new uuid).
-    await expect(async () => {
-      const after = await page
-        .locator('ul li', { hasText: 'На белом · спереди' })
-        .first()
-        .locator('img')
-        .getAttribute('src');
-      expect(after).not.toBe(before);
-    }).toPass();
-  });
-
   test('clicking a slot photo opens the full-size lightbox', async ({ page }) => {
     await login(page);
     await page.goto(`/admin/catalog/${BATCH_SLUG}/edit`);
