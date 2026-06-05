@@ -1,12 +1,17 @@
-import { SITE_CONTACTS } from '@/lib/site-contacts';
+import { getSiteSettings } from '@/core/site';
 
 export const metadata = {
   title: 'Контакты — Tanar',
   description: 'Свяжитесь с Tanar: телефоны, Instagram, адрес магазина и самовывоз в Алматы.',
 };
 
-export default function ContactsPage() {
-  const { phones, instagram, city, address, pickup } = SITE_CONTACTS;
+// Live data from the DB — editable in the admin. Mirror the catalog: dynamic.
+export const dynamic = 'force-dynamic';
+
+export default async function ContactsPage() {
+  const s = await getSiteSettings();
+  const phones = [s.phone1, s.phone2].filter((p): p is string => Boolean(p));
+  const location = [s.city, s.address].filter(Boolean).join(', ');
 
   return (
     <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
@@ -18,54 +23,59 @@ export default function ContactsPage() {
       </p>
 
       <address className="mt-12 grid gap-10 not-italic sm:grid-cols-2">
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-400">
-            Телефоны
-          </h2>
-          <ul className="mt-3 space-y-2">
-            {phones.map(phone => (
-              <li key={phone.tel}>
-                <a
-                  href={`tel:${phone.tel}`}
-                  className="text-lg text-stone-900 hover:text-stone-600"
-                >
-                  {phone.value}
-                </a>
-                <span className="ml-2 text-sm text-stone-400">{phone.label}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {phones.length > 0 && (
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-400">
+              Телефоны
+            </h2>
+            <ul className="mt-3 space-y-2">
+              {phones.map(phone => (
+                <li key={phone}>
+                  <a
+                    href={`tel:${phone.replace(/[^\d+]/g, '')}`}
+                    className="text-lg text-stone-900 hover:text-stone-600"
+                  >
+                    {phone}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-400">
-            Instagram
-          </h2>
-          <a
-            href={instagram.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 inline-block text-lg text-stone-900 hover:text-stone-600"
-          >
-            {instagram.handle}
-          </a>
-        </div>
+        {s.instagram && (
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-400">
+              Instagram
+            </h2>
+            <a
+              href={s.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-block text-lg text-stone-900 hover:text-stone-600"
+            >
+              {s.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//, '@')}
+            </a>
+          </div>
+        )}
 
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-400">
-            Адрес магазина
-          </h2>
-          <p className="mt-3 text-lg text-stone-900">
-            {city}, {address}
-          </p>
-        </div>
+        {location && (
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-400">
+              Адрес магазина
+            </h2>
+            <p className="mt-3 text-lg text-stone-900">{location}</p>
+          </div>
+        )}
 
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-400">
-            Самовывоз
-          </h2>
-          <p className="mt-3 text-lg text-stone-900">{pickup}</p>
-        </div>
+        {s.pickupInfo && (
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-400">
+              Самовывоз
+            </h2>
+            <p className="mt-3 text-lg text-stone-900">{s.pickupInfo}</p>
+          </div>
+        )}
       </address>
     </section>
   );

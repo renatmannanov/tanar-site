@@ -26,7 +26,7 @@
 | # | Файл | Что | Статус |
 |---|------|-----|--------|
 | 7 | step_7_db_schema.md | Таблицы `site_settings` (синглтон) + `faq_items`; миграция; seed из констант итерации 1 | [x] |
-| 8 | step_8_storefront_from_db.md | `/contacts`, `/faq`, футер читают из БД вместо констант | [ ] |
+| 8 | step_8_storefront_from_db.md | `/contacts`, `/faq`, футер читают из БД вместо констант | [x] |
 | 9 | step_9_admin_settings.md | Админка «Настройки сайта» (форма site_settings) | [ ] |
 | 10 | step_10_admin_faq.md | Админка «FAQ» (CRUD вопрос-ответ) | [ ] |
 | 11 | step_11_completion.md | Завершение плана (чеклист, smoke, todo→done) | [ ] |

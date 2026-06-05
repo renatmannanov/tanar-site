@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { SITE_CONTACTS } from '@/lib/site-contacts';
+import { getSiteSettings } from '@/core/site';
 
 const catalogLinks = [
   { label: 'Куртки', href: '/catalog?category=jackets' },
@@ -17,21 +17,6 @@ const companyLinks = [
 
 const supportLinks = [{ label: 'FAQ', href: '/faq' }] as const;
 
-// «Связь»: телефоны как tel:-ссылки + Instagram (внешняя). Адрес — текстом в
-// нижней плашке (не как link-элемент: тип FooterSection держит только ссылки).
-const contactLinks = [
-  ...SITE_CONTACTS.phones.map((p) => ({
-    label: `${p.value} · ${p.label}`,
-    href: `tel:${p.tel}`,
-    external: true,
-  })),
-  {
-    label: 'Instagram',
-    href: SITE_CONTACTS.instagram.url,
-    external: true,
-  },
-] as const;
-
 type FooterLink = { label: string; href: string; external?: boolean };
 
 type FooterSection = {
@@ -39,14 +24,44 @@ type FooterSection = {
   links: ReadonlyArray<FooterLink>;
 };
 
-const sections: FooterSection[] = [
-  { title: 'Каталог', links: catalogLinks },
-  { title: 'Компания', links: companyLinks },
-  { title: 'Поддержка', links: supportLinks },
-  { title: 'Связь', links: contactLinks },
-];
+/** tel: href from a display phone string (strip everything but digits/+). */
+function telHref(phone: string): string {
+  return `tel:${phone.replace(/[^\d+]/g, '')}`;
+}
 
-export default function Footer() {
+export default async function Footer() {
+  const settings = await getSiteSettings();
+
+  // «Связь»: phones as tel: links + Instagram (external). Empty fields skipped.
+  const contactLinks: FooterLink[] = [];
+  for (const phone of [settings.phone1, settings.phone2]) {
+    if (phone) {
+      contactLinks.push({ label: phone, href: telHref(phone), external: true });
+    }
+  }
+  if (settings.instagram) {
+    contactLinks.push({
+      label: 'Instagram',
+      href: settings.instagram,
+      external: true,
+    });
+  }
+
+  const sections: FooterSection[] = [
+    { title: 'Каталог', links: catalogLinks },
+    { title: 'Компания', links: companyLinks },
+    { title: 'Поддержка', links: supportLinks },
+    ...(contactLinks.length
+      ? [{ title: 'Связь', links: contactLinks } satisfies FooterSection]
+      : []),
+  ];
+
+  // Bottom-bar address line: «<address>, <city>, Казахстан», skipping empties.
+  // «Казахстан» stays as a literal so the location is always present.
+  const locationParts = [settings.address, settings.city, 'Казахстан'].filter(
+    Boolean,
+  );
+
   return (
     <footer
       id="footer"
@@ -93,14 +108,15 @@ export default function Footer() {
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-stone-700 pt-8 sm:flex-row">
           <div className="text-center text-sm text-stone-400 sm:text-left">
             <p>© 2026 Tanar. Все права защищены.</p>
-            <p className="mt-1 text-xs text-stone-500">
-              {SITE_CONTACTS.legal.ipName} · БИН {SITE_CONTACTS.legal.bin}
-            </p>
+            {settings.ipName && (
+              <p className="mt-1 text-xs text-stone-500">
+                {settings.ipName}
+                {settings.bin ? ` · БИН ${settings.bin}` : ''}
+              </p>
+            )}
             <p className="mt-1 text-xs text-stone-600">made by raymann</p>
           </div>
-          <p className="text-sm text-stone-400">
-            {SITE_CONTACTS.address}, {SITE_CONTACTS.city}, Казахстан
-          </p>
+          <p className="text-sm text-stone-400">{locationParts.join(', ')}</p>
         </div>
       </div>
     </footer>
