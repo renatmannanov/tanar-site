@@ -9,8 +9,10 @@ import {
   PHOTO_SLOTS,
   assetsBySlot,
   assetsOutsideGrid,
+  hexDistance,
 } from '@/core/media/client';
 import type { ProductImageView } from '@/core/contracts';
+import { Button } from './ui/Button';
 import { ConfirmButton } from './ui/ConfirmButton';
 
 const SOFT_MAX = 8;
@@ -46,6 +48,14 @@ export type MediaActions = {
   ) => Promise<{ error?: string }>;
 };
 
+/** Another color of the same product — a source pool for recolor. */
+export type SiblingVariant = {
+  variantId: string;
+  colorLabel: string;
+  hex: string;
+  images: MediaAsset[];
+};
+
 type Props = {
   /** Edit-mode identifiers. Absent in create mode → "save first" placeholder. */
   slug?: string;
@@ -53,19 +63,25 @@ type Props = {
   variant: { variantId: string; colorLabel: string; hex: string };
   /** Images for THIS variant. */
   images: MediaAsset[];
-  /** Photos of OTHER variants of the same product — recolor sources. */
-  siblingImages?: MediaAsset[];
+  /** Other colors of this product — recolor sources (with color metadata). */
+  siblings?: SiblingVariant[];
   actions?: MediaActions;
 };
 
-/** A generation option offered for one empty slot. */
-type GenOption = {
-  /** Which recipe to run. */
+/**
+ * A generation candidate for one empty slot: the recipe, the source photo, and
+ * (for recolor) which sibling color it comes from. Rendered with a thumbnail so
+ * the owner sees what they're generating from.
+ */
+type Candidate = {
   kind: 'flat' | 'recolorFlat' | 'recolorLifestyle';
-  /** Source asset feeding the recipe. */
   source: MediaAsset;
-  /** Button text shown on the slot. */
+  /** Short button/row label. */
   label: string;
+  /** Source color label (for recolor candidates), e.g. "Синий". */
+  fromLabel?: string;
+  /** Sort key: lower = preferred (recipe 1 first, then nearest hex). */
+  rank: number;
 };
 
 export function VariantPhotos({
@@ -73,20 +89,20 @@ export function VariantPhotos({
   productId,
   variant,
   images,
-  siblingImages = [],
+  siblings = [],
   actions,
 }: Props) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
-  // The slot a pending file upload targets (role/view to write). Set on tile
-  // click, read by onPick. Cleared after the picker fires.
+  // The slot a pending file upload targets (role/view to write).
   const pendingSlot = useRef<PhotoSlotKey | null>(null);
+  // Which empty slot has its candidate popover open (null = none).
+  const [openSlot, setOpenSlot] = useState<PhotoSlotKey | null>(null);
   const [error, setError] = useState<string | undefined>();
   const [pending, startTransition] = useTransition();
 
   // No persisted variantId yet — either create mode (no productId) or a color
-  // freshly added to the form but not saved. Either way there's nothing to
-  // attach photos to until the product/color is saved.
+  // freshly added to the form but not saved.
   if (!slug || !productId || !actions || !variant.variantId) {
     return (
       <div className="rounded-md border border-dashed border-gray-300 p-4 text-center text-sm text-gray-400">
@@ -100,11 +116,10 @@ export function VariantPhotos({
     startTransition(async () => {
       const result = await fn();
       if (result?.error) setError(result.error);
-      else router.refresh(); // reflect the change immediately
+      else router.refresh();
     });
   }
 
-  /** Open the file picker for a specific slot (writes its role/view). */
   function pickInto(slotKey: PhotoSlotKey) {
     pendingSlot.current = slotKey;
     fileRef.current?.click();
@@ -127,80 +142,115 @@ export function VariantPhotos({
     fd.set('role', slot.role);
     fd.set('view', slot.view);
     run(() => actions!.upload(fd));
-    e.target.value = ''; // allow re-picking the same file
+    e.target.value = '';
   }
 
   const bySlot = assetsBySlot(images);
   const outside = assetsOutsideGrid(images);
   const atMax = images.length >= SOFT_MAX;
 
-  // Sibling assets indexed by (role, view) → first match wins (deterministic by
-  // the order they arrive, i.e. variant order). Explicit source picking with
-  // thumbnails is step 5.3; here we pick the highest-priority candidate.
-  function siblingFor(
+  /** Sibling photo of the given role+view, paired with its color, if any. */
+  function siblingCandidates(
     role: 'lifestyle' | 'flat',
     view: ProductImageView,
-  ): MediaAsset | undefined {
-    return siblingImages.find(
-      (i) => (i.role ?? 'lifestyle') === role && i.view === view,
-    );
+  ): { asset: MediaAsset; sib: SiblingVariant }[] {
+    const out: { asset: MediaAsset; sib: SiblingVariant }[] = [];
+    for (const sib of siblings) {
+      const asset = sib.images.find(
+        (i) => (i.role ?? 'lifestyle') === role && i.view === view,
+      );
+      if (asset) out.push({ asset, sib });
+    }
+    return out;
   }
 
   /**
-   * Generation options for an EMPTY slot (may be several). We offer EVERY valid
-   * source so the owner can pick — recolor from a sibling flat is often more
-   * reliable than generating a flat from a lifestyle shot, so both are shown
-   * when both exist. Order = preference hint, not a hard priority; thumbnails +
-   * hex-distance sorting come in step 5.3. The target view is fixed by the slot.
+   * All generation candidates for an EMPTY slot, sorted by preference:
+   *   1. recipe 1 (own life of the same angle) — rank 0,
+   *   2. recolor from a sibling of the same role+angle — ranked by hex distance
+   *      to this variant's color (nearest first; closer recolors glitch less).
+   * Single candidate is still returned (shown, not auto-run). Empty → [].
    */
-  function genOptionsFor(slot: PhotoSlot): GenOption[] {
-    const opts: GenOption[] = [];
+  function candidatesFor(slot: PhotoSlot): Candidate[] {
+    const list: Candidate[] = [];
     if (slot.role === 'flat') {
-      // recolor from a sibling flat of the same angle (recipe 2) — preferred:
-      // copying an existing studio flat is steadier than synthesizing one.
-      const sibFlat = siblingFor('flat', slot.view);
-      if (sibFlat) {
-        opts.push({
-          kind: 'recolorFlat',
-          source: sibFlat,
-          label: 'Перекрасить из другого цвета',
-        });
-      }
-      // own lifestyle of the same angle → flat (recipe 1).
       const ownLife = bySlot[`life_${slot.view}` as PhotoSlotKey]?.[0];
       if (ownLife) {
-        opts.push({ kind: 'flat', source: ownLife, label: 'Сделать на белом' });
+        list.push({
+          kind: 'flat',
+          source: ownLife,
+          label: 'Сделать на белом',
+          rank: 0,
+        });
       }
-      return opts;
+      for (const { asset, sib } of siblingCandidates('flat', slot.view)) {
+        list.push({
+          kind: 'recolorFlat',
+          source: asset,
+          label: `Перекрасить из «${sib.colorLabel}»`,
+          fromLabel: sib.colorLabel,
+          rank: 1 + hexDistance(variant.hex, sib.hex),
+        });
+      }
+    } else {
+      for (const { asset, sib } of siblingCandidates('lifestyle', slot.view)) {
+        list.push({
+          kind: 'recolorLifestyle',
+          source: asset,
+          label: `Перекрасить из «${sib.colorLabel}»`,
+          fromLabel: sib.colorLabel,
+          rank: 1 + hexDistance(variant.hex, sib.hex),
+        });
+      }
     }
-    // lifestyle slot: only a sibling lifestyle of the same angle → recolor (3).
-    const sibLife = siblingFor('lifestyle', slot.view);
-    if (sibLife) {
-      opts.push({
-        kind: 'recolorLifestyle',
-        source: sibLife,
-        label: 'Перекрасить из другого цвета',
-      });
-    }
-    return opts;
+    return list.sort((a, b) => a.rank - b.rank);
   }
 
-  /** Run the chosen generation for a slot. */
-  function generate(slot: PhotoSlot, opt: GenOption) {
+  /** Run a chosen candidate for a slot. */
+  function generate(slot: PhotoSlot, c: Candidate) {
+    setOpenSlot(null);
     const base: GenTarget = {
-      sourceId: opt.source.id,
+      sourceId: c.source.id,
       variantId: variant.variantId,
       view: slot.view,
       slug: slug!,
       productId: productId!,
     };
-    if (opt.kind === 'flat') {
+    if (c.kind === 'flat') {
       run(() => actions!.generateFlat(base));
-    } else if (opt.kind === 'recolorFlat') {
+    } else if (c.kind === 'recolorFlat') {
       run(() => actions!.recolorFlat({ ...base, hex: variant.hex }));
     } else {
       run(() => actions!.recolorLifestyle({ ...base, hex: variant.hex }));
     }
+  }
+
+  // ── Batch "make all flats": for every life_<view> whose paired flat_<view> is
+  // empty, generate a flat (recipe 1). Sequential (cost / rate limits). Approval
+  // per result is step 6. Shown only when there's at least one such pair.
+  const flatableViews = PHOTO_SLOTS.filter(
+    (s) => s.role === 'flat' && bySlot[`life_${s.view}` as PhotoSlotKey]?.[0] && !bySlot[s.key][0],
+  );
+  function makeAllFlats() {
+    setOpenSlot(null);
+    setError(undefined);
+    startTransition(async () => {
+      for (const slot of flatableViews) {
+        const life = bySlot[`life_${slot.view}` as PhotoSlotKey][0];
+        const res = await actions!.generateFlat({
+          sourceId: life.id,
+          variantId: variant.variantId,
+          view: slot.view,
+          slug: slug!,
+          productId: productId!,
+        });
+        if (res?.error) {
+          setError(res.error);
+          break;
+        }
+      }
+      router.refresh();
+    });
   }
 
   return (
@@ -210,8 +260,6 @@ export function VariantPhotos({
         В пустом слоте можно загрузить фото или сгенерировать ИИ из подходящего источника.
       </p>
 
-      {/* Single hidden picker, reused by every slot tile. The target slot is
-          remembered in pendingSlot before .click(). */}
       <input
         ref={fileRef}
         type="file"
@@ -219,6 +267,19 @@ export function VariantPhotos({
         className="hidden"
         onChange={onPick}
       />
+
+      {flatableViews.length > 0 ? (
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={pending || atMax}
+          className="self-start"
+          title="Сгенерировать «на белом» для всех ракурсов, где есть живое фото и пустой слот"
+          onClick={makeAllFlats}
+        >
+          ✨ Сделать все на белом ({flatableViews.length})
+        </Button>
+      ) : null}
 
       {/* 2×3 slot grid. Occupied slots render as <ul><li> so e2e counts of
           stored photos stay on `ul li`; empty tiles live outside the <ul>. */}
@@ -258,32 +319,29 @@ export function VariantPhotos({
             );
           }
 
-          // Empty slot: offer EVERY valid generation source + manual upload.
-          const opts = genOptionsFor(slot);
+          // Empty slot: candidate picker (popover) + manual upload.
+          const candidates = candidatesFor(slot);
+          const isOpen = openSlot === slot.key;
           return (
             <div
               key={slot.key}
-              className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-gray-300 p-2 text-center"
+              className="relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-gray-300 p-2 text-center"
             >
               <span className="text-[11px] font-medium text-gray-500">
                 {slot.label}
               </span>
-              {opts.map((opt) => (
+
+              {candidates.length > 0 ? (
                 <button
-                  key={opt.kind}
                   type="button"
                   disabled={pending || atMax}
-                  onClick={() => generate(slot, opt)}
-                  title={
-                    opt.kind === 'flat'
-                      ? 'Сгенерировать студийное фото на белом из живого кадра этого цвета'
-                      : 'Перекрасить фото подходящего ракурса из другого цвета (надёжнее, если flat уже есть)'
-                  }
+                  onClick={() => setOpenSlot(isOpen ? null : slot.key)}
                   className="rounded bg-gray-900/85 px-2 py-1 text-[11px] font-medium text-white hover:bg-gray-900 disabled:opacity-50"
                 >
-                  ✨ {opt.label}
+                  ✨ Сгенерировать{candidates.length > 1 ? ' ▾' : ''}
                 </button>
-              ))}
+              ) : null}
+
               <button
                 type="button"
                 disabled={pending || atMax}
@@ -293,14 +351,55 @@ export function VariantPhotos({
               >
                 + загрузить
               </button>
+
+              {/* Candidate popover: thumbnails of every valid source, sorted
+                  (recipe 1, then recolor nearest-hex). The owner sees what
+                  they generate from instead of a silent first-match. */}
+              {isOpen && candidates.length > 0 ? (
+                <div className="absolute left-1/2 top-full z-10 mt-1 w-56 -translate-x-1/2 rounded-md border border-gray-200 bg-white p-2 text-left shadow-lg">
+                  <p className="mb-1 px-1 text-[10px] uppercase tracking-wide text-gray-400">
+                    Источник для «{slot.label}»
+                  </p>
+                  <ul className="flex flex-col gap-1">
+                    {candidates.map((c) => (
+                      <li key={`${c.kind}-${c.source.id}`}>
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() => generate(slot, c)}
+                          className="flex w-full items-center gap-2 rounded px-1 py-1 text-left hover:bg-gray-100 disabled:opacity-50"
+                        >
+                          <span className="h-9 w-9 shrink-0 overflow-hidden rounded bg-gray-100">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={c.source.url}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          </span>
+                          <span className="text-[11px] leading-tight text-gray-700">
+                            {c.label}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={() => setOpenSlot(null)}
+                    className="mt-1 w-full rounded px-1 py-0.5 text-[10px] text-gray-400 hover:text-gray-600"
+                  >
+                    отмена
+                  </button>
+                </div>
+              ) : null}
             </div>
           );
         })}
       </div>
 
-      {/* Out-of-grid assets: legacy / hand-uploaded photos with no view that
-          don't fit a slot. Shown ONLY when present so a clean catalog has no
-          clutter. The owner can delete them here. */}
+      {/* Out-of-grid assets: legacy / hand-uploaded photos with no view. Shown
+          only when present so a clean catalog has no clutter. */}
       {outside.length > 0 ? (
         <div className="flex flex-col gap-2 rounded-md border border-amber-200 bg-amber-50/50 p-3">
           <p className="text-xs text-amber-700">

@@ -437,9 +437,15 @@ export default function ProductForm({
                   hex: v.hex,
                 }}
                 images={variantMedia?.[v.colorId]?.images ?? []}
-                siblingImages={Object.entries(variantMedia ?? {})
-                  .filter(([colorId]) => colorId !== v.colorId)
-                  .flatMap(([, m]) => m.images)}
+                siblings={form.variants
+                  .filter((sv) => sv.colorId !== v.colorId)
+                  .map((sv) => ({
+                    variantId: variantMedia?.[sv.colorId]?.variantId ?? '',
+                    colorLabel: sv.colorLabel,
+                    hex: sv.hex,
+                    images: variantMedia?.[sv.colorId]?.images ?? [],
+                  }))
+                  .filter((s) => s.variantId && s.images.length > 0)}
                 actions={mode === 'edit' ? mediaActions : undefined}
               />
             </div>

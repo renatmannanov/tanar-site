@@ -99,3 +99,23 @@ export function assetsBySlot(
 export function assetsOutsideGrid(assets: MediaAsset[]): MediaAsset[] {
   return assets.filter((a) => slotOf(a) === null);
 }
+
+/**
+ * Rough color distance between two hex colors (sum of absolute RGB-channel
+ * differences, 0..765). Used to sort recolor candidates: a closer source color
+ * recolors more reliably (Phase-A finding — far/high-contrast jumps glitch).
+ * Not perceptually accurate; good enough as a "prefer the nearest" hint.
+ * Invalid/short hex → Infinity (sorted last).
+ */
+export function hexDistance(a: string, b: string): number {
+  const rgb = (h: string): [number, number, number] | null => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(h.trim());
+    if (!m) return null;
+    const n = parseInt(m[1], 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const ca = rgb(a);
+  const cb = rgb(b);
+  if (!ca || !cb) return Infinity;
+  return Math.abs(ca[0] - cb[0]) + Math.abs(ca[1] - cb[1]) + Math.abs(ca[2] - cb[2]);
+}

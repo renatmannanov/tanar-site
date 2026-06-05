@@ -80,7 +80,7 @@ src/components/admin/VariantPhotos.tsx               ← UI-кнопки (Tanar-
 | 5 | step_5_admin_generate.md | Движок photogen + 3 server actions + черновой UI (3 кнопки) | [x] выполнено |
 | 5.1 | step_5_1_slots.md | Модель 6 слотов (life/flat × front/side/back) + сетка 2×3 в UI; загрузка в слот; витрина life→flat | [x] выполнено |
 | 5.2 | step_5_2_generate_from_slot.md | Генерация привязана к пустому слоту; view из слота (back-flat без лого); источник = конкретный слот | [x] выполнено |
-| 5.3 | step_5_3_source_ux.md | UX выбора источника для пустого слота (кандидаты с миниатюрой); «сразу все» пачкой | [ ] |
+| 5.3 | step_5_3_source_ux.md | UX выбора источника для пустого слота (кандидаты с миниатюрой); «сразу все» пачкой | [x] выполнено |
 | 6 | step_6_preview_guardrails.md | Превью+апрув (вкл. замену занятого слота), метка «ИИ», лимит (выкл) — под слоты | [ ] |
 | 7 | step_7_completion.md | Завершение плана | [ ] |
 
