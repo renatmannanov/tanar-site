@@ -52,10 +52,10 @@ test.describe('smoke', () => {
     }
   });
 
-  test('blog shows exactly 6 posts', async ({ page }) => {
+  test('blog shows exactly 8 posts', async ({ page }) => {
     await page.goto('/blog');
     const cards = page.getByTestId('blog-card');
-    expect(await cards.count()).toBe(6);
+    expect(await cards.count()).toBe(8);
   });
 
   test('metadata titles are correct', async ({ page }) => {
