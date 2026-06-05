@@ -147,38 +147,42 @@ export function VariantPhotos({
   }
 
   /**
-   * The generation option for an EMPTY slot, or null if no valid source exists.
-   * Priority (step 5.2): recipe 1 (own life, same angle) > recolor from a
-   * sibling of the right role/angle. The target view is fixed by the slot.
+   * Generation options for an EMPTY slot (may be several). We offer EVERY valid
+   * source so the owner can pick — recolor from a sibling flat is often more
+   * reliable than generating a flat from a lifestyle shot, so both are shown
+   * when both exist. Order = preference hint, not a hard priority; thumbnails +
+   * hex-distance sorting come in step 5.3. The target view is fixed by the slot.
    */
-  function genOptionFor(slot: PhotoSlot): GenOption | null {
+  function genOptionsFor(slot: PhotoSlot): GenOption[] {
+    const opts: GenOption[] = [];
     if (slot.role === 'flat') {
-      // 1) own lifestyle of the same angle → flat (recipe 1).
-      const ownLife = bySlot[`life_${slot.view}` as PhotoSlotKey]?.[0];
-      if (ownLife) {
-        return { kind: 'flat', source: ownLife, label: 'Сделать на белом' };
-      }
-      // 2) a sibling flat of the same angle → recolor (recipe 2).
+      // recolor from a sibling flat of the same angle (recipe 2) — preferred:
+      // copying an existing studio flat is steadier than synthesizing one.
       const sibFlat = siblingFor('flat', slot.view);
       if (sibFlat) {
-        return {
+        opts.push({
           kind: 'recolorFlat',
           source: sibFlat,
-          label: `Перекрасить из другого цвета`,
-        };
+          label: 'Перекрасить из другого цвета',
+        });
       }
-      return null;
+      // own lifestyle of the same angle → flat (recipe 1).
+      const ownLife = bySlot[`life_${slot.view}` as PhotoSlotKey]?.[0];
+      if (ownLife) {
+        opts.push({ kind: 'flat', source: ownLife, label: 'Сделать на белом' });
+      }
+      return opts;
     }
     // lifestyle slot: only a sibling lifestyle of the same angle → recolor (3).
     const sibLife = siblingFor('lifestyle', slot.view);
     if (sibLife) {
-      return {
+      opts.push({
         kind: 'recolorLifestyle',
         source: sibLife,
-        label: `Перекрасить из другого цвета`,
-      };
+        label: 'Перекрасить из другого цвета',
+      });
     }
-    return null;
+    return opts;
   }
 
   /** Run the chosen generation for a slot. */
@@ -254,8 +258,8 @@ export function VariantPhotos({
             );
           }
 
-          // Empty slot: offer generation (if a source exists) + manual upload.
-          const opt = genOptionFor(slot);
+          // Empty slot: offer EVERY valid generation source + manual upload.
+          const opts = genOptionsFor(slot);
           return (
             <div
               key={slot.key}
@@ -264,21 +268,22 @@ export function VariantPhotos({
               <span className="text-[11px] font-medium text-gray-500">
                 {slot.label}
               </span>
-              {opt ? (
+              {opts.map((opt) => (
                 <button
+                  key={opt.kind}
                   type="button"
                   disabled={pending || atMax}
                   onClick={() => generate(slot, opt)}
                   title={
                     opt.kind === 'flat'
                       ? 'Сгенерировать студийное фото на белом из живого кадра этого цвета'
-                      : 'Перекрасить фото подходящего ракурса из другого цвета'
+                      : 'Перекрасить фото подходящего ракурса из другого цвета (надёжнее, если flat уже есть)'
                   }
                   className="rounded bg-gray-900/85 px-2 py-1 text-[11px] font-medium text-white hover:bg-gray-900 disabled:opacity-50"
                 >
                   ✨ {opt.label}
                 </button>
-              ) : null}
+              ))}
               <button
                 type="button"
                 disabled={pending || atMax}
