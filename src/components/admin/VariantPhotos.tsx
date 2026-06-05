@@ -86,8 +86,8 @@ type Candidate = {
   rank: number;
 };
 
-/** Pending preview held client-side until the owner approves it. */
-type Preview = {
+/** One generated photo awaiting approval (held client-side, not persisted). */
+type PreviewItem = {
   slot: PhotoSlot;
   candidate: Candidate;
   dataUrl: string;
@@ -106,7 +106,9 @@ export function VariantPhotos({
   const fileRef = useRef<HTMLInputElement>(null);
   const pendingSlot = useRef<PhotoSlotKey | null>(null);
   const [openSlot, setOpenSlot] = useState<PhotoSlotKey | null>(null);
-  const [preview, setPreview] = useState<Preview | null>(null);
+  // One or more generated photos awaiting a single approval decision. null when
+  // nothing is pending. A batch ("сделать все") fills several items at once.
+  const [preview, setPreview] = useState<PreviewItem[] | null>(null);
   // Full-size image shown in the lightbox (slot thumbnail or generation preview).
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [error, setError] = useState<string | undefined>();
@@ -204,10 +206,11 @@ export function VariantPhotos({
     return list.sort((a, b) => a.rank - b.rank);
   }
 
-  /** Call the recipe → on success show a preview (NOT persisted yet). */
-  function generate(slot: PhotoSlot, c: Candidate) {
-    setOpenSlot(null);
-    setError(undefined);
+  /** Run one recipe → a PreviewItem (no persistence), or null on error. */
+  async function runCandidate(
+    slot: PhotoSlot,
+    c: Candidate,
+  ): Promise<PreviewItem | null> {
     const base: GenTarget = {
       sourceId: c.source.id,
       variantId: variant.variantId,
@@ -215,48 +218,69 @@ export function VariantPhotos({
       slug: slug!,
       productId: productId!,
     };
-    startTransition(async () => {
-      let res: GenPreview;
-      if (c.kind === 'flat') res = await actions!.generateFlat(base);
-      else if (c.kind === 'recolorFlat')
-        res = await actions!.recolorFlat({ ...base, hex: variant.hex });
-      else res = await actions!.recolorLifestyle({ ...base, hex: variant.hex });
+    let res: GenPreview;
+    if (c.kind === 'flat') res = await actions!.generateFlat(base);
+    else if (c.kind === 'recolorFlat')
+      res = await actions!.recolorFlat({ ...base, hex: variant.hex });
+    else res = await actions!.recolorLifestyle({ ...base, hex: variant.hex });
 
-      if (res.error || !res.previewDataUrl || !res.role) {
-        setError(res.error ?? 'Пустой результат генерации');
-        return;
-      }
-      setPreview({ slot, candidate: c, dataUrl: res.previewDataUrl, role: res.role });
+    if (res.error || !res.previewDataUrl || !res.role) {
+      setError(res.error ?? 'Пустой результат генерации');
+      return null;
+    }
+    return { slot, candidate: c, dataUrl: res.previewDataUrl, role: res.role };
+  }
+
+  /** Single-slot generation → show a one-item preview (NOT persisted yet). */
+  function generate(slot: PhotoSlot, c: Candidate) {
+    setOpenSlot(null);
+    setError(undefined);
+    startTransition(async () => {
+      const item = await runCandidate(slot, c);
+      if (item) setPreview([item]);
     });
   }
 
-  /** "Оставить": persist the previewed photo into its (empty) slot. To redo a
+  /** "Оставить": persist EVERY previewed photo into its (empty) slot. To redo a
    *  slot the owner deletes the photo and generates again — no in-place replace. */
   function keepPreview() {
     if (!preview) return;
-    const p = preview;
+    const items = preview;
     setError(undefined);
     startTransition(async () => {
-      const res = await actions!.approveGenerated({
-        previewDataUrl: p.dataUrl,
-        variantId: variant.variantId,
-        view: p.slot.view,
-        role: p.role,
-        slug: slug!,
-        productId: productId!,
-      });
-      if (res?.error) {
-        setError(res.error);
-        return;
+      for (const p of items) {
+        const res = await actions!.approveGenerated({
+          previewDataUrl: p.dataUrl,
+          variantId: variant.variantId,
+          view: p.slot.view,
+          role: p.role,
+          slug: slug!,
+          productId: productId!,
+        });
+        if (res?.error) {
+          setError(res.error);
+          return; // stop on first failure; the rest stay in preview
+        }
       }
       setPreview(null);
       router.refresh();
     });
   }
 
+  /** "Перегенерировать": re-run every previewed item's recipe, replace previews. */
   function regenerate() {
     if (!preview) return;
-    generate(preview.slot, preview.candidate);
+    const items = preview;
+    setError(undefined);
+    startTransition(async () => {
+      const next: PreviewItem[] = [];
+      for (const p of items) {
+        const item = await runCandidate(p.slot, p.candidate);
+        if (!item) return; // error already surfaced; keep current previews
+        next.push(item);
+      }
+      setPreview(next);
+    });
   }
 
   function cancelPreview() {
@@ -268,37 +292,25 @@ export function VariantPhotos({
   const flatableViews = PHOTO_SLOTS.filter(
     (s) => s.role === 'flat' && bySlot[`life_${s.view}` as PhotoSlotKey]?.[0] && !bySlot[s.key][0],
   );
+  /** Generate a flat for every flatable view, then show ALL previews at once for
+   *  a single approval — nothing is saved until "Оставить". */
   function makeAllFlats() {
     setOpenSlot(null);
     setError(undefined);
     startTransition(async () => {
+      const items: PreviewItem[] = [];
       for (const slot of flatableViews) {
         const life = bySlot[`life_${slot.view}` as PhotoSlotKey][0];
-        const gen = await actions!.generateFlat({
-          sourceId: life.id,
-          variantId: variant.variantId,
-          view: slot.view,
-          slug: slug!,
-          productId: productId!,
+        const item = await runCandidate(slot, {
+          kind: 'flat',
+          source: life,
+          label: 'Сделать на белом',
+          rank: 0,
         });
-        if (gen.error || !gen.previewDataUrl || !gen.role) {
-          setError(gen.error ?? 'Ошибка генерации');
-          break;
-        }
-        const res = await actions!.approveGenerated({
-          previewDataUrl: gen.previewDataUrl,
-          variantId: variant.variantId,
-          view: slot.view,
-          role: gen.role,
-          slug: slug!,
-          productId: productId!,
-        });
-        if (res?.error) {
-          setError(res.error);
-          break;
-        }
+        if (!item) return; // error surfaced; abort the batch
+        items.push(item);
       }
-      router.refresh();
+      if (items.length > 0) setPreview(items);
     });
   }
 
@@ -335,45 +347,55 @@ export function VariantPhotos({
       {preview ? (
         <div className="flex flex-col gap-2 rounded-md border border-indigo-200 bg-indigo-50/40 p-3">
           <p className="text-xs font-medium text-indigo-700">
-            Превью генерации для «{preview.slot.label}» — проверьте, прежде чем сохранить.
+            {preview.length > 1
+              ? `Превью генерации (${preview.length}) — проверьте, прежде чем сохранить.`
+              : `Превью генерации для «${preview[0].slot.label}» — проверьте, прежде чем сохранить.`}
           </p>
-          <div className="flex items-start gap-3">
-            <button
-              type="button"
-              onClick={() => setLightboxSrc(preview.dataUrl)}
-              title="Открыть в полный размер"
-              className="h-32 w-32 shrink-0 overflow-hidden rounded border border-gray-200 bg-white"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={preview.dataUrl}
-                alt="превью"
-                data-testid="gen-preview"
-                className="h-full w-full cursor-zoom-in object-cover"
-              />
-            </button>
+          <div className="flex items-start gap-4">
+            {/* All generated photos in a row. Each shows its slot label and
+                opens full-size in the lightbox on click. */}
+            <div className="flex flex-wrap gap-3">
+              {preview.map((p, i) => (
+                <div key={p.slot.key} className="flex flex-col items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setLightboxSrc(p.dataUrl)}
+                    title="Открыть в полный размер"
+                    className="h-32 w-32 shrink-0 overflow-hidden rounded border border-gray-200 bg-white"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={p.dataUrl}
+                      alt="превью"
+                      data-testid={i === 0 ? 'gen-preview' : undefined}
+                      className="h-full w-full cursor-zoom-in object-cover"
+                    />
+                  </button>
+                  <span className="text-[10px] text-gray-500">{p.slot.label}</span>
+                </div>
+              ))}
+            </div>
+            {/* One set of actions for the whole batch, stacked in a column. */}
             <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" disabled={pending} onClick={keepPreview}>
-                  Оставить
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={pending}
-                  onClick={regenerate}
-                >
-                  Перегенерировать
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  disabled={pending}
-                  onClick={cancelPreview}
-                >
-                  Отмена
-                </Button>
-              </div>
+              <Button type="button" disabled={pending} onClick={keepPreview}>
+                Оставить
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={pending}
+                onClick={regenerate}
+              >
+                Перегенерировать
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={pending}
+                onClick={cancelPreview}
+              >
+                Отмена
+              </Button>
             </div>
           </div>
         </div>

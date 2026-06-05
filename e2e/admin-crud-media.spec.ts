@@ -331,16 +331,22 @@ test.describe.serial('batch make-all-flats', () => {
     await expect(page.locator('ul li')).toHaveCount(2);
   });
 
-  test('one click generates a flat for every life shot', async ({ page }) => {
+  test('batch all-flats shows a preview then saves on approve', async ({ page }) => {
     await login(page);
     await page.goto(`/admin/catalog/${BATCH_SLUG}/edit`);
     await expect(page.locator('ul li')).toHaveCount(2);
 
-    // 2 life shots with empty paired flats → "✨ Сделать все на белом (2)".
+    // 2 life shots with empty paired flats → "✨ Сделать все на белом (2)". The
+    // batch now goes through ONE approval: a preview with both photos appears
+    // and nothing is saved until "Оставить".
     await page
       .getByRole('button', { name: 'Сделать все на белом', exact: false })
       .click();
-    // Both flats appear (2 life + 2 flat = 4 occupied slots).
+    await expect(page.getByTestId('gen-preview')).toBeVisible();
+    await expect(page.locator('ul li')).toHaveCount(2); // not saved yet
+
+    await page.getByRole('button', { name: 'Оставить', exact: true }).click();
+    // Both flats persisted (2 life + 2 flat = 4 occupied slots).
     await expect(page.locator('ul li')).toHaveCount(4);
   });
 
