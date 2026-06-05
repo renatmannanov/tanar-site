@@ -93,6 +93,21 @@ services:
       postgres:
         condition: service_healthy
 
+  # Idempotent seed of editable site content (site_settings + faq_items) only.
+  # Unlike `seed`, it touches NO catalog tables and needs NO ALLOW_PROD_SEED —
+  # safe on prod (the catalog is already seeded, which blocks `seed`).
+  seed-site:
+    profiles: ["tools"]
+    build:
+      context: .
+      target: builder
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    command: ["npx", "tsx", "-r", "tsconfig-paths/register", "src/core/db/seed-site.ts"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   push-media:
     profiles: ["tools"]
     build:
