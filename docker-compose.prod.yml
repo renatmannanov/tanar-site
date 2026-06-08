@@ -39,6 +39,12 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET}
+      # photogen (AI photo generation). GEMINI_API_KEY is required for the
+      # admin generate buttons; without it they throw. The others are optional
+      # (recolor lock mode, daily cap) — passed through if set in .env.
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      PHOTOGEN_RECOLOR_LOCK: ${PHOTOGEN_RECOLOR_LOCK:-}
+      PHOTOGEN_DAILY_LIMIT: ${PHOTOGEN_DAILY_LIMIT:-}
     volumes:
       # persistent product photos — without this, redeploy wipes uploads
       - product-images:/app/public/images/products
