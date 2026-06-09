@@ -14,7 +14,7 @@ const homeCategories: { id: ProductCategory; gradient: string }[] = [
 
 export default function CategoriesGrid() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+    <section className="mx-auto max-w-7xl px-4 pt-20 sm:px-6 lg:px-8">
       <h2 className="font-display text-3xl font-bold tracking-tight text-stone-900">
         Категории
       </h2>

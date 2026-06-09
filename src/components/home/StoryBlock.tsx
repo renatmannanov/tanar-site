@@ -5,7 +5,7 @@ export default function StoryBlock() {
   return (
     <section
       id="story"
-      className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8"
+      className="mx-auto max-w-7xl px-4 pt-20 sm:px-6 lg:px-8"
     >
       <div className="grid items-center gap-12 lg:grid-cols-2">
         {/* Image placeholder */}
