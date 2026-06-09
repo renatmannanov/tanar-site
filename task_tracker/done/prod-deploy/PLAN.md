@@ -1,6 +1,6 @@
 # Prod Deploy — витрина на VPS (Docker + Caddy)
 
-> Статус: pending
+> Статус: done (2026-06-09 — боевой переезд на PS.kz выполнен, https://tanar.kz живой)
 > Дата: 2026-06-01
 > Тип: фича (инфраструктура / деплой)
 > Ревью: code+risks+structure (3 агента) пройдено 2026-06-01; рекомендации внесены в step-файлы (см. `_review_summary.md`). Целевой сервер: PS.kz, Ubuntu 24.04 (см. progress.md).
@@ -56,9 +56,9 @@
 | # | Файл | Статус |
 |---|------|--------|
 | 8 | step_8_backups.md — согласованный бэкап (pg_dump + tar фото) + cron | [x] (backup.sh+restore.sh, cron 3:30, тест-restore ✓) |
-| 9 | step_9_push_media_cli.md — CLI массовой заливки фото на прод | [ ] |
-| 11 | step_11_migrate_to_pskz.md — переезд Hetzner→PS.kz (боевой, после согласования с заказчицей) | [ ] |
-| 10 | step_10_completion.md — завершение плана | [ ] |
+| 9 | step_9_push_media_cli.md — CLI массовой заливки фото на прод | → backlog (фото заливаются через админку; CLI пока не нужен) |
+| 11 | step_11_migrate_to_pskz.md — переезд Hetzner→PS.kz (боевой) | [x] (2026-06-09: https://tanar.kz на PS.kz, новый сервер 89.219.32.75, key-only SSH) |
+| 10 | step_10_completion.md — завершение плана | [x] |
 
 ## Критерии готовности
 
