@@ -6,11 +6,12 @@ type LogoProps = {
 };
 
 export default function Logo({ variant = 'dark' }: LogoProps) {
-  const textColor = variant === 'light' ? 'text-white' : 'text-stone-900';
   const markSrc = variant === 'light' ? '/logo/mark-light.png' : '/logo/mark.png';
+  // wordmark.png — чёрная надпись; на тёмном фоне инвертируем в белую
+  const wordmarkClass = variant === 'light' ? 'invert' : '';
 
   return (
-    <Link href="/" className="flex items-center gap-2 group" aria-label="Tanar — главная">
+    <Link href="/" className="flex items-center gap-2.5 group" aria-label="Tanar — главная">
       <Image
         src={markSrc}
         alt=""
@@ -19,11 +20,14 @@ export default function Logo({ variant = 'dark' }: LogoProps) {
         priority
         className="h-6 w-auto shrink-0"
       />
-      <span
-        className={`font-display text-xl font-bold uppercase tracking-widest leading-none ${textColor}`}
-      >
-        Tanar
-      </span>
+      <Image
+        src="/logo/wordmark.png"
+        alt="Tanar"
+        width={1703}
+        height={213}
+        priority
+        className={`h-4 w-auto shrink-0 ${wordmarkClass}`}
+      />
     </Link>
   );
 }
