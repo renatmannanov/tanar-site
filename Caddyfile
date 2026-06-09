@@ -21,6 +21,13 @@
 	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
 }
 
+# www -> apex redirect (301). www.{$DOMAIN} has a CNAME to the apex in DNS;
+# Caddy issues a separate cert for it and permanently redirects to the bare
+# domain so there's one canonical host.
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}
+
 {$DOMAIN} {
 	encode gzip zstd
 
