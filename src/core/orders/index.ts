@@ -153,6 +153,21 @@ export async function listOrders(limit = 100): Promise<OrderView[]> {
 }
 
 /**
+ * Number of `pending` («Новый») orders — drives the sidebar badge in the
+ * admin shell. 0 on any DB error (build without DATABASE_URL must not crash).
+ */
+export async function countPendingOrders(): Promise<number> {
+  try {
+    return await db.$count(
+      schema.orders,
+      eq(schema.orders.status, 'pending'),
+    );
+  } catch {
+    return 0;
+  }
+}
+
+/**
  * Admin-only status change — callers must requireAdmin first.
  *
  * PHASE 2 (stock/reserve) hooks in HERE. Planned mechanics (see

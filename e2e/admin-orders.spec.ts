@@ -56,6 +56,11 @@ test.describe.serial('admin orders', () => {
     await expect(row).toContainText('Куртка'); // item name snapshot from the DB
     await expect(row).toContainText('шт');
     await expect(row.getByTestId('order-status')).toHaveValue('pending');
+
+    // The sidebar badge counts pending orders — at least this fresh one.
+    const badge = page.getByTestId('pending-orders-badge');
+    await expect(badge).toBeVisible();
+    expect(Number(await badge.innerText())).toBeGreaterThanOrEqual(1);
   });
 
   test('status change to «Подтверждён» survives a reload and tints the row', async ({
