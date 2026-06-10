@@ -123,6 +123,8 @@ async function seedSiteContent() {
       bin: c.legal.bin,
       bankName: null, // IBAN/bank not published until Phase 3
       iban: null,
+      // cart orders go here; the owner changes it in the admin
+      whatsapp: c.phones[0]?.value ?? null,
     });
     console.log('seed: site_settings inserted');
   } else {

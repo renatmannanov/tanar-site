@@ -12,6 +12,14 @@ test('catalog link navigates to /catalog', async ({ page }) => {
   await expect(page).toHaveURL(/\/catalog/);
 });
 
+test('cart button is visible; badge hidden while the cart is empty', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.getByTestId('cart-button')).toBeVisible();
+  await expect(page.getByTestId('cart-count')).toHaveCount(0);
+});
+
 test('footer contains brand name and location', async ({ page }) => {
   await page.goto('/');
   const footer = page.getByTestId('site-footer');

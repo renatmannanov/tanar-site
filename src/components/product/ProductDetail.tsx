@@ -2,21 +2,35 @@
 
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import AvailabilityButton from '@/components/AvailabilityButton';
+import AddToCartButton from '@/components/cart/AddToCartButton';
 import MarketplaceLinks from '@/components/product/MarketplaceLinks';
 import Placeholder from '@/components/Placeholder';
 import { formatPrice, getProductGradient, type Product } from '@/core/catalog/client';
+// Client component → '@/core/inventory/client', never the server barrel
+// (it pulls postgres into the bundle and breaks the build).
+import { availableQty, stockLevel, type StockLevel } from '@/core/inventory/client';
 import { type MediaAsset, srcSetFromUrl } from '@/core/media/client';
+import { waLink } from '@/lib/whatsapp';
 
 const GALLERY_ASPECT = 'aspect-[2/3]';
+
+// Traffic-light dot per stock level; e2e asserts data-level, not the color.
+const DOT_BG: Record<Exclude<StockLevel, 'out'>, string> = {
+  high: 'bg-green-500',
+  medium: 'bg-orange-400',
+  low: 'bg-red-500',
+};
 
 export default function ProductDetail({
   product,
   images = [],
+  whatsapp,
 }: {
   product: Product;
   /** All product images (any variant), sorted; filtered per active color here. */
   images?: MediaAsset[];
+  /** site_settings.whatsapp — drives the coming_soon «Узнать о наличии» link. */
+  whatsapp: string | null;
 }) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -48,20 +62,53 @@ export default function ProductDetail({
   const safeIndex = activeShotIndex < shots.length ? activeShotIndex : 0;
   const activeShot = shots[safeIndex];
 
+  const [selectedSkuId, setSelectedSkuId] = useState<string | null>(null);
+
   function handleColorChange(colorId: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.set('color', colorId);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     setActiveShotIndex(0);
+    setSelectedSkuId(null); // size belongs to a color — re-pick after switching
   }
 
   if (product.status === 'coming_soon') {
-    return <ProductDetailComingSoon product={product} />;
+    return <ProductDetailComingSoon product={product} whatsapp={whatsapp} />;
   }
 
   const descriptionParagraphs = product.description.split('\n\n');
-  // Sizes of the active color (no stock/availability yet — Phase 2/3).
+  // Sizes of the active color, with live availability (stockQty - reservedQty).
   const sizes = activeVariant?.skus ?? [];
+  // A single-size color is preselected automatically.
+  const selectedSku =
+    sizes.length === 1
+      ? sizes[0]
+      : (sizes.find((s) => s.id === selectedSkuId) ?? null);
+
+  const available = selectedSku ? availableQty(selectedSku) : 0;
+  // available > 0 → the level is never 'out' (the cast keeps DOT_BG exhaustive).
+  const level =
+    selectedSku && available > 0
+      ? (stockLevel(available) as Exclude<StockLevel, 'out'>)
+      : null;
+  const selectedSoldOut = selectedSku !== null && available <= 0;
+
+  const cartItem =
+    activeVariant && selectedSku && !selectedSoldOut
+      ? {
+          skuId: selectedSku.id,
+          productId: product.id,
+          slug: product.slug,
+          name: product.name,
+          colorId: activeVariant.id,
+          colorLabel: activeVariant.label,
+          size: selectedSku.size,
+          ruSize: selectedSku.ruSize,
+          price: selectedSku.priceOverride ?? product.price,
+          imageUrl: shots[0]?.url,
+          available,
+        }
+      : null;
 
   return (
     <div className="grid grid-cols-1 gap-12 md:grid-cols-2">
@@ -157,14 +204,32 @@ export default function ProductDetail({
           <div className="mt-6">
             <p className="text-sm text-stone-700">Размеры</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {sizes.map((sku) => (
-                <span
-                  key={sku.id ?? sku.size}
-                  className="rounded-md border border-stone-300 px-3 py-1 text-sm text-stone-700"
-                >
-                  {sku.ruSize ? `${sku.size} / ${sku.ruSize}` : sku.size}
-                </span>
-              ))}
+              {sizes.map((sku) => {
+                const soldOut = availableQty(sku) <= 0;
+                const isSelected = sku.id === selectedSku?.id;
+                // Sold-out sizes stay clickable: picking one swaps the CTA to
+                // «Узнать о поступлении» instead of adding to the cart.
+                const stateClasses = soldOut
+                  ? `line-through text-stone-400 border-stone-200 ${
+                      isSelected ? 'ring-1 ring-stone-400' : 'hover:border-stone-300'
+                    }`
+                  : isSelected
+                    ? 'border-stone-900 text-stone-900 ring-1 ring-stone-900'
+                    : 'border-stone-300 text-stone-700 hover:border-stone-500';
+                return (
+                  <button
+                    key={sku.id ?? sku.size}
+                    type="button"
+                    onClick={() => setSelectedSkuId(sku.id)}
+                    aria-pressed={isSelected}
+                    data-testid="size-option"
+                    data-soldout={soldOut ? 'true' : undefined}
+                    className={`rounded-md border px-3 py-1 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-1 ${stateClasses}`}
+                  >
+                    {sku.ruSize ? `${sku.size} / ${sku.ruSize}` : sku.size}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -196,18 +261,70 @@ export default function ProductDetail({
         )}
 
         <div className="mt-8">
-          <AvailabilityButton />
+          {selectedSoldOut && activeVariant && selectedSku ? (
+            whatsapp ? (
+              <a
+                href={waLink(
+                  whatsapp,
+                  `Здравствуйте! Подскажите, когда появится «${product.name}» (${activeVariant.label}, ${selectedSku.size})?`,
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="ask-restock"
+                className="block w-full rounded-lg bg-stone-900 px-8 py-4 text-center text-base font-medium text-stone-50 transition-colors hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2"
+              >
+                Узнать о поступлении
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="w-full rounded-lg bg-stone-300 px-8 py-4 text-base font-medium text-stone-50 disabled:cursor-not-allowed"
+              >
+                Нет в наличии
+              </button>
+            )
+          ) : (
+            <AddToCartButton item={cartItem} />
+          )}
           {product.marketplaces && <MarketplaceLinks marketplaces={product.marketplaces} />}
-          <p className="mt-3 text-center text-xs text-stone-400">
-            Доставка по Казахстану. Возврат 30 дней.
-          </p>
+          <div className="mt-3 flex items-start justify-between gap-4 text-xs text-stone-400">
+            {level ? (
+              <span
+                data-testid="stock-indicator"
+                data-level={level}
+                className="flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <span
+                  aria-hidden="true"
+                  className={`h-2 w-2 rounded-full ${DOT_BG[level]}`}
+                />
+                В наличии
+              </span>
+            ) : (
+              <span />
+            )}
+            <span className="text-right">
+              Алматы — заказ через корзину
+              {product.marketplaces?.kaspi ? ' · Казахстан — Kaspi' : ''}
+              {product.marketplaces?.ozon ? ' · другие страны — Ozon' : ''}
+              <br />
+              Возврат 30 дней.
+            </span>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function ProductDetailComingSoon({ product }: { product: Product }) {
+function ProductDetailComingSoon({
+  product,
+  whatsapp,
+}: {
+  product: Product;
+  whatsapp: string | null;
+}) {
   const descriptionParagraphs = product.description.split('\n\n');
 
   return (
@@ -227,6 +344,22 @@ function ProductDetailComingSoon({ product }: { product: Product }) {
             <p key={i}>{paragraph}</p>
           ))}
         </div>
+        {whatsapp && (
+          <div className="mt-8">
+            <a
+              href={waLink(
+                whatsapp,
+                `Здравствуйте! Подскажите, когда появится «${product.name}»?`,
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="ask-availability"
+              className="block w-full rounded-lg bg-stone-900 px-8 py-4 text-center text-base font-medium text-stone-50 transition-colors hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2"
+            >
+              Узнать о наличии
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -40,6 +40,8 @@ test.describe('footer links', () => {
     await expect(
       footer.locator('a[href*="instagram.com"]')
     ).toHaveCount(1);
+    // Seeded site_settings.whatsapp renders a wa.me link.
+    await expect(footer.locator('a[href^="https://wa.me/"]')).toHaveCount(1);
   });
 });
 

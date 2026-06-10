@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getSiteSettings } from '@/core/site';
+import { waLink } from '@/lib/whatsapp';
 
 const catalogLinks = [
   { label: 'Куртки', href: '/catalog?category=jackets' },
@@ -50,6 +51,13 @@ export default async function Footer() {
     contactLinks.push({
       label: 'Instagram',
       href: settings.instagram,
+      external: true,
+    });
+  }
+  if (settings.whatsapp) {
+    contactLinks.push({
+      label: 'WhatsApp',
+      href: waLink(settings.whatsapp, 'Здравствуйте!'),
       external: true,
     });
   }
