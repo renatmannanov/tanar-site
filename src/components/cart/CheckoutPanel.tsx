@@ -136,7 +136,14 @@ function OrderDone({ order, onBack }: { order: LastOrder; onBack: () => void }) 
   useEffect(() => {
     let cancelled = false;
     if (order.waUrl) {
-      QRCode.toDataURL(order.waUrl, { margin: 1, width: 192 }).then((url) => {
+      // The wa.me URL embeds the whole order text → a dense QR. Low error
+      // correction keeps the module count down and a 512px render gives mid-
+      // range phone cameras enough pixels per module to lock on.
+      QRCode.toDataURL(order.waUrl, {
+        margin: 2,
+        width: 512,
+        errorCorrectionLevel: 'L',
+      }).then((url) => {
         if (!cancelled) setQrSrc(url);
       });
     } else {
@@ -176,7 +183,7 @@ function OrderDone({ order, onBack }: { order: LastOrder; onBack: () => void }) 
             <img
               src={qrSrc}
               alt="QR-код для WhatsApp"
-              className="mx-auto h-36 w-36"
+              className="mx-auto h-56 w-56"
             />
           )}
           <p className="mt-1 text-center text-xs text-stone-500">
