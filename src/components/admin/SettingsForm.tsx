@@ -10,6 +10,7 @@ type Field = {
   key: keyof SiteSettings;
   label: string;
   hint?: string;
+  placeholder?: string;
 };
 
 // Grouped for layout; the «реквизиты» group includes IBAN/bank which are stored
@@ -22,6 +23,12 @@ const GROUPS: { title: string; fields: Field[] }[] = [
       { key: 'phone1Name', label: 'Имя при телефоне 1', hint: 'напр. Айман' },
       { key: 'phone2', label: 'Телефон 2' },
       { key: 'phone2Name', label: 'Имя при телефоне 2', hint: 'напр. Милена' },
+      {
+        key: 'whatsapp',
+        label: 'WhatsApp для заказов',
+        hint: 'На этот номер приходят заказы из корзины',
+        placeholder: '+7 707 000 00 00',
+      },
       { key: 'instagram', label: 'Instagram (URL)', hint: 'https://instagram.com/...' },
       { key: 'email', label: 'Email', hint: 'пустой — не показывается на сайте' },
     ],
@@ -86,6 +93,7 @@ export default function SettingsForm({ initial, action }: Props) {
                 <Input
                   id={field.key}
                   value={form[field.key] ?? ''}
+                  placeholder={field.placeholder}
                   onChange={(e) => set(field.key, e.target.value)}
                 />
                 {field.hint && (

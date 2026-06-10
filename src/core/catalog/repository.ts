@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { eq, ne, and, or, like, inArray } from 'drizzle-orm';
 import { db, schema } from '@/core/db';
+import { logManualAdjustments } from '@/core/inventory';
 import type {
   ProductCategory,
   ProductStatus,
@@ -300,7 +301,9 @@ const productInputSchema = z.object({
     .nullable()
     .optional(),
   care: z.string().nullable().optional(),
-  marketplaces: z.record(z.enum(MarketplaceValues), z.string()).optional(),
+  // partialRecord, NOT record: zod v4 record-with-enum-key is exhaustive (it
+  // rejects {kaspi} without {ozon}); marketplace links are independent.
+  marketplaces: z.partialRecord(z.enum(MarketplaceValues), z.string()).optional(),
   variants: z.array(variantInputSchema).min(1),
 });
 
@@ -335,7 +338,12 @@ async function insertVariantTree(
 
 type SkuInputParsed = z.infer<typeof skuInputSchema>;
 
-/** Inserts skus for a variant. `reservedQty` always starts at 0 for new rows. */
+/**
+ * Inserts skus for a variant. `reservedQty` always starts at 0 for new rows.
+ * The INITIAL stock fill is deliberately NOT journaled to inventory_log —
+ * otherwise the seed would generate one noise row per sku. Only stock CHANGES
+ * through updateProduct are journaled (see upsertSkus).
+ */
 async function insertSkus(
   tx: Tx,
   variantId: string,
@@ -369,16 +377,29 @@ async function upsertSkus(
   skuInputs: SkuInputParsed[],
 ): Promise<void> {
   const existing = await tx
-    .select({ id: schema.skus.id, size: schema.skus.size })
+    .select({
+      id: schema.skus.id,
+      size: schema.skus.size,
+      stockQty: schema.skus.stockQty,
+    })
     .from(schema.skus)
     .where(eq(schema.skus.variantId, variantId));
-  const existingBySize = new Map(existing.map((s) => [s.size, s.id]));
+  const existingBySize = new Map(existing.map((s) => [s.size, s]));
   const inputSizes = new Set(skuInputs.map((s) => s.size));
 
   const toInsert: SkuInputParsed[] = [];
+  const manualAdjustments: { skuId: string; delta: number; note: string }[] = [];
   for (const sku of skuInputs) {
-    const id = existingBySize.get(sku.size);
-    if (id) {
+    const current = existingBySize.get(sku.size);
+    if (current) {
+      const newStock = sku.stockQty ?? 0;
+      if (newStock !== current.stockQty) {
+        manualAdjustments.push({
+          skuId: current.id,
+          delta: newStock - current.stockQty,
+          note: 'admin product form',
+        });
+      }
       // UPDATE — reservedQty deliberately omitted so it is preserved.
       await tx
         .update(schema.skus)
@@ -386,20 +407,52 @@ async function upsertSkus(
           ruSize: sku.ruSize ?? null,
           article: sku.article ?? null,
           priceOverride: sku.priceOverride ?? null,
-          stockQty: sku.stockQty ?? 0,
+          stockQty: newStock,
           updatedAt: new Date(),
         })
-        .where(eq(schema.skus.id, id));
+        .where(eq(schema.skus.id, current.id));
     } else {
       toInsert.push(sku);
     }
   }
+  await logManualAdjustments(tx, manualAdjustments);
   await insertSkus(tx, variantId, toInsert);
 
   const toDelete = existing.filter((s) => !inputSizes.has(s.size)).map((s) => s.id);
   if (toDelete.length > 0) {
+    // inventory_log.sku_id FK has no cascade — purge the journal rows of the
+    // vanished sizes first (their history is deliberately lost), or the DELETE
+    // below fails. Direct journal-table access inside core/catalog is accepted
+    // here consciously: one-line FK hygiene, not business logic.
+    await tx
+      .delete(schema.inventoryLog)
+      .where(inArray(schema.inventoryLog.skuId, toDelete));
     await tx.delete(schema.skus).where(inArray(schema.skus.id, toDelete));
   }
+}
+
+/**
+ * Purges inventory_log rows of all skus under the given variants (FK hygiene
+ * before a variant/product delete — skus cascade, the journal does not).
+ */
+async function purgeInventoryLogForVariants(
+  tx: Tx,
+  variantIds: string[],
+): Promise<void> {
+  if (variantIds.length === 0) return;
+  const skuRows = await tx
+    .select({ id: schema.skus.id })
+    .from(schema.skus)
+    .where(inArray(schema.skus.variantId, variantIds));
+  if (skuRows.length === 0) return;
+  await tx
+    .delete(schema.inventoryLog)
+    .where(
+      inArray(
+        schema.inventoryLog.skuId,
+        skuRows.map((s) => s.id),
+      ),
+    );
 }
 
 /**
@@ -452,9 +505,11 @@ async function upsertVariantTree(
     }
   }
 
-  // Variants whose colorId vanished from the form → delete (skus + media cascade).
+  // Variants whose colorId vanished from the form → delete (skus + media cascade;
+  // the skus' inventory_log rows must go first — no cascade on that FK).
   const toDelete = existing.filter((v) => !inputColors.has(v.colorId)).map((v) => v.id);
   if (toDelete.length > 0) {
+    await purgeInventoryLogForVariants(tx, toDelete);
     await tx
       .delete(schema.productVariants)
       .where(inArray(schema.productVariants.id, toDelete));
@@ -523,13 +578,26 @@ export async function updateProduct(slug: string, input: ProductInput): Promise<
   return updated;
 }
 
-/** Deletes a product; variants/skus/media cascade. Throws if the slug is unknown. */
+/**
+ * Deletes a product; variants/skus/media cascade. The skus' inventory_log
+ * rows are purged first (no cascade on that FK — history of deleted skus is
+ * deliberately lost). Throws if the slug is unknown.
+ */
 export async function deleteProduct(slug: string): Promise<void> {
-  const deleted = await db
-    .delete(schema.products)
-    .where(eq(schema.products.slug, slug))
-    .returning({ id: schema.products.id });
-  if (deleted.length === 0) {
-    throw new Error(`deleteProduct: product "${slug}" not found`);
-  }
+  await db.transaction(async (tx) => {
+    const [product] = await tx
+      .select({ id: schema.products.id })
+      .from(schema.products)
+      .where(eq(schema.products.slug, slug));
+    if (!product) throw new Error(`deleteProduct: product "${slug}" not found`);
+    const variants = await tx
+      .select({ id: schema.productVariants.id })
+      .from(schema.productVariants)
+      .where(eq(schema.productVariants.productId, product.id));
+    await purgeInventoryLogForVariants(
+      tx,
+      variants.map((v) => v.id),
+    );
+    await tx.delete(schema.products).where(eq(schema.products.id, product.id));
+  });
 }

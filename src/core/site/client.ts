@@ -16,6 +16,7 @@ export type SiteSettings = {
   bin: string | null;
   bankName: string | null;
   iban: string | null;
+  whatsapp: string | null;
 };
 
 export type FaqItem = {
@@ -45,4 +46,5 @@ export const EMPTY_SITE_SETTINGS: SiteSettings = {
   bin: null,
   bankName: null,
   iban: null,
+  whatsapp: null,
 };

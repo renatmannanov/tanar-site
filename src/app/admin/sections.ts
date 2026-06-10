@@ -13,7 +13,7 @@ export const adminSections: AdminSection[] = [
   { id: 'settings', label: 'Настройки сайта', href: '/admin/settings', enabled: true },
   { id: 'faq', label: 'FAQ', href: '/admin/faq', enabled: true },
   { id: 'inventory', label: 'Остатки', href: '/admin/inventory', enabled: false },
-  { id: 'orders', label: 'Заказы', href: '/admin/orders', enabled: false },
+  { id: 'orders', label: 'Заказы', href: '/admin/orders', enabled: true },
   { id: 'site-media', label: 'Медиа сайта', href: '/admin/site-media', enabled: false },
   { id: 'blog', label: 'Блог', href: '/admin/blog', enabled: false },
 ];
