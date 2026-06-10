@@ -225,7 +225,8 @@ export const inventoryLog = pgTable('inventory_log', {
   skuId: uuid('sku_id')
     .notNull()
     .references(() => skus.id),
-  // positive = inbound, negative = outbound
+  // Signed units. For reason sale/return/manual delta moves stock_qty;
+  // for reservation/reservation_release delta moves reserved_qty (+ = reserved grew).
   delta: integer('delta').notNull(),
   // 'sale' | 'return' | 'manual' | 'reservation' | 'reservation_release'
   reason: text('reason').notNull(),
