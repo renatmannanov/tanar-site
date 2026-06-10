@@ -300,7 +300,9 @@ const productInputSchema = z.object({
     .nullable()
     .optional(),
   care: z.string().nullable().optional(),
-  marketplaces: z.record(z.enum(MarketplaceValues), z.string()).optional(),
+  // partialRecord, NOT record: zod v4 record-with-enum-key is exhaustive (it
+  // rejects {kaspi} without {ozon}); marketplace links are independent.
+  marketplaces: z.partialRecord(z.enum(MarketplaceValues), z.string()).optional(),
   variants: z.array(variantInputSchema).min(1),
 });
 

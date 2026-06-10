@@ -69,7 +69,7 @@
 | 5 | step_5_cart_drawer.md — drawer: позиции, qty, итого, очистка | [x] |
 | 6 | step_6_checkout.md — server action оформления + экран «Заказ №N» (WhatsApp/QR/копия) + дедуп | [x] |
 | 7 | step_7_admin_orders.md — раздел «Заказы» в админке | [x] |
-| 8 | step_8_marketplace_links_admin.md — поля Kaspi/Ozon в форме товара | [ ] |
+| 8 | step_8_marketplace_links_admin.md — поля Kaspi/Ozon в форме товара | [x] |
 | 9 | step_9_completion.md — завершение плана | [ ] |
 
 ## Критерии готовности

@@ -76,6 +76,17 @@ export default function ProductForm({
     setForm((f) => ({ ...f, ...p }));
   }
 
+  // Empty/whitespace value removes the key; an empty map becomes undefined
+  // (matches cleanMarketplaces in the read→write adapter).
+  function patchMarketplace(key: 'kaspi' | 'ozon', value: string) {
+    setForm((f) => {
+      const next = { ...f.marketplaces };
+      if (value.trim() === '') delete next[key];
+      else next[key] = value;
+      return { ...f, marketplaces: Object.keys(next).length ? next : undefined };
+    });
+  }
+
   function patchVariant(vi: number, p: Partial<ProductInput['variants'][number]>) {
     setForm((f) => ({
       ...f,
@@ -235,6 +246,31 @@ export default function ProductForm({
             type="number"
             value={form.priceBase}
             onChange={(e) => patch({ priceBase: Number(e.target.value) })}
+          />
+        </div>
+      </section>
+
+      <section className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="mp-kaspi">Ссылка Kaspi</Label>
+          <Input
+            id="mp-kaspi"
+            type="url"
+            placeholder="https://…"
+            data-testid="mp-kaspi"
+            value={form.marketplaces?.kaspi ?? ''}
+            onChange={(e) => patchMarketplace('kaspi', e.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="mp-ozon">Ссылка Ozon</Label>
+          <Input
+            id="mp-ozon"
+            type="url"
+            placeholder="https://…"
+            data-testid="mp-ozon"
+            value={form.marketplaces?.ozon ?? ''}
+            onChange={(e) => patchMarketplace('ozon', e.target.value)}
           />
         </div>
       </section>
