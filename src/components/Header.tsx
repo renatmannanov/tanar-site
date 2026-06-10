@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Logo from './Logo';
 import MobileNav from './MobileNav';
+import CartButton from './cart/CartButton';
 
 const navLinks = [
   { label: 'Каталог', href: '/catalog' },
@@ -31,7 +32,11 @@ export default function Header() {
           ))}
         </nav>
 
-        <MobileNav />
+        {/* Cart is visible on all breakpoints, next to the burger on mobile */}
+        <div className="flex items-center gap-1">
+          <CartButton />
+          <MobileNav />
+        </div>
       </div>
     </header>
   );

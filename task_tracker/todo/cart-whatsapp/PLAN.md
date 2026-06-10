@@ -64,7 +64,7 @@
 |---|------|--------|
 | 1 | step_1_db_orders_module.md — миграция (number, whatsapp) + модуль `@/core/orders` | [x] |
 | 2 | step_2_settings_whatsapp.md — WhatsApp в site_settings, админ-форме, футере + `lib/whatsapp` | [x] |
-| 3 | step_3_cart_core.md — типы/localStorage/CartProvider + CartButton со счётчиком | [ ] |
+| 3 | step_3_cart_core.md — типы/localStorage/CartProvider + CartButton со счётчиком | [x] |
 | 4 | step_4_product_add_to_cart.md — выбор размера + «В корзину» + coming_soon wa.me + география | [ ] |
 | 5 | step_5_cart_drawer.md — drawer: позиции, qty, итого, очистка | [ ] |
 | 6 | step_6_checkout.md — server action оформления + экран «Заказ №N» (WhatsApp/QR/копия) + дедуп | [ ] |
