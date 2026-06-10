@@ -2,21 +2,25 @@
 
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import AvailabilityButton from '@/components/AvailabilityButton';
+import AddToCartButton from '@/components/cart/AddToCartButton';
 import MarketplaceLinks from '@/components/product/MarketplaceLinks';
 import Placeholder from '@/components/Placeholder';
 import { formatPrice, getProductGradient, type Product } from '@/core/catalog/client';
 import { type MediaAsset, srcSetFromUrl } from '@/core/media/client';
+import { waLink } from '@/lib/whatsapp';
 
 const GALLERY_ASPECT = 'aspect-[2/3]';
 
 export default function ProductDetail({
   product,
   images = [],
+  whatsapp,
 }: {
   product: Product;
   /** All product images (any variant), sorted; filtered per active color here. */
   images?: MediaAsset[];
+  /** site_settings.whatsapp — drives the coming_soon «Узнать о наличии» link. */
+  whatsapp: string | null;
 }) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -48,20 +52,44 @@ export default function ProductDetail({
   const safeIndex = activeShotIndex < shots.length ? activeShotIndex : 0;
   const activeShot = shots[safeIndex];
 
+  const [selectedSkuId, setSelectedSkuId] = useState<string | null>(null);
+
   function handleColorChange(colorId: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.set('color', colorId);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     setActiveShotIndex(0);
+    setSelectedSkuId(null); // size belongs to a color — re-pick after switching
   }
 
   if (product.status === 'coming_soon') {
-    return <ProductDetailComingSoon product={product} />;
+    return <ProductDetailComingSoon product={product} whatsapp={whatsapp} />;
   }
 
   const descriptionParagraphs = product.description.split('\n\n');
   // Sizes of the active color (no stock/availability yet — Phase 2/3).
   const sizes = activeVariant?.skus ?? [];
+  // A single-size color is preselected automatically.
+  const selectedSku =
+    sizes.length === 1
+      ? sizes[0]
+      : (sizes.find((s) => s.id === selectedSkuId) ?? null);
+
+  const cartItem =
+    activeVariant && selectedSku
+      ? {
+          skuId: selectedSku.id,
+          productId: product.id,
+          slug: product.slug,
+          name: product.name,
+          colorId: activeVariant.id,
+          colorLabel: activeVariant.label,
+          size: selectedSku.size,
+          ruSize: selectedSku.ruSize,
+          price: selectedSku.priceOverride ?? product.price,
+          imageUrl: shots[0]?.url,
+        }
+      : null;
 
   return (
     <div className="grid grid-cols-1 gap-12 md:grid-cols-2">
@@ -158,12 +186,20 @@ export default function ProductDetail({
             <p className="text-sm text-stone-700">Размеры</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {sizes.map((sku) => (
-                <span
+                <button
                   key={sku.id ?? sku.size}
-                  className="rounded-md border border-stone-300 px-3 py-1 text-sm text-stone-700"
+                  type="button"
+                  onClick={() => setSelectedSkuId(sku.id)}
+                  aria-pressed={sku.id === selectedSku?.id}
+                  data-testid="size-option"
+                  className={`rounded-md border px-3 py-1 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-1 ${
+                    sku.id === selectedSku?.id
+                      ? 'border-stone-900 text-stone-900 ring-1 ring-stone-900'
+                      : 'border-stone-300 text-stone-700 hover:border-stone-500'
+                  }`}
                 >
                   {sku.ruSize ? `${sku.size} / ${sku.ruSize}` : sku.size}
-                </span>
+                </button>
               ))}
             </div>
           </div>
@@ -196,10 +232,15 @@ export default function ProductDetail({
         )}
 
         <div className="mt-8">
-          <AvailabilityButton />
+          <AddToCartButton item={cartItem} />
           {product.marketplaces && <MarketplaceLinks marketplaces={product.marketplaces} />}
           <p className="mt-3 text-center text-xs text-stone-400">
-            Доставка по Казахстану. Возврат 30 дней.
+            Алматы — заказ через корзину
+            {product.marketplaces?.kaspi ? ' · Казахстан — Kaspi' : ''}
+            {product.marketplaces?.ozon ? ' · другие страны — Ozon' : ''}
+          </p>
+          <p className="mt-1 text-center text-xs text-stone-400">
+            Возврат 30 дней.
           </p>
         </div>
       </div>
@@ -207,7 +248,13 @@ export default function ProductDetail({
   );
 }
 
-function ProductDetailComingSoon({ product }: { product: Product }) {
+function ProductDetailComingSoon({
+  product,
+  whatsapp,
+}: {
+  product: Product;
+  whatsapp: string | null;
+}) {
   const descriptionParagraphs = product.description.split('\n\n');
 
   return (
@@ -227,6 +274,22 @@ function ProductDetailComingSoon({ product }: { product: Product }) {
             <p key={i}>{paragraph}</p>
           ))}
         </div>
+        {whatsapp && (
+          <div className="mt-8">
+            <a
+              href={waLink(
+                whatsapp,
+                `Здравствуйте! Подскажите, когда появится «${product.name}»?`,
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="ask-availability"
+              className="block w-full rounded-lg bg-stone-900 px-8 py-4 text-center text-base font-medium text-stone-50 transition-colors hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2"
+            >
+              Узнать о наличии
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

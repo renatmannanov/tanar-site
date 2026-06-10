@@ -7,6 +7,7 @@ import {
   CATEGORY_LABELS,
 } from '@/core/catalog';
 import { listProductImages } from '@/core/media';
+import { getSiteSettings } from '@/core/site';
 import { primaryImagesFor } from '@/lib/product-images';
 import ProductCard from '@/components/ProductCard';
 import ProductDetail from '@/components/product/ProductDetail';
@@ -33,6 +34,7 @@ export default async function ProductPage({ params }: Props) {
   const related = await getStorefrontRelatedProducts(product);
   const images = await listProductImages(product.id);
   const relatedImages = await primaryImagesFor(related);
+  const settings = await getSiteSettings();
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -59,7 +61,11 @@ export default async function ProductPage({ params }: Props) {
       </nav>
 
       <Suspense fallback={<div className="min-h-[60vh]" />}>
-        <ProductDetail product={product} images={images} />
+        <ProductDetail
+          product={product}
+          images={images}
+          whatsapp={settings.whatsapp}
+        />
       </Suspense>
 
       {/* Related products */}
