@@ -31,7 +31,7 @@ export default function OrderStatusSelect({
           setError(undefined);
           startTransition(async () => {
             const result = await updateOrderStatusAction(orderId, next);
-            if (result.error) setError(result.error);
+            if (!result.ok) setError(result.error);
           });
         }}
       >

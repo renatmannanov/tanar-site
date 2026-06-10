@@ -1,21 +1,30 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { deleteOrder, updateOrderStatus, type OrderStatus } from '@/core/orders';
+import {
+  deleteOrder,
+  updateOrderStatus,
+  type OrderStatus,
+  type UpdateOrderStatusResult,
+} from '@/core/orders';
 import { requireAdmin } from '@/lib/require-admin';
 
 export async function updateOrderStatusAction(
   id: string,
   status: OrderStatus,
-): Promise<{ error?: string }> {
+): Promise<UpdateOrderStatusResult> {
   await requireAdmin();
+  let result: UpdateOrderStatusResult;
   try {
-    await updateOrderStatus(id, status);
+    result = await updateOrderStatus(id, status);
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Ошибка сохранения' };
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'Ошибка сохранения',
+    };
   }
-  revalidatePath('/admin/orders');
-  return {};
+  if (result.ok) revalidatePath('/admin/orders');
+  return result;
 }
 
 export async function deleteOrderAction(

@@ -4,11 +4,13 @@
 import { z } from 'zod';
 import { desc, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '@/core/db';
+import { transitionOrderItems, type InventoryState } from '@/core/inventory';
 import type {
   CreateOrderResult,
   OrderItemInput,
   OrderStatus,
   OrderView,
+  UpdateOrderStatusResult,
 } from './client';
 
 export * from './client';
@@ -46,9 +48,9 @@ function mapOrder(row: OrderRow, items: OrderItemRow[]): OrderView {
 
 /**
  * Create an order from cart items. Prices and names come from the DB (the
- * client-side cart snapshots are display-only). Stock is NOT checked or
- * reserved — availability is confirmed in the WhatsApp chat (Phase 2 adds
- * reservation here in one place).
+ * client-side cart snapshots are display-only). Availability IS checked
+ * (stockQty - reservedQty >= qty per position) but nothing is reserved here —
+ * the reserve is taken only when the admin confirms the order.
  */
 export async function createOrder(
   items: OrderItemInput[],
@@ -65,6 +67,8 @@ export async function createOrder(
       size: schema.skus.size,
       ruSize: schema.skus.ruSize,
       priceOverride: schema.skus.priceOverride,
+      stockQty: schema.skus.stockQty,
+      reservedQty: schema.skus.reservedQty,
       colorLabel: schema.productVariants.colorLabel,
       productName: schema.products.name,
       productStatus: schema.products.status,
@@ -82,10 +86,16 @@ export async function createOrder(
     .where(inArray(schema.skus.id, skuIds));
 
   const bySkuId = new Map(rows.map((r) => [r.skuId, r]));
-  const unavailableSkuIds = skuIds.filter((id) => {
-    const row = bySkuId.get(id);
-    return !row || row.productStatus !== 'published';
-  });
+  const unavailableSkuIds = parsed.data
+    .filter((input) => {
+      const row = bySkuId.get(input.skuId);
+      return (
+        !row ||
+        row.productStatus !== 'published' ||
+        row.stockQty - row.reservedQty < input.qty
+      );
+    })
+    .map((input) => input.skuId);
   if (unavailableSkuIds.length > 0) {
     return { ok: false, error: 'Часть товаров недоступна', unavailableSkuIds };
   }
@@ -167,35 +177,106 @@ export async function countPendingOrders(): Promise<number> {
   }
 }
 
+// Inventory effect of each order status — the effect model lives in
+// @/core/inventory (transitionOrderItems): a status change reverts the old
+// status' effect and applies the new one, so ANY select jump works.
+const STATUS_INVENTORY_STATE: Record<OrderStatus, InventoryState> = {
+  pending: 'none',
+  cancelled: 'none',
+  confirmed: 'reserved',
+  done: 'sold',
+};
+
 /**
  * Admin-only status change — callers must requireAdmin first.
  *
- * PHASE 2 (stock/reserve) hooks in HERE. Planned mechanics (see
- * task_tracker/backlog/ARCHITECTURE-ecommerce.md «Как наличие считается»):
- *   pending   → confirmed: per item `skus.reservedQty += qty` (reserve)
- *   confirmed → done:      `stockQty -= qty; reservedQty -= qty` + inventory_log('sale')
- *   confirmed → cancelled: `reservedQty -= qty` + inventory_log('reservation_release')
- *   pending   → cancelled: no-op (nothing was reserved)
- * Each transition must run in ONE transaction with the status update, and be
- * idempotent against re-applying (compare old status inside the transaction).
- * deleteOrder of a confirmed order must release the reserve the same way.
+ * Runs in ONE transaction: the order row is locked FOR UPDATE, the old status
+ * is read under that lock (idempotency: old === new is a no-op), then
+ * transitionOrderItems moves stock/reserve and journals to inventory_log.
+ * On shortage it performs no updates and we return { ok: false } out of the
+ * transaction callback — no explicit rollback (nothing changed).
  */
 export async function updateOrderStatus(
   id: string,
   status: OrderStatus,
-): Promise<void> {
+): Promise<UpdateOrderStatusResult> {
   const parsed = orderStatusSchema.parse(status);
-  await db
-    .update(schema.orders)
-    .set({ status: parsed, updatedAt: new Date() })
-    .where(eq(schema.orders.id, id));
+  return db.transaction(async (tx): Promise<UpdateOrderStatusResult> => {
+    const [order] = await tx
+      .select({ status: schema.orders.status })
+      .from(schema.orders)
+      .where(eq(schema.orders.id, id))
+      .for('update');
+    if (!order) return { ok: false, error: 'Заказ не найден' };
+    const old = order.status as OrderStatus;
+    if (old === parsed) return { ok: true };
+
+    const items = await tx
+      .select({
+        skuId: schema.orderItems.skuId,
+        qty: schema.orderItems.qty,
+        nameSnapshot: schema.orderItems.nameSnapshot,
+      })
+      .from(schema.orderItems)
+      .where(eq(schema.orderItems.orderId, id));
+
+    const result = await transitionOrderItems(
+      tx,
+      items,
+      STATUS_INVENTORY_STATE[old],
+      STATUS_INVENTORY_STATE[parsed],
+      id,
+    );
+    if (!result.ok) {
+      const nameBySkuId = new Map(items.map((i) => [i.skuId, i.nameSnapshot]));
+      return {
+        ok: false,
+        error: 'Не хватает остатка',
+        shortages: result.shortages.map((s) => ({
+          nameSnapshot: nameBySkuId.get(s.skuId) ?? s.skuId,
+          requested: s.requested,
+          available: s.available,
+        })),
+      };
+    }
+
+    await tx
+      .update(schema.orders)
+      .set({ status: parsed, updatedAt: new Date() })
+      .where(eq(schema.orders.id, id));
+    return { ok: true };
+  });
 }
 
 /**
  * Admin-only order removal — callers must requireAdmin first. order_items go
- * via FK cascade. NOTE for Phase 2: deleting a `confirmed` order must first
- * release its reserve (see updateOrderStatus mechanics above).
+ * via FK cascade. A `confirmed` order releases its reserve first (the order
+ * disappears — the reserve must not dangle). A `done` order does NOT return
+ * stock: the goods were physically sold; deleting the record is not a refund
+ * (to restock, switch to «Отменён» first, then delete). inventory_log rows
+ * keep their history but lose the order reference (FK has no cascade).
  */
 export async function deleteOrder(id: string): Promise<void> {
-  await db.delete(schema.orders).where(eq(schema.orders.id, id));
+  await db.transaction(async (tx) => {
+    const [order] = await tx
+      .select({ status: schema.orders.status })
+      .from(schema.orders)
+      .where(eq(schema.orders.id, id))
+      .for('update');
+    if (!order) return;
+
+    if (order.status === 'confirmed') {
+      const items = await tx
+        .select({ skuId: schema.orderItems.skuId, qty: schema.orderItems.qty })
+        .from(schema.orderItems)
+        .where(eq(schema.orderItems.orderId, id));
+      await transitionOrderItems(tx, items, 'reserved', 'none', id);
+    }
+
+    await tx
+      .update(schema.inventoryLog)
+      .set({ refOrderId: null })
+      .where(eq(schema.inventoryLog.refOrderId, id));
+    await tx.delete(schema.orders).where(eq(schema.orders.id, id));
+  });
 }

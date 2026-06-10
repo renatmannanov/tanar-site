@@ -33,3 +33,14 @@ export type OrderView = {
 export type CreateOrderResult =
   | { ok: true; order: OrderView }
   | { ok: false; error: string; unavailableSkuIds?: string[] };
+
+/** Per-position stock shortage surfaced to the admin status select. */
+export type StatusShortage = {
+  nameSnapshot: string;
+  requested: number;
+  available: number;
+};
+
+export type UpdateOrderStatusResult =
+  | { ok: true }
+  | { ok: false; error: string; shortages?: StatusShortage[] };
