@@ -206,6 +206,22 @@ MarketplaceListing
 - Все движения — в `InventoryLog` (откуда что списалось).
 - Ручная правка остатка в админке = запись в `InventoryLog` с reason=manual.
 
+**Привязка к статусам заказа (зафиксировано 2026-06-10, реализация — Фаза 2).**
+Статусы и подсветка уже есть в админке (`/admin/orders`); точка врезки — `updateOrderStatus`
+в `@/core/orders` (там же комментарий с этой механикой):
+
+| Переход | Остатки | InventoryLog |
+|---|---|---|
+| pending → confirmed | `reservedQty += qty` (резерв) | `reservation` |
+| confirmed → done | `stockQty -= qty; reservedQty -= qty` (списание) | `sale` (refOrderId) |
+| confirmed → cancelled | `reservedQty -= qty` (сброс резерва) | `reservation_release` |
+| pending → cancelled | ничего (резерва не было) | — |
+| done → … (возвраты) | решить в Фазе 2 | `return` |
+
+Требования: переход и движение остатка — в одной транзакции; идемпотентность
+(старый статус сравнивается внутри транзакции, повторное применение невозможно);
+`deleteOrder` подтверждённого заказа обязан сначала снять резерв.
+
 ## Закрытые решения (зафиксированы по ходу обсуждения)
 
 - ✅ **БД:** Postgres.

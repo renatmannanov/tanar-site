@@ -152,7 +152,19 @@ export async function listOrders(limit = 100): Promise<OrderView[]> {
   }
 }
 
-/** Admin-only status change — callers must requireAdmin first. */
+/**
+ * Admin-only status change — callers must requireAdmin first.
+ *
+ * PHASE 2 (stock/reserve) hooks in HERE. Planned mechanics (see
+ * task_tracker/backlog/ARCHITECTURE-ecommerce.md «Как наличие считается»):
+ *   pending   → confirmed: per item `skus.reservedQty += qty` (reserve)
+ *   confirmed → done:      `stockQty -= qty; reservedQty -= qty` + inventory_log('sale')
+ *   confirmed → cancelled: `reservedQty -= qty` + inventory_log('reservation_release')
+ *   pending   → cancelled: no-op (nothing was reserved)
+ * Each transition must run in ONE transaction with the status update, and be
+ * idempotent against re-applying (compare old status inside the transaction).
+ * deleteOrder of a confirmed order must release the reserve the same way.
+ */
 export async function updateOrderStatus(
   id: string,
   status: OrderStatus,
@@ -162,4 +174,13 @@ export async function updateOrderStatus(
     .update(schema.orders)
     .set({ status: parsed, updatedAt: new Date() })
     .where(eq(schema.orders.id, id));
+}
+
+/**
+ * Admin-only order removal — callers must requireAdmin first. order_items go
+ * via FK cascade. NOTE for Phase 2: deleting a `confirmed` order must first
+ * release its reserve (see updateOrderStatus mechanics above).
+ */
+export async function deleteOrder(id: string): Promise<void> {
+  await db.delete(schema.orders).where(eq(schema.orders.id, id));
 }

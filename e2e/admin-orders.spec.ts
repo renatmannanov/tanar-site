@@ -58,7 +58,9 @@ test.describe.serial('admin orders', () => {
     await expect(row.getByTestId('order-status')).toHaveValue('pending');
   });
 
-  test('status change to «Подтверждён» survives a reload', async ({ page }) => {
+  test('status change to «Подтверждён» survives a reload and tints the row', async ({
+    page,
+  }) => {
     await login(page);
     await page.goto('/admin/orders');
     const select = rowFor(page, orderNumber).getByTestId('order-status');
@@ -67,8 +69,34 @@ test.describe.serial('admin orders', () => {
     await expect(select).toBeEnabled();
 
     await page.reload();
-    await expect(rowFor(page, orderNumber).getByTestId('order-status')).toHaveValue(
-      'confirmed',
-    );
+    const row = rowFor(page, orderNumber);
+    await expect(row.getByTestId('order-status')).toHaveValue('confirmed');
+    // Status drives the muted row tint (data-status + bg class).
+    await expect(row).toHaveAttribute('data-status', 'confirmed');
+    await expect(row).toHaveClass(/bg-sky-300\/30/);
+  });
+
+  test('delete asks for confirmation and removes the order', async ({
+    page,
+  }) => {
+    await login(page);
+    await page.goto('/admin/orders');
+    const row = rowFor(page, orderNumber);
+    await expect(row).toHaveCount(1);
+
+    await row.getByTestId('delete-order').click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toContainText(`Удалить заказ №${orderNumber}?`);
+
+    // Cancelling keeps the order.
+    await dialog.getByRole('button', { name: 'Отмена' }).click();
+    await expect(row).toHaveCount(1);
+
+    // Confirming deletes it — and it stays gone after a reload.
+    await row.getByTestId('delete-order').click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Удалить' }).click();
+    await expect(row).toHaveCount(0);
+    await page.reload();
+    await expect(rowFor(page, orderNumber)).toHaveCount(0);
   });
 });

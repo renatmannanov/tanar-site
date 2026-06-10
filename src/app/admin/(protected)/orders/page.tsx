@@ -1,9 +1,21 @@
-import { listOrders } from '@/core/orders';
+import { listOrders, type OrderStatus } from '@/core/orders';
 import { formatPrice } from '@/core/catalog/client';
 import { requireAdmin } from '@/lib/require-admin';
 import OrderStatusSelect from './OrderStatusSelect';
+import DeleteOrderButton from './DeleteOrderButton';
 
 export const dynamic = 'force-dynamic';
+
+// Muted (~30% opacity) status tinting; «Новый» stays plain. Phase 2 ties the
+// same transitions to stock: confirmed = reserve, done = write-off,
+// cancelled = release reserve — mechanics documented in @/core/orders
+// (updateOrderStatus) and ARCHITECTURE-ecommerce.md.
+const STATUS_ROW_BG: Record<OrderStatus, string> = {
+  pending: '',
+  confirmed: 'bg-sky-300/30',
+  done: 'bg-emerald-300/30',
+  cancelled: 'bg-stone-400/30',
+};
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('ru-RU', {
@@ -35,11 +47,17 @@ export default async function OrdersAdminPage() {
                 <th className="px-4 py-3">Состав</th>
                 <th className="px-4 py-3">Сумма</th>
                 <th className="px-4 py-3 w-44">Статус</th>
+                <th className="px-4 py-3 w-28" aria-label="Действия" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {orders.map((order) => (
-                <tr key={order.id} data-testid="order-row" className="align-top">
+                <tr
+                  key={order.id}
+                  data-testid="order-row"
+                  data-status={order.status}
+                  className={`align-top ${STATUS_ROW_BG[order.status]}`}
+                >
                   <td className="px-4 py-3 font-medium text-gray-900">
                     {order.number}
                   </td>
@@ -58,6 +76,12 @@ export default async function OrdersAdminPage() {
                   </td>
                   <td className="px-4 py-3">
                     <OrderStatusSelect orderId={order.id} initial={order.status} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <DeleteOrderButton
+                      orderId={order.id}
+                      orderNumber={order.number}
+                    />
                   </td>
                 </tr>
               ))}
