@@ -5,6 +5,7 @@ import {
   integer,
   boolean,
   jsonb,
+  serial,
   timestamp,
   index,
   unique,
@@ -155,6 +156,8 @@ export const siteSettings = pgTable('site_settings', {
   // bankName/iban stored but NOT shown on the storefront until Phase 3 (payment).
   bankName: text('bank_name'),
   iban: text('iban'),
+  // WhatsApp number for cart orders (wa.me links on the storefront).
+  whatsapp: text('whatsapp'),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -179,6 +182,8 @@ export const orders = pgTable(
   'orders',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    // human-facing order number — uuid does not work in a WhatsApp chat
+    number: serial('number').notNull(),
     // 'site' | 'kaspi' | 'ozon' | 'wb'
     source: text('source').notNull().default('site'),
     status: text('status').notNull().default('pending'),
@@ -198,6 +203,7 @@ export const orders = pgTable(
       t.status,
       t.createdAt,
     ),
+    unique('orders_number_uq').on(t.number),
   ],
 );
 
