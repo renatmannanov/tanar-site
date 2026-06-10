@@ -35,6 +35,7 @@ function mapSettingsRow(
     bin: row.bin,
     bankName: row.bankName,
     iban: row.iban,
+    whatsapp: row.whatsapp,
   };
 }
 

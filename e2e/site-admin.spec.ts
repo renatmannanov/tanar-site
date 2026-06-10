@@ -44,6 +44,31 @@ test.describe.serial('site admin', () => {
     await expect(page.getByText('Тест-Имя').first()).toBeVisible();
   });
 
+  test('fill WhatsApp number → persists and footer shows wa.me link', async ({ page }) => {
+    await login(page);
+    await page.goto('/admin/settings');
+
+    await page.getByLabel('WhatsApp для заказов').fill('+7 707 123 45 67');
+    await page.getByRole('button', { name: 'Сохранить' }).click();
+    await expect(page.getByText('Сохранено.')).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByLabel('WhatsApp для заказов')).toHaveValue(
+      '+7 707 123 45 67',
+    );
+
+    // Footer link uses the digits-only wa.me form of the same number.
+    await page.goto('/');
+    const wa = page
+      .getByTestId('site-footer')
+      .locator('a[href^="https://wa.me/"]');
+    await expect(wa).toHaveCount(1);
+    await expect(wa).toHaveAttribute(
+      'href',
+      /^https:\/\/wa\.me\/77071234567\?text=/,
+    );
+  });
+
   test('add a FAQ item → shows on /faq, then delete it', async ({ page }) => {
     await login(page);
     await page.goto('/admin/faq');
