@@ -77,7 +77,8 @@ docker compose -f docker-compose.prod.yml --env-file .env ps                    
 
 - `/` — главная: hero, категории, featured продукты, сторителлинг-блок, последние посты блога, footer
 - `/catalog` — все товары, фильтр-чипы по категориям (jackets, hoodies, t-shirts, pants, shorts)
-- `/catalog/[slug]` — карточка товара: галерея, название, цена, описание, tech specs, кнопка "Узнать о наличии" (заглушка)
+- `/catalog/[slug]` — карточка товара: галерея, название, цена, описание, tech specs, выбор цвета+размера → «В корзину»; кнопки Kaspi/Ozon (при заполненных ссылках); coming_soon → «Узнать о наличии» (wa.me); строка географии «Алматы — корзина · Казахстан — Kaspi · другие страны — Ozon»
+- **Корзина + WhatsApp-заказ (cart-whatsapp, done):** иконка в Header со счётчиком → drawer справа (qty ±, удалить, итого, очистка с подтверждением). Хранение — `localStorage` (`tanar-cart`) + Context (`CartProvider` в `(public)/layout.tsx`); типы/логика — `src/lib/cart.ts`. Оформление: `order-actions.ts` (server action) → `createOrder` (цены из БД, клиентские снапшоты — только отображение) → экран «Заказ №N»: wa.me-кнопка с текстом заказа, QR (desktop, пакет `qrcode`), копирование. Корзина НЕ чистится; повторное оформление неизменённой корзины → тот же №N (дедуп по `cartHash` в `tanar-cart-order`). wa.me-хелперы — `src/lib/whatsapp.ts` (client-safe)
 - `/blog` — листинг постов
 - `/blog/[slug]` — страница поста
 - `/contacts` — контакты (телефоны+имена, Instagram, адрес, самовывоз) — из БД
@@ -93,7 +94,9 @@ src/
                        Два входа: @/core/catalog (server, вкл. repository→БД),
                        @/core/catalog/client (client-safe: types/format/images/gradient/categories).
     inventory/         (заглушка, Фаза 2)
-    orders/            (заглушка, Фаза 3)
+    orders/            заказы (cart-whatsapp): @/core/orders (server:
+                       createOrder/listOrders/updateOrderStatus),
+                       @/core/orders/client (client-safe: OrderStatus/типы/лейблы)
     media/             (заглушка, Фаза 1 — admin-загрузка)
     site/              site_settings (синглтон) + faq_items: @/core/site (server:
                        read/write, DB-error-safe дефолты), @/core/site/client (типы).
@@ -104,12 +107,12 @@ src/
   app/                 Next.js App Router
     (public)/          витрина (Header/Footer layout): page, catalog/, blog/, contacts/, faq/, icon
     admin/             админка (Фаза 1, План B): login/ (вне сайдбара),
-                       (protected)/ (сайдбар-shell + requireAdmin): catalog/ edit, settings/, faq/
+                       (protected)/ (сайдбар-shell + requireAdmin): catalog/ edit, settings/, faq/, orders/
   components/, lib/     UI и общие утилиты (lib/blog, lib/gradients, lib/admin-auth, lib/require-admin)
   middleware.ts        guard на /admin/* (nodejs-runtime), redirect на /admin/login
 ```
 
-> **Client-компоненты админки импортят `@/core/catalog/client`, НЕ `@/core/catalog`** — barrel тянет `repository.ts`→postgres в client-бандл и ломает `build` (typecheck/lint этого не ловят — гонять `build`).
+> **Client-компоненты импортят `@/core/catalog/client` и `@/core/orders/client`, НЕ server-barrel'ы** — barrel тянет postgres в client-бандл и ломает `build` (typecheck/lint этого не ловят — гонять `build`).
 
 Границы модулей: импорт ТОЛЬКО через публичный API (`index.ts`, либо `/client` для catalog).
 ESLint (`eslint.config.mjs`) запрещает: импорт внутренностей модуля минуя index.ts; импорт `@/marketplace/*` из `@/core/*` (обратная зависимость). Внутри модуля — относительные пути.
@@ -127,6 +130,7 @@ ESLint (`eslint.config.mjs`) запрещает: импорт внутренно
   - **ИИ-генерация фото (photo-pipeline, done):** в админке заказчик заполняет **сетку 6 слотов** на цвет — `life_{front,side,back}` + `flat_{front,side,back}` (helpers в `@/core/media/client`: `PHOTO_SLOTS`/`slotOf`/`assetsBySlot`/`hexDistance`). Движок генерации — домен-агностик модуль `@/core/photogen` (server-only: `GeminiProvider` через `@google/genai`, `FakeProvider` для e2e, `recipes.ts` промпты 1–3). 3 рецепта: **flat** (живое→на белом, ракурс из целевого слота — фикс лого на спине), **recolor-flat**, **recolor-lifestyle** (перекраска в hex цвета из соседнего цвета, источник выбирается с миниатюрами, сортировка по близости hex). **Поток:** генерация → превью (base64, держит клиент) → апрув «Оставить» → `approveGeneratedAction` грузит через `mediaStore.upload`. Ничего не сохраняется без апрува. «Сделать все на белом» — пакет с подтверждением + общим превью. Сгенерированные → `media_assets.ai_generated=true`, бейдж «ИИ» в админке + метка на витрине. Env: `GEMINI_API_KEY` (обязателен для кнопок), `PHOTOGEN_RECOLOR_LOCK` (`hard` дефолт), `PHOTOGEN_DAILY_LIMIT` (выкл), `PHOTOGEN_FAKE=1` (e2e). Уроки промптов — `internal/docs/nano-banana-recipes.md` (gitignored). **swap (надеть товар) ОТКЛОНЁН; генерация-с-нуля по тексту НЕ делаем.**
     - **Client-компоненты НЕ импортят `@/core/photogen` и `@/core/media/store`** (sharp/genai → ломают build). Превью-`<img>` рендерить ВНЕ слот-`<ul>` (иначе e2e посчитает его сохранённым).
 - **Контент сайта (site-content, done):** контакты и FAQ — в БД (`site_settings` синглтон + `faq_items`), редактируются в админке («Настройки сайта» / «FAQ»). Витрина (`/contacts`, `/faq`, футер) читает через `@/core/site` (`getSiteSettings`/`listFaqItems`) — **force-dynamic**; чтение обёрнуто в try/catch → дефолт (build без DATABASE_URL не падает, как и каталог). Константы `src/lib/site-contacts.ts` + `src/lib/faq.ts` — теперь ТОЛЬКО источник для сида (витрина их не импортит). PII (телефоны+имена Айман/Милена, Instagram, адрес, ИП+БИН) публикуется сознательно (решение владельца). IBAN/банк — в `site_settings`, но НЕ на витрине до Фазы 3. Перевод «Таңар» = «тот, кто встречает рассвет»; происхождение названия = Хан-Тенгри (не «Тенгри/Небо»). Редактирование блог-статей — отложено в бэклог (Фаза 6, `admin-content-management.md` 6b).
+- **Заказы (cart-whatsapp, done):** таблицы `orders` (+`number` serial unique — человеческий №) и `order_items` (снапшоты имени/цены). Создание — ТОЛЬКО `createOrder` из `@/core/orders` (zod 1..30 позиций, qty 1..20; цены из БД; недоступные SKU → отказ без записи; остатки НЕ трогаются — Фаза 2 добавит резерв сюда же). Статусы: `pending`(«Новый»)→`confirmed`→`done`/`cancelled`, меняются вручную в `/admin/orders`. WhatsApp-номер заказов — `site_settings.whatsapp` (админка «Настройки сайта», wa.me-ссылка в футере). `marketplaces` (Kaspi/Ozon) редактируются в `ProductForm`. **zod-грабли:** `z.record(z.enum,…)` в v4 exhaustive — для частичных мап использовать `z.partialRecord`.
 - **Посты блога**: 3 файла в `content/blog/*.mdx` (о бренде / основатель / история) с frontmatter (title, slug, date, excerpt, gradient, author). Правятся вручную (БД-редактор — Фаза 6). e2e `smoke.spec.ts` пинит число постов (3) и `POST_SLUG='o-brende-tanar'`.
 - **Язык**: только русский
 - **Картинки-фолбэк**: для товаров без фото — CSS-градиенты из мягкой outdoor-палитры (земляные, пыльно-синие, серо-зелёные) + текст-метка с названием. Блог — пока на градиентах.
