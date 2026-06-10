@@ -47,7 +47,7 @@ export default async function OrdersAdminPage() {
                 <th className="px-4 py-3">Состав</th>
                 <th className="px-4 py-3">Сумма</th>
                 <th className="px-4 py-3 w-44">Статус</th>
-                <th className="px-4 py-3 w-28" aria-label="Действия" />
+                <th className="px-4 py-3 w-12" aria-label="Действия" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -56,7 +56,7 @@ export default async function OrdersAdminPage() {
                   key={order.id}
                   data-testid="order-row"
                   data-status={order.status}
-                  className={`align-top ${STATUS_ROW_BG[order.status]}`}
+                  className={`align-middle ${STATUS_ROW_BG[order.status]}`}
                 >
                   <td className="px-4 py-3 font-medium text-gray-900">
                     {order.number}
