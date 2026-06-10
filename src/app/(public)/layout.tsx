@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { CartProvider } from "@/components/cart/CartProvider";
+import CartDrawer from "@/components/cart/CartDrawer";
 
 // Storefront chrome. Wraps every public route (/, /catalog, /blog) with the
 // Header/Footer that the admin segment must NOT inherit. The (public) route
@@ -16,6 +17,7 @@ export default function PublicLayout({
       <Header />
       <main className="min-h-screen">{children}</main>
       <Footer />
+      <CartDrawer />
     </CartProvider>
   );
 }

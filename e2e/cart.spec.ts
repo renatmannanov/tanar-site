@@ -70,6 +70,9 @@ test.describe('add to cart', () => {
     const addButton = page.getByTestId('add-to-cart');
     await addButton.click();
     await expect(page.getByTestId('cart-count')).toHaveText('1');
+    // Adding opened the drawer over the page — close it before the second add.
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('cart-drawer')).toHaveCount(0);
     await addButton.click();
 
     await expect(page.getByTestId('cart-count')).toHaveText('2');
@@ -96,6 +99,109 @@ test.describe('add to cart', () => {
   }) => {
     await page.goto(PRODUCT_URL);
     await expect(page.getByText(/Алматы — заказ через корзину/)).toBeVisible();
+  });
+});
+
+test.describe('cart drawer', () => {
+  /** Add the first size of the test product; leaves the drawer open. */
+  async function addItem(page: Page) {
+    await page.goto(PRODUCT_URL);
+    await page.getByTestId('size-option').first().click();
+    await page.getByTestId('add-to-cart').click();
+    await expect(page.getByTestId('cart-drawer')).toBeVisible();
+  }
+
+  /** «12 345 ₸» with whatever space ICU picked — compare digits only. */
+  function digits(text: string): string {
+    return text.replace(/\D/g, '');
+  }
+
+  test('opens via cart button; closes via Escape and backdrop', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page.getByTestId('cart-button').click();
+    const drawer = page.getByTestId('cart-drawer');
+    await expect(drawer).toBeVisible();
+    await expect(drawer).toHaveAttribute('aria-modal', 'true');
+    await expect(page.getByText('Корзина пуста')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(drawer).toHaveCount(0);
+
+    await page.getByTestId('cart-button').click();
+    await expect(drawer).toBeVisible();
+    await page.getByTestId('cart-backdrop').click({ position: { x: 10, y: 10 } });
+    await expect(drawer).toHaveCount(0);
+  });
+
+  test('focus lands on the close button when opened', async ({ page }) => {
+    await page.goto('/');
+    await page.getByTestId('cart-button').click();
+    await expect(
+      page.getByRole('button', { name: 'Закрыть корзину' }),
+    ).toBeFocused();
+  });
+
+  test('qty ± recalculates the total; minus at 1 removes the item', async ({
+    page,
+  }) => {
+    await addItem(page);
+    const item = page.getByTestId('cart-item');
+    await expect(item).toHaveCount(1);
+
+    const cart = await readCart(page);
+    const price = (cart!.items[0] as { price?: number }).price!;
+    await expect(page.getByTestId('cart-total')).toContainText('₸');
+    expect(digits(await page.getByTestId('cart-total').innerText())).toBe(
+      String(price),
+    );
+
+    await page.getByRole('button', { name: 'Увеличить' }).click();
+    expect(digits(await page.getByTestId('cart-total').innerText())).toBe(
+      String(price * 2),
+    );
+
+    await page.getByRole('button', { name: 'Уменьшить' }).click();
+    expect(digits(await page.getByTestId('cart-total').innerText())).toBe(
+      String(price),
+    );
+
+    // qty=1 → minus removes the position entirely.
+    await page.getByRole('button', { name: 'Уменьшить' }).click();
+    await expect(item).toHaveCount(0);
+    await expect(page.getByText('Корзина пуста')).toBeVisible();
+  });
+
+  test('cart survives a page reload (localStorage)', async ({ page }) => {
+    await addItem(page);
+    await page.reload();
+    await expect(page.getByTestId('cart-count')).toHaveText('1');
+    await page.getByTestId('cart-button').click();
+    await expect(page.getByTestId('cart-item')).toHaveCount(1);
+  });
+
+  test('clear cart needs a confirm click and empties everything', async ({
+    page,
+  }) => {
+    await addItem(page);
+    const clearButton = page.getByTestId('clear-cart');
+    await clearButton.click();
+    await expect(clearButton).toHaveText('Точно очистить?');
+    // Still intact after the first click.
+    await expect(page.getByTestId('cart-item')).toHaveCount(1);
+    await clearButton.click();
+
+    await expect(page.getByText('Корзина пуста')).toBeVisible();
+    await expect(page.getByTestId('cart-count')).toHaveCount(0);
+  });
+
+  test('drawer is usable on a 375px viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 740 });
+    await addItem(page);
+    await expect(page.getByTestId('cart-item')).toBeVisible();
+    await expect(page.getByTestId('cart-total')).toBeVisible();
+    await expect(page.getByTestId('checkout-button')).toBeVisible();
   });
 });
 
