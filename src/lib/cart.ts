@@ -14,6 +14,10 @@ export type CartItem = {
   price: number; // KZT, whole units
   qty: number; // 1..CART_MAX_QTY
   imageUrl?: string; // first photo of the active color at add time
+  // Snapshot of stockQty - reservedQty at add time — caps the drawer stepper.
+  // Absent in carts saved before the field existed → no client cap (the
+  // server re-checks availability at checkout anyway).
+  available?: number;
 };
 
 export const CART_STORAGE_KEY = 'tanar-cart';

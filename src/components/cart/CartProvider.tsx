@@ -33,8 +33,11 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-function clampQty(qty: number): number {
-  return Math.min(CART_MAX_QTY, Math.max(1, Math.round(qty)));
+function clampQty(qty: number, item: Pick<CartItem, 'available'>): number {
+  // Items without an `available` snapshot (old carts) get no client cap —
+  // the server re-checks availability at checkout.
+  const cap = Math.min(CART_MAX_QTY, item.available ?? CART_MAX_QTY);
+  return Math.max(1, Math.min(cap, Math.round(qty)));
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
@@ -57,18 +60,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => {
       const existing = prev.find((i) => i.skuId === item.skuId);
       if (existing) {
+        // The product page's snapshot is fresher than the cart's — overwrite
+        // `available` and clamp the merged qty against the new value.
         return prev.map((i) =>
-          i.skuId === item.skuId ? { ...i, qty: clampQty(i.qty + qty) } : i,
+          i.skuId === item.skuId
+            ? { ...i, available: item.available, qty: clampQty(i.qty + qty, item) }
+            : i,
         );
       }
       if (prev.length >= CART_MAX_ITEMS) return prev; // protective cap
-      return [...prev, { ...item, qty: clampQty(qty) }];
+      return [...prev, { ...item, qty: clampQty(qty, item) }];
     });
   }, []);
 
   const setQty = useCallback((skuId: string, qty: number) => {
     setItems((prev) =>
-      prev.map((i) => (i.skuId === skuId ? { ...i, qty: clampQty(qty) } : i)),
+      prev.map((i) => (i.skuId === skuId ? { ...i, qty: clampQty(qty, i) } : i)),
     );
   }, []);
 

@@ -383,3 +383,132 @@ test.describe.serial('coming soon product', () => {
     expect(href).toContain(encodeURIComponent(NAME));
   });
 });
+
+// Step 4 (cart-inventory): availability dots, sold-out size → ask-restock CTA,
+// CartItem.available snapshot. Self-sufficient product (S=1, M=5, L=15, XL=0),
+// created through the admin UI and deleted afterwards.
+test.describe.serial('availability', () => {
+  const NAME = 'Тестовое Наличие X2';
+  const SLUG = 'testovoe-nalichie-x2'; // canonical translit (src/lib/slugify)
+  const SIZES: Array<[size: string, stock: string]> = [
+    ['S', '1'],
+    ['M', '5'],
+    ['L', '15'],
+    ['XL', '0'],
+  ];
+
+  function sizeButton(page: Page, size: string) {
+    return page
+      .getByTestId('size-option')
+      .filter({ hasText: new RegExp(`^${size}$`) });
+  }
+
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    await login(page);
+    await page.goto('/admin/catalog/new');
+    await page.locator('#name').fill(NAME);
+    const variantBlock = page.locator('section div.rounded-md.border').first();
+    const textInputs = variantBlock.locator('input[type="text"], input:not([type])');
+    await textInputs.nth(0).fill('green'); // colorId
+    await textInputs.nth(1).fill('Зелёный'); // colorLabel
+    for (let i = 0; i < SIZES.length; i++) {
+      if (i > 0) {
+        await variantBlock.getByRole('button', { name: '+ Размер' }).click();
+      }
+      const row = variantBlock.locator('table tbody tr').nth(i);
+      await row.locator('input').first().fill(SIZES[i][0]);
+      await row.locator('input[type="number"]').fill(SIZES[i][1]);
+    }
+    await page.getByRole('button', { name: 'Создать' }).click();
+    await expect(page).toHaveURL(new RegExp(`/admin/catalog/${SLUG}/edit$`));
+    await page.locator('#status').selectOption('published');
+    await page.getByRole('button', { name: 'Сохранить' }).click();
+    await expect(page).toHaveURL(/\/admin\/catalog$/);
+    await page.close();
+  });
+
+  test.afterAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    await login(page);
+    await page.goto(`/admin/catalog/${SLUG}/edit`);
+    await page.getByRole('button', { name: 'Удалить товар' }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Удалить товар' })
+      .click();
+    await expect(page).toHaveURL(/\/admin\/catalog$/);
+    await page.close();
+  });
+
+  test('dot level matches the picked size; no dot without a size', async ({
+    page,
+  }) => {
+    await page.goto(`/catalog/${SLUG}`);
+    await expect(page.getByTestId('stock-indicator')).toHaveCount(0);
+
+    await sizeButton(page, 'L').click();
+    const indicator = page.getByTestId('stock-indicator');
+    await expect(indicator).toBeVisible();
+    await expect(indicator).toHaveAttribute('data-level', 'high');
+
+    await sizeButton(page, 'M').click();
+    await expect(indicator).toHaveAttribute('data-level', 'medium');
+
+    await sizeButton(page, 'S').click();
+    await expect(indicator).toHaveAttribute('data-level', 'low');
+  });
+
+  test('sold-out size is struck through; picking it swaps the CTA to ask-restock', async ({
+    page,
+  }) => {
+    await page.goto(`/catalog/${SLUG}`);
+    const xl = sizeButton(page, 'XL');
+    await expect(xl).toHaveAttribute('data-soldout', 'true');
+
+    await xl.click();
+    await expect(page.getByTestId('add-to-cart')).toHaveCount(0);
+    const link = page.getByTestId('ask-restock');
+    await expect(link).toBeVisible();
+    await expect(link).toHaveText('Узнать о поступлении');
+    const href = (await link.getAttribute('href'))!;
+    expect(href).toMatch(/^https:\/\/wa\.me\/\d+\?text=/);
+    const text = decodeURIComponent(href.split('?text=')[1]);
+    expect(text).toContain(NAME);
+    expect(text).toContain('XL');
+    // Sold out → no «В наличии» dot either.
+    await expect(page.getByTestId('stock-indicator')).toHaveCount(0);
+  });
+
+  test('adding writes the available snapshot into localStorage', async ({
+    page,
+  }) => {
+    await page.goto(`/catalog/${SLUG}`);
+    await sizeButton(page, 'S').click();
+    await page.getByTestId('add-to-cart').click();
+    await expect(page.getByTestId('cart-drawer')).toBeVisible();
+    const cart = await readCart(page);
+    expect((cart!.items[0] as { available?: number }).available).toBe(1);
+  });
+
+  test('geography line moved right but is still visible', async ({ page }) => {
+    await page.goto(`/catalog/${SLUG}`);
+    await expect(page.getByText(/Алматы — заказ через корзину/)).toBeVisible();
+    await expect(page.getByText('Возврат 30 дней.')).toBeVisible();
+  });
+
+  test('375px viewport: indicator and ask-restock visible, no horizontal scroll', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto(`/catalog/${SLUG}`);
+    await sizeButton(page, 'L').click();
+    await expect(page.getByTestId('stock-indicator')).toBeVisible();
+    await sizeButton(page, 'XL').click();
+    await expect(page.getByTestId('ask-restock')).toBeVisible();
+    const scrollWidth = await page.evaluate(
+      () => document.documentElement.scrollWidth,
+    );
+    expect(scrollWidth).toBeLessThanOrEqual(375);
+  });
+});
