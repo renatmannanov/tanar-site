@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { eq, ne, and, or, like, inArray } from 'drizzle-orm';
 import { db, schema } from '@/core/db';
+import { logManualAdjustments } from '@/core/inventory';
 import type {
   ProductCategory,
   ProductStatus,
@@ -337,7 +338,12 @@ async function insertVariantTree(
 
 type SkuInputParsed = z.infer<typeof skuInputSchema>;
 
-/** Inserts skus for a variant. `reservedQty` always starts at 0 for new rows. */
+/**
+ * Inserts skus for a variant. `reservedQty` always starts at 0 for new rows.
+ * The INITIAL stock fill is deliberately NOT journaled to inventory_log —
+ * otherwise the seed would generate one noise row per sku. Only stock CHANGES
+ * through updateProduct are journaled (see upsertSkus).
+ */
 async function insertSkus(
   tx: Tx,
   variantId: string,
@@ -371,16 +377,29 @@ async function upsertSkus(
   skuInputs: SkuInputParsed[],
 ): Promise<void> {
   const existing = await tx
-    .select({ id: schema.skus.id, size: schema.skus.size })
+    .select({
+      id: schema.skus.id,
+      size: schema.skus.size,
+      stockQty: schema.skus.stockQty,
+    })
     .from(schema.skus)
     .where(eq(schema.skus.variantId, variantId));
-  const existingBySize = new Map(existing.map((s) => [s.size, s.id]));
+  const existingBySize = new Map(existing.map((s) => [s.size, s]));
   const inputSizes = new Set(skuInputs.map((s) => s.size));
 
   const toInsert: SkuInputParsed[] = [];
+  const manualAdjustments: { skuId: string; delta: number; note: string }[] = [];
   for (const sku of skuInputs) {
-    const id = existingBySize.get(sku.size);
-    if (id) {
+    const current = existingBySize.get(sku.size);
+    if (current) {
+      const newStock = sku.stockQty ?? 0;
+      if (newStock !== current.stockQty) {
+        manualAdjustments.push({
+          skuId: current.id,
+          delta: newStock - current.stockQty,
+          note: 'admin product form',
+        });
+      }
       // UPDATE — reservedQty deliberately omitted so it is preserved.
       await tx
         .update(schema.skus)
@@ -388,14 +407,15 @@ async function upsertSkus(
           ruSize: sku.ruSize ?? null,
           article: sku.article ?? null,
           priceOverride: sku.priceOverride ?? null,
-          stockQty: sku.stockQty ?? 0,
+          stockQty: newStock,
           updatedAt: new Date(),
         })
-        .where(eq(schema.skus.id, id));
+        .where(eq(schema.skus.id, current.id));
     } else {
       toInsert.push(sku);
     }
   }
+  await logManualAdjustments(tx, manualAdjustments);
   await insertSkus(tx, variantId, toInsert);
 
   const toDelete = existing.filter((s) => !inputSizes.has(s.size)).map((s) => s.id);
