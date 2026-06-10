@@ -58,3 +58,40 @@ export function cartHash(items: CartItem[]): string {
     .sort((a, b) => a[0].localeCompare(b[0]));
   return JSON.stringify(pairs);
 }
+
+// ── Last placed order (checkout dedup) ───────────────────────────────────────
+// Re-submitting an unchanged cart re-shows the same order instead of creating
+// a DB duplicate: the confirmation is stored with the cart's hash and reused
+// while the hash still matches.
+
+export const LAST_ORDER_STORAGE_KEY = 'tanar-cart-order';
+
+export type LastOrder = {
+  hash: string;
+  number: number;
+  waUrl: string | null;
+  waText: string;
+  phone: string | null;
+};
+
+export function saveLastOrder(order: LastOrder): void {
+  try {
+    window.localStorage.setItem(LAST_ORDER_STORAGE_KEY, JSON.stringify(order));
+  } catch {
+    // storage unavailable — dedup degrades to a new order per submit
+  }
+}
+
+export function loadLastOrder(): LastOrder | null {
+  try {
+    const raw = window.localStorage.getItem(LAST_ORDER_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<LastOrder> | null;
+    if (!parsed || typeof parsed.hash !== 'string' || typeof parsed.number !== 'number') {
+      return null;
+    }
+    return parsed as LastOrder;
+  } catch {
+    return null;
+  }
+}

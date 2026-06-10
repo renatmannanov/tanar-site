@@ -205,6 +205,128 @@ test.describe('cart drawer', () => {
   });
 });
 
+test.describe('checkout', () => {
+  async function addItem(page: Page) {
+    await page.goto(PRODUCT_URL);
+    await page.getByTestId('size-option').first().click();
+    await page.getByTestId('add-to-cart').click();
+    await expect(page.getByTestId('cart-drawer')).toBeVisible();
+  }
+
+  async function orderNumber(page: Page): Promise<number> {
+    const text = await page
+      .getByTestId('checkout-done')
+      .locator('p')
+      .first()
+      .innerText();
+    return Number(/№(\d+)/.exec(text)![1]);
+  }
+
+  function decodedWaText(href: string): string {
+    return decodeURIComponent(href.split('?text=')[1]);
+  }
+
+  test('placing an order shows №N and a valid wa.me link', async ({ page }) => {
+    await addItem(page);
+    await page.getByTestId('checkout-button').click();
+
+    const done = page.getByTestId('checkout-done');
+    await expect(done).toBeVisible();
+    await expect(done).toContainText('Заказ №');
+
+    const href = (await page.getByTestId('wa-link').getAttribute('href'))!;
+    expect(href).toMatch(/^https:\/\/wa\.me\/\d+\?text=/);
+    const text = decodedWaText(href);
+    expect(text).toContain('Куртка'); // product name from the DB snapshot
+    expect(text).toContain('шт ×');
+    expect(text).toContain('Итого');
+    expect(text).toContain('Алматы');
+  });
+
+  test('unchanged cart re-checkout reuses the same order number', async ({
+    page,
+  }) => {
+    await addItem(page);
+    await page.getByTestId('checkout-button').click();
+    await expect(page.getByTestId('checkout-done')).toBeVisible();
+    const first = await orderNumber(page);
+
+    await page.getByRole('button', { name: '← Назад к корзине' }).click();
+    // Cart was NOT cleared by checkout.
+    await expect(page.getByTestId('cart-item')).toHaveCount(1);
+
+    await page.getByTestId('checkout-button').click();
+    await expect(page.getByTestId('checkout-done')).toBeVisible();
+    expect(await orderNumber(page)).toBe(first);
+  });
+
+  test('changed cart creates a new order with a new number', async ({
+    page,
+  }) => {
+    await addItem(page);
+    await page.getByTestId('checkout-button').click();
+    await expect(page.getByTestId('checkout-done')).toBeVisible();
+    const first = await orderNumber(page);
+
+    await page.getByRole('button', { name: '← Назад к корзине' }).click();
+    await page.getByRole('button', { name: 'Увеличить' }).click();
+    await page.getByTestId('checkout-button').click();
+    await expect(page.getByTestId('checkout-done')).toBeVisible();
+    expect(await orderNumber(page)).not.toBe(first);
+  });
+
+  test('QR is visible on desktop and hidden on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await addItem(page);
+    await page.getByTestId('checkout-button').click();
+
+    const qr = page.getByTestId('wa-qr');
+    await expect(qr).toBeVisible();
+    // toDataURL is async — auto-waiting assertion, not an instant check.
+    await expect(qr.locator('img')).toHaveAttribute('src', /^data:image\//);
+
+    await page.setViewportSize({ width: 375, height: 740 });
+    await expect(qr).toBeHidden();
+  });
+
+  test('copy button copies the order text', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await addItem(page);
+    await page.getByTestId('checkout-button').click();
+    await expect(page.getByTestId('checkout-done')).toBeVisible();
+
+    await page
+      .getByRole('button', { name: 'Скопировать текст заказа' })
+      .click();
+    await expect(page.getByText('Скопировано ✓')).toBeVisible();
+    const clip = await page.evaluate(() => navigator.clipboard.readText());
+    expect(clip).toContain('Заказ №');
+    expect(clip).toContain('Итого');
+  });
+
+  test('prices come from the DB, not the client cart', async ({ page }) => {
+    await addItem(page);
+    const cart = await readCart(page);
+    const realPrice = (cart!.items[0] as { price?: number }).price!;
+
+    // Tamper with the client-side snapshot price.
+    await page.evaluate((key) => {
+      const stored = JSON.parse(window.localStorage.getItem(key)!);
+      stored.items[0].price = 1;
+      window.localStorage.setItem(key, JSON.stringify(stored));
+    }, CART_KEY);
+    await page.reload();
+    await page.getByTestId('cart-button').click();
+    await page.getByTestId('checkout-button').click();
+
+    const href = (await page.getByTestId('wa-link').getAttribute('href'))!;
+    const totalLine = decodedWaText(href)
+      .split('\n')
+      .find((l) => l.startsWith('Итого'))!;
+    expect(totalLine.replace(/\D/g, '')).toBe(String(realPrice));
+  });
+});
+
 // The seed has no coming_soon products (all 12 published), so this block
 // creates its own through the admin UI and deletes it afterwards —
 // self-sufficient, no dependency on other specs.

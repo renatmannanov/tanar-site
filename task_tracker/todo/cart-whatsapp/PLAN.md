@@ -67,7 +67,7 @@
 | 3 | step_3_cart_core.md — типы/localStorage/CartProvider + CartButton со счётчиком | [x] |
 | 4 | step_4_product_add_to_cart.md — выбор размера + «В корзину» + coming_soon wa.me + география | [x] |
 | 5 | step_5_cart_drawer.md — drawer: позиции, qty, итого, очистка | [x] |
-| 6 | step_6_checkout.md — server action оформления + экран «Заказ №N» (WhatsApp/QR/копия) + дедуп | [ ] |
+| 6 | step_6_checkout.md — server action оформления + экран «Заказ №N» (WhatsApp/QR/копия) + дедуп | [x] |
 | 7 | step_7_admin_orders.md — раздел «Заказы» в админке | [ ] |
 | 8 | step_8_marketplace_links_admin.md — поля Kaspi/Ozon в форме товара | [ ] |
 | 9 | step_9_completion.md — завершение плана | [ ] |
