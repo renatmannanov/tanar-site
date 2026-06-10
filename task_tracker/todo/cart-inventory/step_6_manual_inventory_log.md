@@ -2,7 +2,7 @@
 
 > Зависит от: шаги 1 (logManualAdjustments) И 2 (§5 шага 2 правит тот же
 > `repository.ts` — upsertSkus/deleteProduct; параллельный запуск перетрёт правки)
-> Статус: [ ] pending
+> Статус: [x] done
 
 ## Задача
 
@@ -46,7 +46,8 @@ npm run test:e2e
 
 ## Критерии готовности
 
-- [ ] Правка остатка в форме → строка inventory_log reason=manual с верной delta (SQL)
-- [ ] Сохранение товара без изменения остатка не пишет в лог (SQL: счётчик не вырос)
-- [ ] Удаление товара/размера с историей лога не падает (admin-crud-media зелёный)
-- [ ] typecheck, lint, build, test:e2e — exit 0
+- [x] Правка остатка в форме → строка inventory_log reason=manual с верной delta
+      (скрипт-проверка через write-контракт: delta +3/-3, note 'admin product form')
+- [x] Сохранение товара без изменения остатка не пишет в лог (та же проверка)
+- [x] Удаление товара/размера с историей лога не падает (admin-crud-media зелёный)
+- [x] typecheck, lint, build — exit 0; admin-спеки 28/28

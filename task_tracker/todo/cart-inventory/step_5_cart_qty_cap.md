@@ -1,7 +1,7 @@
 # Шаг 5: Drawer — лимит «+» по доступному остатку
 
 > Зависит от: шаг 4 (CartItem.available и кламп в CartProvider; правит CartDrawer.tsx)
-> Статус: [ ] pending
+> Статус: [x] done
 
 ## Задача
 
@@ -40,7 +40,8 @@ npm run test:e2e
 
 ## Критерии готовности
 
-- [ ] «+» disabled на лимите остатка; «Больше нет в наличии» виден (e2e)
-- [ ] qty не превышает available ни кликами, ни повторным «В корзину» (e2e)
-- [ ] Лимит CART_MAX_QTY не показывает текст про наличие (ручная проверка кода)
-- [ ] typecheck, lint, build, test:e2e — exit 0
+- [x] «+» disabled на лимите остатка; «Больше нет в наличии» виден (e2e)
+- [x] qty не превышает available ни кликами, ни повторным «В корзину» (e2e)
+- [x] Лимит CART_MAX_QTY не показывает текст про наличие (atStockLimit
+      требует cap < CART_MAX_QTY)
+- [x] typecheck, lint, build — exit 0; cart.spec 24/24

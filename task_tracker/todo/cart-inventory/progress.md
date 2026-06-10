@@ -49,6 +49,17 @@
 
 ## Learnings
 
-(заполняется в процессе работы)
+- **Слаг «Цикл» → `cikl`, не `tsikl`** (канон-таблица slugify: Ц → c). Слаги
+  e2e-товаров проверять по src/lib/slugify, не по интуиции.
+- **admin.spec `afterAll` гоняет `npm run db:seed` → ВСЕ таблицы очищаются**,
+  включая inventory_log и orders. SQL-проверки журнала после полного прогона
+  бессмысленны — проверять прицельным скриптом (scripts/verify-manual-log.ts
+  существовал разово) или сразу после узкого спека.
+- **Повторный `login()` при живой сессии падает**: /admin/login с валидной
+  cookie не показывает форму (redirect). В serial-e2e логиниться один раз на
+  тест; внутри теста — не перелогиниваться.
+- **Удаление варианта (цвета) тоже требует FK-чистки inventory_log** — не
+  только удаление SKU/товара: cascade variant→skus упирается в журнал.
+  Закрыто `purgeInventoryLogForVariants` (upsertVariantTree + deleteProduct).
 
 ---

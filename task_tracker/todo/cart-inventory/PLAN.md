@@ -66,10 +66,10 @@
 | 1 | step_1_inventory_core.md — модуль `@/core/inventory` (client: уровни; server: переходы+журнал) | [x] |
 | 2 | step_2_order_status_stock.md — хуки в updateOrderStatus/deleteOrder/createOrder | [x] |
 | 3 | step_3_admin_status_ui.md — блокировка подтверждения в UI: откат селекта + текст ошибки; предупреждение в диалоге удаления | [x] |
-| 4 | step_4_storefront_availability.md — точки, правый блок, перечёркнутый размер, «Узнать о поступлении», CartItem.available | [ ] |
-| 5 | step_5_cart_qty_cap.md — лимит «+» в drawer + «Больше нет в наличии» | [ ] |
-| 6 | step_6_manual_inventory_log.md — inventory_log(manual) при правке остатка в админке | [ ] |
-| 7 | step_7_e2e_lifecycle.md — сквозной e2e: заказ→резерв→распродано на витрине→отмена→снова доступно | [ ] |
+| 4 | step_4_storefront_availability.md — точки, правый блок, перечёркнутый размер, «Узнать о поступлении», CartItem.available | [x] |
+| 5 | step_5_cart_qty_cap.md — лимит «+» в drawer + «Больше нет в наличии» | [x] |
+| 6 | step_6_manual_inventory_log.md — inventory_log(manual) при правке остатка в админке | [x] |
+| 7 | step_7_e2e_lifecycle.md — сквозной e2e: заказ→резерв→распродано на витрине→отмена→снова доступно | [x] |
 | 8 | step_8_completion.md — завершение плана | [ ] |
 
 ## Критерии готовности

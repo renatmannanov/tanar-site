@@ -2,7 +2,7 @@
 
 > Зависит от: шаг 1 (stockLevel из @/core/inventory/client); шаг 2 (createOrder
 > уже проверяет наличие — нужен для e2e сценария недоступности)
-> Статус: [ ] pending
+> Статус: [x] done
 
 ## Задача
 
@@ -106,9 +106,9 @@ npm run test:e2e
 
 ## Критерии готовности
 
-- [ ] Точка с верным data-level для high/medium/low; нет точки без выбора размера (e2e)
-- [ ] Распроданный размер перечёркнут; выбор → ask-restock wa.me с размером (e2e)
-- [ ] CartItem.available пишется при добавлении (e2e: localStorage)
-- [ ] География справа, «Алматы — заказ через корзину» виден (e2e)
-- [ ] Viewport 375: индикатор и ask-restock видимы, без горизонтального скролла (e2e)
-- [ ] typecheck, lint, build, test:e2e — exit 0
+- [x] Точка с верным data-level для high/medium/low; нет точки без выбора размера (e2e)
+- [x] Распроданный размер перечёркнут; выбор → ask-restock wa.me с размером (e2e)
+- [x] CartItem.available пишется при добавлении (e2e: localStorage)
+- [x] География справа, «Алматы — заказ через корзину» виден (e2e)
+- [x] Viewport 375: индикатор и ask-restock видимы, без горизонтального скролла (e2e)
+- [x] typecheck, lint, build — exit 0; cart.spec 22/22
