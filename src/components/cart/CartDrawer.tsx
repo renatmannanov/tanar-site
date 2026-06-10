@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { formatPrice } from '@/core/catalog/client';
+import { CART_MAX_QTY } from '@/lib/cart';
 import { useCart } from './CartProvider';
 import CheckoutPanel from './CheckoutPanel';
 
@@ -92,7 +93,13 @@ export default function CartDrawer() {
         ) : (
           <>
             <ul className="flex-1 divide-y divide-stone-200 overflow-y-auto px-4 sm:px-6">
-              {items.map((item) => (
+              {items.map((item) => {
+                // Stepper cap: the availability snapshot taken at add time
+                // (CartProvider clamps the state the same way). Old carts
+                // without the field only get the protective CART_MAX_QTY cap.
+                const cap = Math.min(CART_MAX_QTY, item.available ?? CART_MAX_QTY);
+                const atStockLimit = item.qty >= cap && cap < CART_MAX_QTY;
+                return (
                 <li
                   key={item.skuId}
                   data-testid="cart-item"
@@ -138,12 +145,21 @@ export default function CartDrawer() {
                       <button
                         type="button"
                         aria-label="Увеличить"
+                        disabled={item.qty >= cap}
                         onClick={() => setQty(item.skuId, item.qty + 1)}
-                        className="flex h-7 w-7 items-center justify-center rounded border border-stone-300 text-stone-700 transition-colors hover:border-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900"
+                        className="flex h-7 w-7 items-center justify-center rounded border border-stone-300 text-stone-700 transition-colors hover:border-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-stone-300"
                       >
                         +
                       </button>
                     </div>
+                    {atStockLimit && (
+                      <p
+                        data-testid="qty-limit"
+                        className="mt-1 text-xs text-stone-400"
+                      >
+                        Больше нет в наличии
+                      </p>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -163,7 +179,8 @@ export default function CartDrawer() {
                     </svg>
                   </button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
             <CheckoutPanel />
           </>

@@ -491,6 +491,44 @@ test.describe.serial('availability', () => {
     expect((cart!.items[0] as { available?: number }).available).toBe(1);
   });
 
+  // Step 5 (cart-inventory): the drawer stepper is capped by the snapshot.
+  test('drawer «+» is disabled at the stock limit (S, stock=1)', async ({
+    page,
+  }) => {
+    await page.goto(`/catalog/${SLUG}`);
+    await sizeButton(page, 'S').click();
+    await page.getByTestId('add-to-cart').click();
+    await expect(page.getByTestId('cart-drawer')).toBeVisible();
+
+    const plus = page.getByRole('button', { name: 'Увеличить' });
+    await expect(plus).toBeDisabled();
+    const limit = page.getByTestId('qty-limit');
+    await expect(limit).toBeVisible();
+    await expect(limit).toHaveText('Больше нет в наличии');
+    const cart = await readCart(page);
+    expect(cart!.items[0].qty).toBe(1);
+  });
+
+  test('drawer «+» works up to the limit and then stops (M, stock=5)', async ({
+    page,
+  }) => {
+    await page.goto(`/catalog/${SLUG}`);
+    await sizeButton(page, 'M').click();
+    await page.getByTestId('add-to-cart').click();
+    await expect(page.getByTestId('cart-drawer')).toBeVisible();
+
+    const plus = page.getByRole('button', { name: 'Увеличить' });
+    await expect(plus).toBeEnabled();
+    await expect(page.getByTestId('qty-limit')).toHaveCount(0);
+    for (let i = 0; i < 4; i++) {
+      await plus.click();
+    }
+    await expect(plus).toBeDisabled();
+    await expect(page.getByTestId('qty-limit')).toBeVisible();
+    const cart = await readCart(page);
+    expect(cart!.items[0].qty).toBe(5);
+  });
+
   test('geography line moved right but is still visible', async ({ page }) => {
     await page.goto(`/catalog/${SLUG}`);
     await expect(page.getByText(/Алматы — заказ через корзину/)).toBeVisible();
