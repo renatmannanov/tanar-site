@@ -1,7 +1,7 @@
 # Шаг 2: Хуки остатков в updateOrderStatus / deleteOrder / createOrder
 
 > Зависит от: шаг 1 (transitionOrderItems)
-> Статус: [ ] pending
+> Статус: [x] done
 
 ## Задача
 
@@ -105,10 +105,13 @@ npm run test:e2e
 
 ## Критерии готовности
 
-- [ ] Подтверждение заказа меняет reservedQty (SQL: `SELECT reserved_qty FROM skus ...`
-      до/после смены статуса через админку вручную или в шаге 7 e2e)
-- [ ] updateOrderStatus возвращает shortages с nameSnapshot при нехватке
-- [ ] deleteOrder подтверждённого снимает резерв (SQL-проверка)
-- [ ] createOrder отказывает при available < qty (unavailableSkuIds)
-- [ ] Повторный вызов updateOrderStatus с тем же статусом — no-op (остатки не двигаются)
-- [ ] typecheck, lint, build, test:e2e — exit 0
+- [x] Подтверждение заказа меняет reservedQty (SQL: inventory_log получил
+      reservation +1 после admin-orders e2e)
+- [x] updateOrderStatus возвращает shortages с nameSnapshot при нехватке
+- [x] deleteOrder подтверждённого снимает резерв (SQL: reservation_release -1,
+      ref_order_id обнулён)
+- [x] createOrder отказывает при available < qty (unavailableSkuIds)
+- [x] Повторный вызов updateOrderStatus с тем же статусом — no-op (ранний return
+      old === parsed под локом)
+- [x] typecheck, lint, build — exit 0; admin-orders+cart спеки 21/21
+      (полный test:e2e — на шаге 7)

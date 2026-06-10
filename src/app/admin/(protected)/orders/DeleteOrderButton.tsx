@@ -1,15 +1,25 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import type { OrderStatus } from '@/core/orders/client';
 import { ConfirmButton } from '@/components/admin/ui/ConfirmButton';
 import { deleteOrderAction } from './actions';
+
+// Deleting moves stock differently per status — warn in the moment so the
+// admin does not expect a done order's write-off to come back.
+const DELETE_STOCK_NOTE: Partial<Record<OrderStatus, string>> = {
+  confirmed: ' Резерв будет снят.',
+  done: ' Списанный остаток на склад не вернётся.',
+};
 
 export default function DeleteOrderButton({
   orderId,
   orderNumber,
+  status,
 }: {
   orderId: string;
   orderNumber: number;
+  status: OrderStatus;
 }) {
   const [error, setError] = useState<string | undefined>();
   const [pending, startTransition] = useTransition();
@@ -23,7 +33,7 @@ export default function DeleteOrderButton({
         aria-label={`Удалить заказ №${orderNumber}`}
         data-testid="delete-order"
         title={`Удалить заказ №${orderNumber}?`}
-        description="Заказ и его позиции будут удалены безвозвратно."
+        description={`Заказ и его позиции будут удалены безвозвратно.${DELETE_STOCK_NOTE[status] ?? ''}`}
         onConfirm={() => {
           setError(undefined);
           startTransition(async () => {

@@ -13,6 +13,14 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/admin\/catalog$/);
 }
 
+function rowFor(page: Page, number: string) {
+  return page
+    .getByTestId('order-row')
+    .filter({
+      has: page.locator('td').first().filter({ hasText: new RegExp(`^${number}$`) }),
+    });
+}
+
 test.beforeAll(() => {
   if (!PASSWORD) {
     throw new Error('ADMIN_PASSWORD is not set in the test environment (.env.local)');
@@ -21,14 +29,6 @@ test.beforeAll(() => {
 
 test.describe.serial('admin orders', () => {
   let orderNumber: string;
-
-  function rowFor(page: Page, number: string) {
-    return page
-      .getByTestId('order-row')
-      .filter({
-        has: page.locator('td').first().filter({ hasText: new RegExp(`^${number}$`) }),
-      });
-  }
 
   test('guard: /admin/orders without cookie redirects to login', async ({
     page,
@@ -103,5 +103,124 @@ test.describe.serial('admin orders', () => {
     await expect(row).toHaveCount(0);
     await page.reload();
     await expect(rowFor(page, orderNumber)).toHaveCount(0);
+  });
+});
+
+// Step 3 (cart-inventory): confirming an order with insufficient stock must
+// roll the select back and show a per-position error. Self-sufficient: creates
+// its own product (1 color, size M, stock=1); cleanup deletes the order BEFORE
+// the product (order_items.skuId FK has no cascade).
+test.describe.serial('insufficient stock blocks confirmation', () => {
+  const NAME = 'Тестовый Сток X1';
+  const SLUG = 'testovyy-stok-x1'; // canonical translit (src/lib/slugify)
+  let orderNumber: string;
+
+  /** Sets the single SKU's stock via the admin product form (Остаток column). */
+  async function setStock(page: Page, qty: number) {
+    await page.goto(`/admin/catalog/${SLUG}/edit`);
+    await page
+      .locator('section div.rounded-md.border')
+      .first()
+      .locator('table tbody tr')
+      .first()
+      .locator('input[type="number"]')
+      .fill(String(qty));
+    await page.getByRole('button', { name: 'Сохранить' }).click();
+    await expect(page).toHaveURL(/\/admin\/catalog$/);
+  }
+
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    await login(page);
+    await page.goto('/admin/catalog/new');
+    await page.locator('#name').fill(NAME);
+    const variantBlock = page.locator('section div.rounded-md.border').first();
+    const textInputs = variantBlock.locator('input[type="text"], input:not([type])');
+    await textInputs.nth(0).fill('green'); // colorId
+    await textInputs.nth(1).fill('Зелёный'); // colorLabel
+    const skuRow = variantBlock.locator('table tbody tr').first();
+    await skuRow.locator('input').first().fill('M');
+    await skuRow.locator('input[type="number"]').fill('1');
+    await page.getByRole('button', { name: 'Создать' }).click();
+    await expect(page).toHaveURL(new RegExp(`/admin/catalog/${SLUG}/edit$`));
+    await page.locator('#status').selectOption('published');
+    await page.getByRole('button', { name: 'Сохранить' }).click();
+    await expect(page).toHaveURL(/\/admin\/catalog$/);
+    await page.close();
+  });
+
+  test.afterAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    await login(page);
+    // Order first (FK), then the product. The order is confirmed by the last
+    // test — the delete dialog must warn about the reserve.
+    await page.goto('/admin/orders');
+    const row = rowFor(page, orderNumber);
+    if ((await row.count()) > 0) {
+      await row.getByTestId('delete-order').click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toContainText('Резерв будет снят');
+      await dialog.getByRole('button', { name: 'Удалить' }).click();
+      await expect(row).toHaveCount(0);
+    }
+    await page.goto(`/admin/catalog/${SLUG}/edit`);
+    await page.getByRole('button', { name: 'Удалить товар' }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Удалить товар' })
+      .click();
+    await expect(page).toHaveURL(/\/admin\/catalog$/);
+    await page.close();
+  });
+
+  test('place an order for the single in-stock unit', async ({ page }) => {
+    await page.goto(`/catalog/${SLUG}`);
+    // Single-size color → the size is auto-selected, the CTA is armed.
+    await page.getByTestId('add-to-cart').click();
+    await page.getByTestId('checkout-button').click();
+    const done = page.getByTestId('checkout-done');
+    await expect(done).toBeVisible();
+    orderNumber = /№(\d+)/.exec(await done.locator('p').first().innerText())![1];
+    // The order stays «Новый» (pending) — reused by the next two tests.
+  });
+
+  test('confirming with zero stock rolls the select back with an error', async ({
+    page,
+  }) => {
+    await login(page);
+    await setStock(page, 0);
+    await page.goto('/admin/orders');
+    const row = rowFor(page, orderNumber);
+    const select = row.getByTestId('order-status');
+    await select.selectOption('confirmed');
+
+    const error = row.getByTestId('status-error');
+    await expect(error).toBeVisible();
+    await expect(error).toContainText('Не хватает остатка');
+    await expect(error).toContainText('нужно 1, доступно 0');
+    await expect(select).toHaveValue('pending'); // rolled back
+
+    // Nothing was written — the status survives a reload as «Новый».
+    await page.reload();
+    await expect(rowFor(page, orderNumber).getByTestId('order-status')).toHaveValue(
+      'pending',
+    );
+  });
+
+  test('confirmation passes after restock', async ({ page }) => {
+    await login(page);
+    await setStock(page, 1);
+    await page.goto('/admin/orders');
+    const row = rowFor(page, orderNumber);
+    const select = row.getByTestId('order-status');
+    await select.selectOption('confirmed');
+    await expect(select).toBeEnabled();
+    await expect(select).toHaveValue('confirmed');
+    await expect(row.getByTestId('status-error')).toHaveCount(0);
+
+    await page.reload();
+    await expect(rowFor(page, orderNumber).getByTestId('order-status')).toHaveValue(
+      'confirmed',
+    );
   });
 });

@@ -81,6 +81,7 @@ export default async function OrdersAdminPage() {
                     <DeleteOrderButton
                       orderId={order.id}
                       orderNumber={order.number}
+                      status={order.status}
                     />
                   </td>
                 </tr>
