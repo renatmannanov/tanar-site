@@ -12,17 +12,25 @@ export default function CartDrawer() {
 
   // Escape closes; body scroll is locked while open; focus moves into the
   // drawer (the «×» button) so keyboard users are not left behind the modal.
+  // Hiding the scrollbar shrinks the body width and shifts the page — pad the
+  // body by the scrollbar width while locked to compensate.
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close();
     };
     document.addEventListener('keydown', onKey);
+    const scrollbarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
     document.body.classList.add('overflow-hidden');
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
     closeButtonRef.current?.focus();
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.classList.remove('overflow-hidden');
+      document.body.style.paddingRight = '';
     };
   }, [isOpen, close]);
 

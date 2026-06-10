@@ -62,7 +62,7 @@ test.describe('add to cart', () => {
     expect(cart?.items[0].skuId).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  test('re-adding the same SKU increments qty, does not duplicate', async ({
+  test('added SKU turns the button into a disabled «В корзине»', async ({
     page,
   }) => {
     await page.goto(PRODUCT_URL);
@@ -70,15 +70,22 @@ test.describe('add to cart', () => {
     const addButton = page.getByTestId('add-to-cart');
     await addButton.click();
     await expect(page.getByTestId('cart-count')).toHaveText('1');
-    // Adding opened the drawer over the page — close it before the second add.
+    // Adding opened the drawer over the page — close it to see the CTA.
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('cart-drawer')).toHaveCount(0);
-    await addButton.click();
 
-    await expect(page.getByTestId('cart-count')).toHaveText('2');
+    // Same SKU cannot be re-added from the CTA (qty changes live in the drawer).
+    await expect(addButton).toBeDisabled();
+    await expect(addButton).toHaveText('В корзине');
+
+    // Another size of the same color is a different SKU — CTA re-arms.
+    await page.getByTestId('size-option').nth(1).click();
+    await expect(addButton).toBeEnabled();
+    await expect(addButton).toHaveText('В корзину');
+
     const cart = await readCart(page);
     expect(cart?.items).toHaveLength(1);
-    expect(cart?.items[0].qty).toBe(2);
+    expect(cart?.items[0].qty).toBe(1);
   });
 
   test('switching color resets the picked size', async ({ page }) => {
