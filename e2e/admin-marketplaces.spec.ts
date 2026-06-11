@@ -10,6 +10,8 @@ const SLUG = 'jacket-sv7-goretex';
 const KASPI_URL = 'https://kaspi.kz/shop/p/test-123';
 const OZON_URL = 'https://www.ozon.ru/product/test-456';
 const SKU_KASPI_URL = 'https://kaspi.kz/shop/p/sku-test-001';
+const PRODUCT_KASPI_URL = 'https://kaspi.kz/shop/p/product-level';
+const SKU_M_KASPI_URL = 'https://kaspi.kz/shop/p/sku-m-001';
 
 /** Kaspi/Ozon input of the per-SKU links table row holding the given article. */
 function skuRowInput(page: Page, article: string, key: 'kaspi' | 'ozon') {
@@ -140,5 +142,49 @@ test.describe.serial('per-sku links', () => {
     await page.goto(`/admin/catalog/${SLUG}/edit`);
     await page.getByTestId('tab-marketplaces').click();
     await expect(skuRowInput(page, 'TANAR-001', 'kaspi')).toHaveValue(SKU_KASPI_URL);
+  });
+
+  test('storefront buttons follow the picked size (sku link, fallback, reset)', async ({
+    page,
+  }) => {
+    // Arrange via the admin: product-level Kaspi set, Ozon cleared everywhere;
+    // Чёрный M (TANAR-001) gets its own Kaspi link, Чёрный L (TANAR-002) none.
+    await login(page);
+    await page.goto(`/admin/catalog/${SLUG}/edit`);
+    await page.getByTestId('tab-marketplaces').click();
+    await page.getByTestId('mp-kaspi').fill(PRODUCT_KASPI_URL);
+    await page.getByTestId('mp-ozon').fill('');
+    await skuRowInput(page, 'TANAR-001', 'kaspi').fill(SKU_M_KASPI_URL);
+    await skuRowInput(page, 'TANAR-001', 'ozon').fill('');
+    await skuRowInput(page, 'TANAR-002', 'kaspi').fill('');
+    await skuRowInput(page, 'TANAR-002', 'ozon').fill('');
+    await saveProduct(page);
+
+    await page.goto(`/catalog/${SLUG}`);
+    const black = page.getByRole('button', { name: 'Чёрный', exact: true });
+    await black.click();
+    await expect(black).toHaveAttribute('aria-pressed', 'true');
+
+    const kaspi = page.getByRole('link', { name: 'Kaspi', exact: true });
+    const ozon = page.getByRole('link', { name: 'Ozon', exact: true });
+    const sizeM = page.getByTestId('size-option').filter({ hasText: /^M \// });
+    const sizeL = page.getByTestId('size-option').filter({ hasText: /^L \// });
+
+    // No size picked → product-level fallback; Ozon has no link anywhere.
+    await expect(kaspi).toHaveAttribute('href', PRODUCT_KASPI_URL);
+    await expect(ozon).toHaveCount(0);
+
+    // M has its own link → href swaps to the SKU card.
+    await sizeM.click();
+    await expect(kaspi).toHaveAttribute('href', SKU_M_KASPI_URL);
+
+    // L has none → per-key fallback to the product link.
+    await sizeL.click();
+    await expect(kaspi).toHaveAttribute('href', PRODUCT_KASPI_URL);
+
+    // Back to M → the sku link again (state does not stick).
+    await sizeM.click();
+    await expect(kaspi).toHaveAttribute('href', SKU_M_KASPI_URL);
+    await expect(ozon).toHaveCount(0);
   });
 });

@@ -62,7 +62,7 @@
 | 1 | step_1_schema_contract.md — колонка skus.marketplaces: миграция 0006, Sku-тип, zod, insert/upsert, mapper | [x] |
 | 2 | step_2_links_import.md — extract CSV→JSON-снапшот + сидер seed-marketplace-links (npm + compose tools) | [x] |
 | 3 | step_3_admin_tab.md — табы «Товар»/«Маркетплейсы» в ProductForm, перенос продуктовых полей, таблица SKU-ссылок | [x] |
-| 4 | step_4_storefront_links.md — подмена href на витрине при выборе размера + e2e | [ ] |
+| 4 | step_4_storefront_links.md — подмена href на витрине при выборе размера + e2e | [x] |
 | 5 | step_5_completion.md — завершение плана | [ ] |
 
 ## Критерии готовности
