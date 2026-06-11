@@ -333,7 +333,6 @@ export default function ProductDetail({
             marketplaces={effectiveMarketplaces}
             showWhenEmpty={hasMarketplacePresence}
           />
-          <p className="mt-4 text-xs text-stone-400">Возврат 30 дней.</p>
         </div>
       </div>
     </div>

@@ -8,6 +8,13 @@
   --brand-dawn: 146 64 14;
 }
 
+html {
+  /* Reserve the scrollbar gutter even when the page fits the viewport —
+     otherwise switching to a shorter view (e.g. the admin form tabs) drops
+     the scrollbar and the whole layout jumps sideways. */
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: var(--font-inter), system-ui, sans-serif;
 }

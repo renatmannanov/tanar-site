@@ -531,12 +531,11 @@ test.describe.serial('availability', () => {
     expect(cart!.items[0].qty).toBe(5);
   });
 
-  test('purchase hints and the return note are visible', async ({ page }) => {
+  test('purchase hint under the CTA is visible', async ({ page }) => {
     await page.goto(`/catalog/${SLUG}`);
     await expect(
       page.getByText(/положите товары в корзину для покупки через WhatsApp/),
     ).toBeVisible();
-    await expect(page.getByText('Возврат 30 дней.')).toBeVisible();
   });
 
   test('375px viewport: indicator and ask-restock visible, no horizontal scroll', async ({

@@ -27,7 +27,6 @@ export default function MarketplaceLinks({
 
   return (
     <div className="mt-6">
-      <p className="mb-2 text-sm text-stone-500">Купить на маркетплейсе:</p>
       <div className="flex flex-wrap gap-3">
         {MARKETPLACE_ORDER.map((m) =>
           marketplaces[m] ? (
