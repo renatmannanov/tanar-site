@@ -9,6 +9,15 @@ const PASSWORD = process.env.ADMIN_PASSWORD;
 const SLUG = 'jacket-sv7-goretex';
 const KASPI_URL = 'https://kaspi.kz/shop/p/test-123';
 const OZON_URL = 'https://www.ozon.ru/product/test-456';
+const SKU_KASPI_URL = 'https://kaspi.kz/shop/p/sku-test-001';
+
+/** Kaspi/Ozon input of the per-SKU links table row holding the given article. */
+function skuRowInput(page: Page, article: string, key: 'kaspi' | 'ozon') {
+  return page
+    .locator('tr')
+    .filter({ hasText: article })
+    .getByTestId(`sku-mp-${key}`);
+}
 
 async function login(page: Page) {
   await page.goto('/admin/login');
@@ -39,6 +48,7 @@ test.describe.serial('admin marketplaces', () => {
   }) => {
     await login(page);
     await page.goto(`/admin/catalog/${SLUG}/edit`);
+    await page.getByTestId('tab-marketplaces').click();
     await page.getByTestId('mp-kaspi').fill(KASPI_URL);
     await saveProduct(page);
 
@@ -54,6 +64,7 @@ test.describe.serial('admin marketplaces', () => {
   test('clearing the Kaspi link removes the button', async ({ page }) => {
     await login(page);
     await page.goto(`/admin/catalog/${SLUG}/edit`);
+    await page.getByTestId('tab-marketplaces').click();
     await expect(page.getByTestId('mp-kaspi')).toHaveValue(KASPI_URL);
     await page.getByTestId('mp-kaspi').fill('');
     await saveProduct(page);
@@ -68,6 +79,7 @@ test.describe.serial('admin marketplaces', () => {
   test('filling Ozon link shows the Ozon button', async ({ page }) => {
     await login(page);
     await page.goto(`/admin/catalog/${SLUG}/edit`);
+    await page.getByTestId('tab-marketplaces').click();
     await page.getByTestId('mp-ozon').fill(OZON_URL);
     await saveProduct(page);
 
@@ -75,5 +87,58 @@ test.describe.serial('admin marketplaces', () => {
     const ozon = page.getByRole('link', { name: 'Ozon', exact: true });
     await expect(ozon).toHaveAttribute('href', OZON_URL);
     await expect(page.getByText(/другие страны — Ozon/)).toBeVisible();
+  });
+});
+
+// Per-SKU links: the «Маркетплейсы» tab in the admin form. afterAll's db:seed
+// restores the canonical catalog after the edits below.
+test.describe.serial('per-sku links', () => {
+  test('tabs switch panels and keep the entered value', async ({ page }) => {
+    await login(page);
+    await page.goto(`/admin/catalog/${SLUG}/edit`);
+
+    // Default tab is «Товар»: product fields visible, sku links hidden.
+    await expect(page.locator('#name')).toBeVisible();
+    await expect(skuRowInput(page, 'TANAR-001', 'ozon')).toBeHidden();
+
+    await page.getByTestId('tab-marketplaces').click();
+    await expect(skuRowInput(page, 'TANAR-001', 'ozon')).toBeVisible();
+    await expect(page.locator('#name')).toBeHidden();
+
+    // State survives a round-trip through the other tab (panels are hidden,
+    // not unmounted).
+    await skuRowInput(page, 'TANAR-001', 'ozon').fill('https://ozon.kz/product/tab-roundtrip');
+    await page.getByTestId('tab-product').click();
+    await page.getByTestId('tab-marketplaces').click();
+    await expect(skuRowInput(page, 'TANAR-001', 'ozon')).toHaveValue(
+      'https://ozon.kz/product/tab-roundtrip',
+    );
+  });
+
+  test('saving writes sku links; reopen shows them', async ({ page }) => {
+    await login(page);
+    await page.goto(`/admin/catalog/${SLUG}/edit`);
+    await page.getByTestId('tab-marketplaces').click();
+    await skuRowInput(page, 'TANAR-001', 'kaspi').fill(SKU_KASPI_URL);
+    await saveProduct(page);
+
+    await page.goto(`/admin/catalog/${SLUG}/edit`);
+    await page.getByTestId('tab-marketplaces').click();
+    await expect(skuRowInput(page, 'TANAR-001', 'kaspi')).toHaveValue(SKU_KASPI_URL);
+  });
+
+  test('saving from the product tab does not wipe sku links (regression)', async ({
+    page,
+  }) => {
+    await login(page);
+    await page.goto(`/admin/catalog/${SLUG}/edit`);
+    // Touch only the product tab — the mapper must still pass sku.marketplaces
+    // through, or upsertSkus' full replace would silently erase the links.
+    await page.locator('#description').fill('Описание после регрессионного сохранения.');
+    await saveProduct(page);
+
+    await page.goto(`/admin/catalog/${SLUG}/edit`);
+    await page.getByTestId('tab-marketplaces').click();
+    await expect(skuRowInput(page, 'TANAR-001', 'kaspi')).toHaveValue(SKU_KASPI_URL);
   });
 });

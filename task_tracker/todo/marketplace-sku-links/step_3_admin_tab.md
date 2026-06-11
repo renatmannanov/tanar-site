@@ -1,7 +1,7 @@
 # Шаг 3: Табы «Товар» / «Маркетплейсы» в ProductForm
 
 > Зависит от: шаг 1 (sku.marketplaces в ProductInput)
-> Статус: [ ] pending
+> Статус: [x] done (полный test:e2e и build — в шаге 5; см. Learnings в progress.md про hidden+flex)
 
 ## Задача
 
