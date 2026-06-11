@@ -117,6 +117,22 @@ services:
       postgres:
         condition: service_healthy
 
+  # Idempotent seed of per-SKU marketplace links from the committed snapshot
+  # (src/core/db/marketplace-links.json). Touches ONLY skus.marketplaces —
+  # safe on prod, no ALLOW_PROD_SEED. Rebuild with --no-cache before running
+  # (tools images are NOT rebuilt by a plain `build --no-cache`).
+  seed-marketplace-links:
+    profiles: ["tools"]
+    build:
+      context: .
+      target: builder
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    command: ["npx", "tsx", "-r", "tsconfig-paths/register", "src/core/db/seed-marketplace-links.ts"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   push-media:
     profiles: ["tools"]
     build:

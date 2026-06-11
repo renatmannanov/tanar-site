@@ -29,6 +29,7 @@ function mapSku(row: SkuRow): Sku {
     priceOverride: row.priceOverride ?? undefined,
     stockQty: row.stockQty,
     reservedQty: row.reservedQty,
+    marketplaces: row.marketplaces,
   };
 }
 
@@ -270,6 +271,8 @@ const skuInputSchema = z.object({
   article: z.string().nullable().optional(),
   priceOverride: z.number().int().nullable().optional(),
   stockQty: z.number().int().min(0).optional(),
+  // partialRecord, NOT record — see the product-level note below.
+  marketplaces: z.partialRecord(z.enum(MarketplaceValues), z.string()).optional(),
 });
 
 const variantInputSchema = z.object({
@@ -359,6 +362,7 @@ async function insertSkus(
       priceOverride: sku.priceOverride ?? null,
       stockQty: sku.stockQty ?? 0,
       reservedQty: 0,
+      marketplaces: sku.marketplaces ?? {},
     })),
   );
 }
@@ -401,6 +405,8 @@ async function upsertSkus(
         });
       }
       // UPDATE — reservedQty deliberately omitted so it is preserved.
+      // marketplaces is a FULL replace (the form is the source of truth) —
+      // the admin mapper must always pass it through, or saving wipes links.
       await tx
         .update(schema.skus)
         .set({
@@ -408,6 +414,7 @@ async function upsertSkus(
           article: sku.article ?? null,
           priceOverride: sku.priceOverride ?? null,
           stockQty: newStock,
+          marketplaces: sku.marketplaces ?? {},
           updatedAt: new Date(),
         })
         .where(eq(schema.skus.id, current.id));

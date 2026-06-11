@@ -62,6 +62,10 @@ export default function ProductForm({
   const [form, setForm] = useState<ProductInput>(initial ?? EMPTY_INPUT);
   const [error, setError] = useState<string | undefined>();
   const [pending, startTransition] = useTransition();
+  // Inactive tab panels stay mounted and are hidden via the `hidden` attribute
+  // (NOT unmounted) — the inputs are controlled, but keeping the DOM preserves
+  // scroll position and costs nothing. One form, one submit for both tabs.
+  const [tab, setTab] = useState<'product' | 'marketplaces'>('product');
 
   function onDelete() {
     setError(undefined);
@@ -85,6 +89,36 @@ export default function ProductForm({
       else next[key] = value;
       return { ...f, marketplaces: Object.keys(next).length ? next : undefined };
     });
+  }
+
+  // Per-SKU mirror of patchMarketplace: empty value removes the key, an empty
+  // map becomes undefined (matches cleanMarketplaces in the read→write adapter).
+  function patchSkuMarketplace(
+    vi: number,
+    si: number,
+    key: 'kaspi' | 'ozon',
+    value: string,
+  ) {
+    setForm((f) => ({
+      ...f,
+      variants: f.variants.map((v, i) =>
+        i === vi
+          ? {
+              ...v,
+              skus: v.skus.map((s, j) => {
+                if (j !== si) return s;
+                const next = { ...s.marketplaces };
+                if (value.trim() === '') delete next[key];
+                else next[key] = value;
+                return {
+                  ...s,
+                  marketplaces: Object.keys(next).length ? next : undefined,
+                };
+              }),
+            }
+          : v,
+      ),
+    }));
   }
 
   function patchVariant(vi: number, p: Partial<ProductInput['variants'][number]>) {
@@ -176,6 +210,44 @@ export default function ProductForm({
 
   return (
     <form onSubmit={onSubmit} className="flex max-w-3xl flex-col gap-6">
+      <div role="tablist" className="flex gap-1 border-b border-gray-200">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'product'}
+          data-testid="tab-product"
+          onClick={() => setTab('product')}
+          className={`px-3 py-2 text-sm ${
+            tab === 'product'
+              ? '-mb-px border-b-2 border-gray-900 font-medium text-gray-900'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Товар
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'marketplaces'}
+          data-testid="tab-marketplaces"
+          onClick={() => setTab('marketplaces')}
+          className={`px-3 py-2 text-sm ${
+            tab === 'marketplaces'
+              ? '-mb-px border-b-2 border-gray-900 font-medium text-gray-900'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Маркетплейсы
+        </button>
+      </div>
+
+      {/* `hidden` alone is not enough: the `flex` utility outranks the UA
+          [hidden]{display:none} rule, so the display class must be conditional
+          too. Panels stay mounted either way — state and scroll survive. */}
+      <div
+        hidden={tab !== 'product'}
+        className={tab === 'product' ? 'flex flex-col gap-6' : 'hidden'}
+      >
       {/* Core fields */}
       <section className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1">
@@ -246,31 +318,6 @@ export default function ProductForm({
             type="number"
             value={form.priceBase}
             onChange={(e) => patch({ priceBase: Number(e.target.value) })}
-          />
-        </div>
-      </section>
-
-      <section className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="mp-kaspi">Ссылка Kaspi</Label>
-          <Input
-            id="mp-kaspi"
-            type="url"
-            placeholder="https://…"
-            data-testid="mp-kaspi"
-            value={form.marketplaces?.kaspi ?? ''}
-            onChange={(e) => patchMarketplace('kaspi', e.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="mp-ozon">Ссылка Ozon</Label>
-          <Input
-            id="mp-ozon"
-            type="url"
-            placeholder="https://…"
-            data-testid="mp-ozon"
-            value={form.marketplaces?.ozon ?? ''}
-            onChange={(e) => patchMarketplace('ozon', e.target.value)}
           />
         </div>
       </section>
@@ -491,6 +538,100 @@ export default function ProductForm({
           + Цвет
         </Button>
       </section>
+      </div>
+
+      <div
+        hidden={tab !== 'marketplaces'}
+        className={tab === 'marketplaces' ? 'flex flex-col gap-6' : 'hidden'}
+      >
+        <section className="flex flex-col gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700">Ссылки товара</h2>
+            <p className="text-xs text-gray-400">
+              Запасные ссылки товара — показываются, пока размер не выбран.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="mp-kaspi">Ссылка Kaspi</Label>
+              <Input
+                id="mp-kaspi"
+                type="url"
+                placeholder="https://…"
+                data-testid="mp-kaspi"
+                value={form.marketplaces?.kaspi ?? ''}
+                onChange={(e) => patchMarketplace('kaspi', e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="mp-ozon">Ссылка Ozon</Label>
+              <Input
+                id="mp-ozon"
+                type="url"
+                placeholder="https://…"
+                data-testid="mp-ozon"
+                value={form.marketplaces?.ozon ?? ''}
+                onChange={(e) => patchMarketplace('ozon', e.target.value)}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Per-SKU links (Kaspi lists every color+size as its own card). Size
+            and article are read-only here — they are edited on the «Товар» tab. */}
+        <section className="flex flex-col gap-4">
+          <h2 className="text-sm font-semibold text-gray-700">Ссылки размеров</h2>
+          {form.variants.map((v, vi) => (
+            <div key={vi} className="rounded-md border border-gray-200 p-4">
+              <h3 className="mb-2 text-xs font-semibold text-gray-700">
+                {v.colorLabel || v.colorId || 'без названия'}
+              </h3>
+              <table className="w-full text-sm">
+                <thead className="text-left text-gray-500">
+                  <tr>
+                    <th className="py-1 font-medium">Размер</th>
+                    <th className="py-1 font-medium">Артикул</th>
+                    <th className="py-1 font-medium">Ozon</th>
+                    <th className="py-1 font-medium">Kaspi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {v.skus.map((s, si) => (
+                    <tr key={si}>
+                      <td className="py-1 pr-2 whitespace-nowrap">
+                        {s.ruSize ? `${s.size} / ${s.ruSize}` : s.size || '—'}
+                      </td>
+                      <td className="py-1 pr-2 whitespace-nowrap">{s.article || '—'}</td>
+                      <td className="py-1 pr-2">
+                        <Input
+                          type="url"
+                          placeholder="https://…"
+                          data-testid="sku-mp-ozon"
+                          value={s.marketplaces?.ozon ?? ''}
+                          onChange={(e) =>
+                            patchSkuMarketplace(vi, si, 'ozon', e.target.value)
+                          }
+                        />
+                      </td>
+                      <td className="py-1">
+                        <Input
+                          type="url"
+                          placeholder="https://…"
+                          data-testid="sku-mp-kaspi"
+                          value={s.marketplaces?.kaspi ?? ''}
+                          onChange={(e) =>
+                            patchSkuMarketplace(vi, si, 'kaspi', e.target.value)
+                          }
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </section>
+      </div>
 
       {error ? (
         <p className="text-sm text-red-600" role="alert">

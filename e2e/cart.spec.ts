@@ -101,11 +101,13 @@ test.describe('add to cart', () => {
     await expect(page.getByTestId('add-to-cart')).toHaveText('Выберите размер');
   });
 
-  test('published product shows the cart/marketplace geography line', async ({
+  test('published product explains the cart purchase under the CTA', async ({
     page,
   }) => {
     await page.goto(PRODUCT_URL);
-    await expect(page.getByText(/Алматы — заказ через корзину/)).toBeVisible();
+    await expect(
+      page.getByText(/положите товары в корзину для покупки через WhatsApp/),
+    ).toBeVisible();
   });
 });
 
@@ -529,10 +531,11 @@ test.describe.serial('availability', () => {
     expect(cart!.items[0].qty).toBe(5);
   });
 
-  test('geography line moved right but is still visible', async ({ page }) => {
+  test('purchase hint under the CTA is visible', async ({ page }) => {
     await page.goto(`/catalog/${SLUG}`);
-    await expect(page.getByText(/Алматы — заказ через корзину/)).toBeVisible();
-    await expect(page.getByText('Возврат 30 дней.')).toBeVisible();
+    await expect(
+      page.getByText(/положите товары в корзину для покупки через WhatsApp/),
+    ).toBeVisible();
   });
 
   test('375px viewport: indicator and ask-restock visible, no horizontal scroll', async ({

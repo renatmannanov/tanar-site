@@ -19,6 +19,7 @@
     "db:push": "drizzle-kit push",
     "db:seed": "tsx --env-file=.env.local -r tsconfig-paths/register src/core/db/seed.ts",
     "db:seed-site": "tsx --env-file=.env.local -r tsconfig-paths/register src/core/db/seed-site.ts",
+    "db:seed-mp-links": "tsx --env-file=.env.local -r tsconfig-paths/register src/core/db/seed-marketplace-links.ts",
     "db:reset": "tsx --env-file=.env.local -r tsconfig-paths/register src/core/db/reset.ts"
   },
   "engines": {
