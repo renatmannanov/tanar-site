@@ -45,7 +45,7 @@ test.afterAll(() => {
 });
 
 test.describe.serial('admin marketplaces', () => {
-  test('filling Kaspi link shows the button and geography segment', async ({
+  test('filling Kaspi link shows the button and the marketplace hint', async ({
     page,
   }) => {
     await login(page);
@@ -57,9 +57,9 @@ test.describe.serial('admin marketplaces', () => {
     await page.goto(`/catalog/${SLUG}`);
     const kaspi = page.getByRole('link', { name: 'Kaspi', exact: true });
     await expect(kaspi).toHaveAttribute('href', KASPI_URL);
-    // Geography line gains the Kaspi segment only when the link is set.
+    // The marketplace block carries its own explainer caption.
     await expect(
-      page.getByText(/Алматы — заказ через корзину · Казахстан — Kaspi/),
+      page.getByText(/перейдите по ссылкам на маркетплейсы/),
     ).toBeVisible();
   });
 
@@ -75,7 +75,6 @@ test.describe.serial('admin marketplaces', () => {
     await expect(
       page.getByRole('link', { name: 'Kaspi', exact: true }),
     ).toHaveCount(0);
-    await expect(page.getByText(/Казахстан — Kaspi/)).toHaveCount(0);
   });
 
   test('filling Ozon link shows the Ozon button', async ({ page }) => {
@@ -88,7 +87,6 @@ test.describe.serial('admin marketplaces', () => {
     await page.goto(`/catalog/${SLUG}`);
     const ozon = page.getByRole('link', { name: 'Ozon', exact: true });
     await expect(ozon).toHaveAttribute('href', OZON_URL);
-    await expect(page.getByText(/другие страны — Ozon/)).toBeVisible();
   });
 });
 
@@ -186,5 +184,40 @@ test.describe.serial('per-sku links', () => {
     await sizeM.click();
     await expect(kaspi).toHaveAttribute('href', SKU_M_KASPI_URL);
     await expect(ozon).toHaveCount(0);
+  });
+
+  test('buttons are greyed before a size is picked when only sku links exist', async ({
+    page,
+  }) => {
+    // Clear the product-level Kaspi fallback; TANAR-001 (Чёрный M) keeps its
+    // sku link from the previous test.
+    await login(page);
+    await page.goto(`/admin/catalog/${SLUG}/edit`);
+    await page.getByTestId('tab-marketplaces').click();
+    await page.getByTestId('mp-kaspi').fill('');
+    await saveProduct(page);
+
+    await page.goto(`/catalog/${SLUG}`);
+    const black = page.getByRole('button', { name: 'Чёрный', exact: true });
+    await black.click();
+    await expect(black).toHaveAttribute('aria-pressed', 'true');
+
+    const kaspiLink = page.getByRole('link', { name: 'Kaspi', exact: true });
+    const sizeM = page.getByTestId('size-option').filter({ hasText: /^M \// });
+    const sizeL = page.getByTestId('size-option').filter({ hasText: /^L \// });
+
+    // No size picked → the block is visible but the buttons are inactive.
+    await expect(page.getByTestId('mp-disabled-kaspi')).toBeVisible();
+    await expect(kaspiLink).toHaveCount(0);
+
+    // Picking the size with a link activates the button…
+    await sizeM.click();
+    await expect(kaspiLink).toHaveAttribute('href', SKU_M_KASPI_URL);
+    await expect(page.getByTestId('mp-disabled-kaspi')).toHaveCount(0);
+
+    // …and a size without one greys it back.
+    await sizeL.click();
+    await expect(page.getByTestId('mp-disabled-kaspi')).toBeVisible();
+    await expect(kaspiLink).toHaveCount(0);
   });
 });

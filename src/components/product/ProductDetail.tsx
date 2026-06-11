@@ -98,6 +98,13 @@ export default function ProductDetail({
       Object.entries(selectedSku?.marketplaces ?? {}).filter(([, v]) => !!v),
     ),
   } as Partial<Record<Marketplace, string>>;
+  // The product is listed on a marketplace at all (any level, any sku) → the
+  // buttons block is always visible, greyed until the selection has a link.
+  const hasMarketplacePresence =
+    Object.values(product.marketplaces ?? {}).some(Boolean) ||
+    variants.some((v) =>
+      v.skus.some((s) => Object.values(s.marketplaces ?? {}).some(Boolean)),
+    );
 
   const available = selectedSku ? availableQty(selectedSku) : 0;
   // available > 0 → the level is never 'out' (the cast keeps DOT_BG exhaustive).
@@ -187,9 +194,26 @@ export default function ProductDetail({
           {product.name}
         </h1>
 
-        <p className="mt-4 font-display text-3xl font-bold text-stone-900">
-          {formatPrice(product.price)}
-        </p>
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <p className="font-display text-3xl font-bold text-stone-900">
+            {formatPrice(product.price)}
+          </p>
+          {/* Availability lives next to the price (right-aligned), not in the
+              purchase block — it describes the picked size, not the buttons. */}
+          {level ? (
+            <span
+              data-testid="stock-indicator"
+              data-level={level}
+              className="flex items-center gap-1.5 whitespace-nowrap text-xs text-stone-400"
+            >
+              <span
+                aria-hidden="true"
+                className={`h-2 w-2 rounded-full ${DOT_BG[level]}`}
+              />
+              В наличии
+            </span>
+          ) : null}
+        </div>
 
         {variants.length > 1 && activeVariant && (
           <div className="mt-6">
@@ -301,33 +325,15 @@ export default function ProductDetail({
           ) : (
             <AddToCartButton item={cartItem} />
           )}
-          {/* The geography line below intentionally stays on product.marketplaces —
-              its segments must not flicker as sizes are picked. */}
-          <MarketplaceLinks marketplaces={effectiveMarketplaces} />
-          <div className="mt-3 flex items-start justify-between gap-4 text-xs text-stone-400">
-            {level ? (
-              <span
-                data-testid="stock-indicator"
-                data-level={level}
-                className="flex items-center gap-1.5 whitespace-nowrap"
-              >
-                <span
-                  aria-hidden="true"
-                  className={`h-2 w-2 rounded-full ${DOT_BG[level]}`}
-                />
-                В наличии
-              </span>
-            ) : (
-              <span />
-            )}
-            <span className="text-right">
-              Алматы — заказ через корзину
-              {product.marketplaces?.kaspi ? ' · Казахстан — Kaspi' : ''}
-              {product.marketplaces?.ozon ? ' · другие страны — Ozon' : ''}
-              <br />
-              Возврат 30 дней.
-            </span>
-          </div>
+          <p className="mt-2 text-xs text-stone-400">
+            * положите товары в корзину для покупки через WhatsApp и нашего
+            консультанта
+          </p>
+          <MarketplaceLinks
+            marketplaces={effectiveMarketplaces}
+            showWhenEmpty={hasMarketplacePresence}
+          />
+          <p className="mt-4 text-xs text-stone-400">Возврат 30 дней.</p>
         </div>
       </div>
     </div>
