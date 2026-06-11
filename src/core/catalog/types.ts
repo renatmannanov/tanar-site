@@ -16,6 +16,11 @@ export type Sku = {
   priceOverride?: number;
   stockQty: number;
   reservedQty: number;
+  /**
+   * Per-SKU marketplace links (Kaspi lists every color+size as its own card).
+   * Not optional: the column is NOT NULL DEFAULT '{}' and mapSku always fills it.
+   */
+  marketplaces: Partial<Record<Marketplace, string>>;
 };
 
 export type ProductColor = {

@@ -43,6 +43,13 @@
       "when": 1781080820231,
       "tag": "0005_nervous_psynapse",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781155241971,
+      "tag": "0006_even_blizzard",
+      "breakpoints": true
     }
   ]
 }
