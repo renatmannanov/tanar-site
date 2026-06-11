@@ -47,6 +47,9 @@ export function productToInput(p: Product): ProductInput {
         article: sku.article,
         priceOverride: sku.priceOverride,
         stockQty: sku.stockQty,
+        // MUST be passed through: upsertSkus does a full replace (`?? {}`) —
+        // dropping this line would silently wipe sku links on every save.
+        marketplaces: cleanMarketplaces(sku.marketplaces),
       })),
     })),
   };

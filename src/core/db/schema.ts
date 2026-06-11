@@ -88,6 +88,13 @@ export const skus = pgTable(
     barcode: text('barcode'),
     stockQty: integer('stock_qty').notNull().default(0),
     reservedQty: integer('reserved_qty').notNull().default(0),
+    // Per-SKU marketplace links (Kaspi does not group variants — every
+    // color+size is its own card). Product-level products.marketplaces stays
+    // as the fallback shown until a size is picked.
+    marketplaces: jsonb('marketplaces')
+      .$type<Partial<Record<Marketplace, string>>>()
+      .notNull()
+      .default({}),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -5,7 +5,12 @@ import { useMemo, useState } from 'react';
 import AddToCartButton from '@/components/cart/AddToCartButton';
 import MarketplaceLinks from '@/components/product/MarketplaceLinks';
 import Placeholder from '@/components/Placeholder';
-import { formatPrice, getProductGradient, type Product } from '@/core/catalog/client';
+import {
+  formatPrice,
+  getProductGradient,
+  type Marketplace,
+  type Product,
+} from '@/core/catalog/client';
 // Client component → '@/core/inventory/client', never the server barrel
 // (it pulls postgres into the bundle and breaks the build).
 import { availableQty, stockLevel, type StockLevel } from '@/core/inventory/client';
@@ -84,6 +89,15 @@ export default function ProductDetail({
     sizes.length === 1
       ? sizes[0]
       : (sizes.find((s) => s.id === selectedSkuId) ?? null);
+
+  // Sku-level links override the product-level fallbacks; missing keys fall
+  // back per-marketplace (Kaspi may be per-size while Ozon stays product-wide).
+  const effectiveMarketplaces = {
+    ...product.marketplaces,
+    ...Object.fromEntries(
+      Object.entries(selectedSku?.marketplaces ?? {}).filter(([, v]) => !!v),
+    ),
+  } as Partial<Record<Marketplace, string>>;
 
   const available = selectedSku ? availableQty(selectedSku) : 0;
   // available > 0 → the level is never 'out' (the cast keeps DOT_BG exhaustive).
@@ -287,7 +301,9 @@ export default function ProductDetail({
           ) : (
             <AddToCartButton item={cartItem} />
           )}
-          {product.marketplaces && <MarketplaceLinks marketplaces={product.marketplaces} />}
+          {/* The geography line below intentionally stays on product.marketplaces —
+              its segments must not flicker as sizes are picked. */}
+          <MarketplaceLinks marketplaces={effectiveMarketplaces} />
           <div className="mt-3 flex items-start justify-between gap-4 text-xs text-stone-400">
             {level ? (
               <span
